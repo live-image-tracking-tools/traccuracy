@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import copy
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag, TrackingGraph
-from traccuracy.matchers._base import Matched
+
+if TYPE_CHECKING:
+    from traccuracy.matchers._base import Matched
 
 
 def get_corrected_division_graphs_with_delta(
