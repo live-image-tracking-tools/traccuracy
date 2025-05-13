@@ -5,6 +5,32 @@ as described on the Challenge [website](http://celltrackingchallenge.net/evaluat
 as well as the more general Acyclic Oriented Graph Measure (AOGM) metric, as described in [this
 paper](https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0144959&type=printable).
 
+These metrics can be computed as follows:
+```python
+from traccuracy.loaders import load_ctc_data
+from traccuracy.matchers import CTCMatcher
+from traccuracy.metrics import CTCMetrics
+
+
+gt_data = load_ctc_data(
+    "path/to/GT/TRA",
+    "path/to/GT/TRA/man_track.txt",
+    name="GT"
+)
+pred_data = load_ctc_data(
+    "path/to/prediction",
+    "path/to/prediction/track.txt",
+    name="prediction"
+)
+
+ctc_results, ctc_matched = run_metrics(
+    gt_data=gt_data,
+    pred_data=pred_data,
+    matcher=CTCMatcher(),
+    metrics=[CTCMetrics()]
+)
+```
+
 ## DET
 
 This metric assesses the solution's detection performance only, and therefore only measures
@@ -30,6 +56,12 @@ The final DET score is therefore:
 $$
 DET = 1 - min(AOGM-D, AOGM-D_{0}) / AOGM-D_{0}
 $$
+
+Using the metrics calculated above:
+
+```python
+det = ctc_results["DET"]
+```
 
 ## LNK
 
@@ -57,6 +89,12 @@ $$
 LNK = 1 - min(AOGM-A, AOGM-A_{0}) / AOGM-A_{0}
 $$
 
+Using the results calculated above:
+
+```python
+lnk = ctc_results["LNK"]
+```
+
 ## TRA
 
 The TRA measure assesses the solution's detection *and* tracking performance and therefore
@@ -80,6 +118,12 @@ $$
 TRA = 1 - min(AOGM, AOGM_{0}) / AOGM_{0}
 $$
 
+Using the results calculated above:
+
+```python
+tra = ctc_results["TRA"]
+```
+
 ## AOGM
 
 The AOGM metric is a generalized graph measure that allows users to define their own
@@ -93,3 +137,28 @@ larger numbers mean more errors.
 Note that the same process used to normalize TRA and DET can be used to normalize the
 generalized AOGM - once the weights are chosen, compute the error sum of an empty solution
 and use this to normalize the error sum of the predicted solution.
+
+Using the results calculated above:
+
+```python
+aogm = ctc_results["AOGM"]
+```
+
+## CTC Bio Metrics
+
+The CTC has also introduced a set of metrics that captures biologically inspired metrics. 
+
+### Branching Correctness (BC)
+
+BC is defined as the F1 score for division detection within a given frame tolerance. Division metrics in `traccuracy` require a one-to-one matching, which the `CTCMatcher` can return, but is not guaranteed. Alternatively, other matchers are available as described in <project:../matchers/matchers.md>.
+
+Continuing from the code sample above, BC can be calculated as follows:
+
+```python
+from traccuracy.metrics import DivisionMetrics
+
+assert ctc_matched.matching_type == "one-to-one"
+
+div_results = DivisionMetrics(max_frame_buffer=0).compute(gt_data, pred_data)
+branching_correctness = div_results["Division F1"]
+```
