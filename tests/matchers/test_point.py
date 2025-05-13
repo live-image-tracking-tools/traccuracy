@@ -1,4 +1,5 @@
 import copy
+import re
 
 import networkx as nx
 import numpy as np
@@ -232,9 +233,17 @@ class TestPointMatcher:
     n_labels = 3
     track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
 
-    def test_empty(self):
+    def test_no_loc_key(self):
         data = TrackingGraph(self.track_graph.graph)
-        empty = TrackingGraph(nx.DiGraph())
+        matcher = PointMatcher(threshold=5)
+        with pytest.raises(
+            ValueError, match=re.escape("Must provide location key(s) to access node locations")
+        ):
+            matcher.compute_mapping(data, data)
+
+    def test_empty(self):
+        data = self.track_graph
+        empty = TrackingGraph(nx.DiGraph(), location_keys=data.location_keys)
         matcher = PointMatcher(threshold=5)
         matched = matcher.compute_mapping(data, empty)
         assert matched.matcher_info["name"] == "PointMatcher"
@@ -251,7 +260,7 @@ class TestPointMatcher:
         assert len(matched.mapping) == 0
 
     def test_no_segmentation(self):
-        data = TrackingGraph(self.track_graph.graph)
+        data = self.track_graph
         matcher = PointMatcher(threshold=5)
         matched = matcher.compute_mapping(data, data)
         assert matched.matcher_info["name"] == "PointMatcher"

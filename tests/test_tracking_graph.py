@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 
 import networkx as nx
@@ -131,17 +132,17 @@ def nx_merge():
 
 @pytest.fixture
 def merge_graph(nx_merge):
-    return TrackingGraph(nx_merge)
+    return TrackingGraph(nx_merge, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def simple_graph(nx_comp1):
-    return TrackingGraph(nx_comp1)
+    return TrackingGraph(nx_comp1, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def complex_graph(nx_comp1, nx_comp2):
-    return TrackingGraph(nx.compose(nx_comp1, nx_comp2))
+    return TrackingGraph(nx.compose(nx_comp1, nx_comp2), location_keys=("y", "x"))
 
 
 @pytest.mark.parametrize(
@@ -159,6 +160,22 @@ def test_constructor_and_get_location(graph_name, location_key, request):
         3: {"1_4"},
     }
     assert tracking_graph.get_location("1_3") == [1, 2]
+
+
+def test_no_location(nx_comp1):
+    tracking_graph = TrackingGraph(nx_comp1)
+    assert tracking_graph.start_frame == 0
+    assert tracking_graph.end_frame == 4
+    assert tracking_graph.nodes_by_frame == {
+        0: {"1_0"},
+        1: {"1_1"},
+        2: {"1_2", "1_3"},
+        3: {"1_4"},
+    }
+    with pytest.raises(
+        ValueError, match=re.escape("Must provide location key(s) to access node locations")
+    ):
+        tracking_graph.get_location("1_3")
 
 
 def test_invalid_constructor(nx_comp1):

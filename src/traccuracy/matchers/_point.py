@@ -77,9 +77,9 @@ class PointMatcher(Matcher):
     def _match_frame(
         self,
         gt_nodes: list[Hashable],
-        gt_locations: list[list[float]],
+        gt_locations: list[list[float] | tuple[float] | np.ndarray],
         pred_nodes: list[Hashable],
-        pred_locations: list[list[float]],
+        pred_locations: list[list[float] | tuple[float] | np.ndarray],
     ) -> list[tuple[Any, Any]]:
         mapping: list[tuple[Any, Any]] = []
         if len(gt_nodes) == 0 or len(pred_nodes) == 0:

@@ -145,7 +145,7 @@ class TrackingGraph:
         segmentation: np.ndarray | None = None,
         frame_key: str = "t",
         label_key: str = "segmentation_id",
-        location_keys: str | tuple[str, ...] = ("x", "y"),
+        location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
     ):
         """A directed graph representing a tracking solution where edges go
@@ -175,7 +175,7 @@ class TrackingGraph:
                 needed to index the segmentation, if applicable. Every
                 node must have a value stored at each of these provided keys.
                 If a single string, it is assumed that the location is stored as a list
-                on each node in a single attribute. Defaults to ('x', 'y').
+                or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
         """
@@ -194,11 +194,12 @@ class TrackingGraph:
             _check_valid_key_name(label_key, "label")
         self.label_key = label_key
 
-        if isinstance(location_keys, str):
-            _check_valid_key_name(location_keys, "location")
-        else:
-            for loc_key in location_keys:
-                _check_valid_key_name(loc_key, "location")
+        if location_keys is not None:
+            if isinstance(location_keys, str):
+                _check_valid_key_name(location_keys, "location")
+            else:
+                for loc_key in location_keys:
+                    _check_valid_key_name(loc_key, "location")
         self.location_keys = location_keys
         self.name = name
 
@@ -217,13 +218,16 @@ class TrackingGraph:
             )
 
             # check that every node has the time frame and location specified
-            if isinstance(self.location_keys, str):
-                assert self.location_keys in attrs.keys(), (
-                    f"Location key {self.location_keys} not present for node {node}."
-                )
-            else:
-                for key in self.location_keys:
-                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+            if self.location_keys is not None:
+                if isinstance(self.location_keys, str):
+                    assert self.location_keys in attrs.keys(), (
+                        f"Location key {self.location_keys} not present for node {node}."
+                    )
+                else:
+                    for key in self.location_keys:
+                        assert key in attrs.keys(), (
+                            f"Location key {key} not present for node {node}."
+                        )
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -274,7 +278,7 @@ class TrackingGraph:
         """
         return self.graph.edges
 
-    def get_location(self, node_id: Hashable) -> list[float]:
+    def get_location(self, node_id: Hashable) -> list[float] | tuple[float] | np.ndarray:
         """Get the spatial location of the node with node_id using self.location_keys.
 
         Args:
@@ -282,7 +286,12 @@ class TrackingGraph:
 
         Returns:
             list of float: A list of location values in the same order as self.location_keys
+
+        Raises:
+            ValueError if location keys were not provided
         """
+        if self.location_keys is None:
+            raise ValueError("Must provide location key(s) to access node locations")
         if isinstance(self.location_keys, str):
             return self.graph.nodes[node_id][self.location_keys]
         else:
