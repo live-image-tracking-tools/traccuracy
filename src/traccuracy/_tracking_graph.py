@@ -363,7 +363,7 @@ class TrackingGraph:
             nodes (list): A list of node ids to use in constructing the subgraph
         """
         # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
-        new_graph = cast(nx.DiGraph, self.graph.subgraph(nodes).copy())
+        new_graph = cast("nx.DiGraph", self.graph.subgraph(nodes).copy())
 
         new_trackgraph = copy.deepcopy(self)
         new_trackgraph.graph = new_graph
@@ -558,7 +558,7 @@ class TrackingGraph:
         div_edges = []
         for edge in self.graph.edges:
             # When passing in a single node, output will be int
-            out_degree = cast(int, self.graph.out_degree(edge[0]))
+            out_degree = cast("int", self.graph.out_degree(edge[0]))
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
@@ -582,4 +582,4 @@ class TrackingGraph:
                         tracklet.add(parent)
 
         # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
-        return [cast(nx.DiGraph, self.graph.subgraph(g)) for g in tracklets]
+        return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in tracklets]
