@@ -29,6 +29,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
+    "click<8.2.0",
     "numpy",
     "networkx",
     "pandas",
