@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     from traccuracy.matchers._base import Matched
 
 
+__all__ = ["get_corrected_division_graphs_with_delta"]
+
+
 def get_corrected_division_graphs_with_delta(
     matched: Matched, frame_buffer: int = 0
 ) -> tuple[TrackingGraph, TrackingGraph]:
