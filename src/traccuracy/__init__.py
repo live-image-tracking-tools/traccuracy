@@ -9,5 +9,12 @@ except PackageNotFoundError:  # pragma: no cover
 
 from ._run_metrics import run_metrics
 from ._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
+from ._utils import get_corrected_division_graphs_with_delta
 
-__all__ = ["EdgeFlag", "NodeFlag", "TrackingGraph", "run_metrics"]
+__all__ = [
+    "EdgeFlag",
+    "NodeFlag",
+    "TrackingGraph",
+    "get_corrected_division_graphs_with_delta",
+    "run_metrics",
+]
