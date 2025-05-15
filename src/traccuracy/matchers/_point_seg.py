@@ -78,7 +78,7 @@ class PointSegMatcher(Matcher):
 
 
 def match_point_to_seg(
-    node_ids: list[Hashable], locs: list[list[float]], seg: np.ndarray
+    node_ids: list[Hashable], locs: list[list[float] | np.ndarray | tuple[float]], seg: np.ndarray
 ) -> dict[Hashable, int]:
     """For a single timepoint, identify the segmentation ids which a set of points index into
 

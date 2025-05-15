@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 
 import networkx as nx
@@ -24,6 +25,37 @@ def nx_comp1():
         {"id": "1_2", "t": 2, "y": 1, "x": 0},
         {"id": "1_3", "t": 2, "y": 1, "x": 2},
         {"id": "1_4", "t": 3, "y": 1, "x": 2},
+    ]
+
+    edges = [
+        {"source": "1_0", "target": "1_1", "is_tp": True},
+        {"source": "1_1", "target": "1_2", "is_tp": False},
+        {"source": "1_1", "target": "1_3"},
+        {"source": "1_3", "target": "1_4"},
+    ]
+    graph = nx.DiGraph()
+    graph.add_nodes_from([(cell["id"], cell) for cell in cells])
+    graph.add_edges_from([(edge["source"], edge["target"], edge) for edge in edges])
+    return graph
+
+
+@pytest.fixture
+def nx_comp1_pos_list():
+    """Component 1: Y=1
+    x
+    3|
+    2|       /--1_3--1_4
+    1| 1_0--1_1
+    0|       \\--1_2
+    ---------------------- t
+        0    1   2    3
+    """
+    cells = [
+        {"id": "1_0", "t": 0, "pos": [1, 1]},
+        {"id": "1_1", "t": 1, "pos": [1, 1], "is_tp_division": True},
+        {"id": "1_2", "t": 2, "pos": [1, 0]},
+        {"id": "1_3", "t": 2, "pos": [1, 2]},
+        {"id": "1_4", "t": 3, "pos": [1, 2]},
     ]
 
     edges = [
@@ -100,20 +132,37 @@ def nx_merge():
 
 @pytest.fixture
 def merge_graph(nx_merge):
-    return TrackingGraph(nx_merge)
+    return TrackingGraph(nx_merge, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def simple_graph(nx_comp1):
-    return TrackingGraph(nx_comp1)
+    return TrackingGraph(nx_comp1, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def complex_graph(nx_comp1, nx_comp2):
-    return TrackingGraph(nx.compose(nx_comp1, nx_comp2))
+    return TrackingGraph(nx.compose(nx_comp1, nx_comp2), location_keys=("y", "x"))
 
 
-def test_constructor(nx_comp1):
+@pytest.mark.parametrize(
+    ("graph_name", "location_key"), [("nx_comp1", ("y", "x")), ("nx_comp1_pos_list", "pos")]
+)
+def test_constructor_and_get_location(graph_name, location_key, request):
+    nx_graph = request.getfixturevalue(graph_name)
+    tracking_graph = TrackingGraph(nx_graph, location_keys=location_key)
+    assert tracking_graph.start_frame == 0
+    assert tracking_graph.end_frame == 4
+    assert tracking_graph.nodes_by_frame == {
+        0: {"1_0"},
+        1: {"1_1"},
+        2: {"1_2", "1_3"},
+        3: {"1_4"},
+    }
+    assert tracking_graph.get_location("1_3") == [1, 2]
+
+
+def test_no_location(nx_comp1):
     tracking_graph = TrackingGraph(nx_comp1)
     assert tracking_graph.start_frame == 0
     assert tracking_graph.end_frame == 4
@@ -123,17 +172,27 @@ def test_constructor(nx_comp1):
         2: {"1_2", "1_3"},
         3: {"1_4"},
     }
+    with pytest.raises(
+        ValueError, match=re.escape("Must provide location key(s) to access node locations")
+    ):
+        tracking_graph.get_location("1_3")
 
+
+def test_invalid_constructor(nx_comp1):
     # raise AssertionError if frame key not present or ValueError if overlaps
     # with reserved values
     with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*."):
         TrackingGraph(nx_comp1, frame_key="f")
     with pytest.raises(ValueError):
         TrackingGraph(nx_comp1, frame_key=NodeFlag.CTC_FALSE_NEG)
+    with pytest.raises(ValueError):
+        TrackingGraph(nx_comp1, location_keys=NodeFlag.CTC_FALSE_NEG.value)
     with pytest.raises(AssertionError):
         TrackingGraph(nx_comp1, location_keys=["x", "y", "z"])
     with pytest.raises(ValueError):
         TrackingGraph(nx_comp1, location_keys=["x", NodeFlag.CTC_FALSE_NEG])
+    with pytest.raises(AssertionError, match=r"Location key .* not present for node .*."):
+        TrackingGraph(nx_comp1, location_keys="pos")
 
 
 def test_constructor_seg(nx_comp1):
