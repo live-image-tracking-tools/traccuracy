@@ -60,7 +60,7 @@ $$
 Using the metrics calculated above:
 
 ```python
-det = ctc_results["DET"]
+det = ctc_results.results["DET"]
 ```
 
 ## LNK
@@ -92,7 +92,7 @@ $$
 Using the results calculated above:
 
 ```python
-lnk = ctc_results["LNK"]
+lnk = ctc_results.results["LNK"]
 ```
 
 ## TRA
@@ -121,7 +121,7 @@ $$
 Using the results calculated above:
 
 ```python
-tra = ctc_results["TRA"]
+tra = ctc_results.results["TRA"]
 ```
 
 ## AOGM
@@ -141,7 +141,7 @@ and use this to normalize the error sum of the predicted solution.
 Using the results calculated above:
 
 ```python
-aogm = ctc_results["AOGM"]
+aogm = ctc_results.results["AOGM"]
 ```
 
 ## CTC Bio Metrics
@@ -160,5 +160,5 @@ from traccuracy.metrics import DivisionMetrics
 assert ctc_matched.matching_type == "one-to-one"
 
 div_results = DivisionMetrics(max_frame_buffer=0).compute(gt_data, pred_data)
-branching_correctness = div_results["Division F1"]
+branching_correctness = div_results.results["Division F1"]
 ```
