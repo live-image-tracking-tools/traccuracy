@@ -52,6 +52,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["DivisionMetrics"]
+
 
 class DivisionMetrics(Metric):
     """Classify division events and provide the following summary metrics

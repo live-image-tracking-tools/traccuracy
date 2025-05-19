@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
     from traccuracy.matchers import Matched
 
+__all__ = ["TrackOverlapMetrics"]
+
 
 class TrackOverlapMetrics(Metric):
     """Calculate metrics for longest track overlaps.

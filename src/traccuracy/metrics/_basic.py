@@ -12,6 +12,8 @@ from ._base import Metric
 if TYPE_CHECKING:
     from traccuracy.matchers import Matched
 
+__all__ = ["BasicMetrics"]
+
 
 class BasicMetrics(Metric):
     """Generates basic statistics describing node and edge errors"""
