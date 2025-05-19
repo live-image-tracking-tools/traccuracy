@@ -165,7 +165,7 @@ branching_correctness = div_results.results["Division F1"]
 
 ### Cell Cycle Accuracy (CCA)
 
-The CCA metric captures the ability of an method identify a distribution of cell
+The CCA metric captures the ability of a method to identify a distribution of cell
 cycle lengths that matches the distribution present in the ground truth. The evaluation
 is done on distributions and therefore does not require a matching of solution to the
 ground truth. It ranges from [0,1] with higher values indicating better performance.
