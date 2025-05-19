@@ -14,8 +14,6 @@ from ._compute_overlap import get_labels_with_overlap
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-__all__ = ["IOUMatcher"]
-
 
 def _match_nodes(
     gt: np.ndarray, res: np.ndarray, threshold: float = 0.5, one_to_one: bool = False

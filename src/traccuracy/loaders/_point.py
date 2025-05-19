@@ -6,8 +6,6 @@ import pandas as pd
 
 from traccuracy._tracking_graph import TrackingGraph
 
-__all__ = ["load_point_data"]
-
 
 def load_point_data(
     path: str | None = None,

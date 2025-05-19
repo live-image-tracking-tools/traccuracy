@@ -3,7 +3,6 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from tests.test_utils import get_division_graphs
 from traccuracy import NodeFlag, TrackingGraph
-from traccuracy._utils import get_corrected_division_graphs_with_delta
 from traccuracy.matchers import Matched
 from traccuracy.track_errors.divisions import (
     _classify_divisions,
@@ -12,6 +11,7 @@ from traccuracy.track_errors.divisions import (
     _get_pred_by_t,
     _get_succ_by_t,
 )
+from traccuracy.utils import get_corrected_division_graphs_with_delta
 
 
 def assert_corrected_graphs(matched, gt_node, pred_node, n_frames):

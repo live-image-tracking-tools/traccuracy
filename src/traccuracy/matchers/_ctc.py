@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 from ._base import Matcher
 from ._compute_overlap import get_labels_with_overlap
 
-_all__ = ["CTCMatcher"]
-
 
 class CTCMatcher(Matcher):
     """Match graph nodes based on measure used in cell tracking challenge benchmarking.

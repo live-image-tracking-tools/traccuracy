@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
     from traccuracy._tracking_graph import TrackingGraph
 
-__all__ = ["PointMatcher"]
-
 
 class PointMatcher(Matcher):
     """A one-to-one matcher that uses Hungarian matching to minimize global

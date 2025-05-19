@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["Matched", "Matcher"]
-
 
 class Matcher(ABC):
     """The Matcher base class provides a wrapper around the compute_mapping method

@@ -14,8 +14,6 @@ from ._base import Metric
 if TYPE_CHECKING:
     from traccuracy.matchers import Matched
 
-__all__ = ["AOGMMetrics", "CTCMetrics"]
-
 
 class AOGMMetrics(Metric):
     def __init__(

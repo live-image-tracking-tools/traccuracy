@@ -14,8 +14,6 @@ from traccuracy._tracking_graph import TrackingGraph
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["load_ctc_data"]
-
 
 def _load_tiffs(data_dir: str) -> np.ndarray:
     """Load a directory of individual frames into a stack.

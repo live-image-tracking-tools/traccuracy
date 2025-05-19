@@ -12,8 +12,6 @@ if TYPE_CHECKING:
 
     from traccuracy._tracking_graph import TrackingGraph
 
-__all__ = ["PointSegMatcher"]
-
 
 class PointSegMatcher(Matcher):
     """A matcher that constructs a mapping from a set of points to a segmentation
