@@ -81,7 +81,7 @@ autoapi_options = [
     "members",
     "undoc-members",
     "show-module-summary",
-    # "imported-members",
+    "imported-members",
 ]
 autoapi_ignore = ["*/cli.py"]
 

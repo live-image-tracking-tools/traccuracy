@@ -23,12 +23,13 @@ def get_corrected_division_graphs_with_delta(
     to the given frame buffer are marked as `TP_DIV`.
 
     Args:
-        matched (Matched): Matched object for set of GT and Pred data.
+        matched (traccuracy.matchers.Matched): Matched object for set of GT and Pred data.
             Must be annotated with division events.
         frame_buffer (int): Maximum frame buffer to use for division correction
 
     Returns:
-        tuple[TrackingGraph, TrackingGraph]: Tuple of corrected GT and Pred graphs
+        tuple[traccuracy.TrackingGraph, traccuracy.TrackingGraph]: Tuple of corrected
+        GT and Pred graphs
     """
     corrected_gt_graph = copy.deepcopy(matched.gt_graph)
     corrected_pred_graph = copy.deepcopy(matched.pred_graph)
