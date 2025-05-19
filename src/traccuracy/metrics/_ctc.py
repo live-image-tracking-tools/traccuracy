@@ -369,7 +369,7 @@ class CellCycleAccuracy(Metric):
                 "GT and pred data do not both contain complete cell cycles. Returning CCA = 0",
                 stacklevel=2,
             )
-            return 0
+            return np.nan
 
         max_track_length = np.max([np.max(gt_lengths), np.max(pred_lengths)])
         bins = np.arange(0, max_track_length + 1)
