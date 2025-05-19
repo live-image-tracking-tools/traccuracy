@@ -58,7 +58,7 @@ class DivisionMetrics(Metric):
 
     - Division Recall
     - Division Precision
-    - Division F1 Score
+    - Division F1 Score (also Branching Correctness)
     - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by Ulicna, K.,
         Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
         using a Bayesian single cell tracking approach. Frontiers in Computer Science
