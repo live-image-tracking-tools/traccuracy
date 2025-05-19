@@ -12,6 +12,7 @@ from traccuracy.loaders import (
     _load_tiffs,
     load_ctc_data,
 )
+from traccuracy.loaders._point import load_point_data
 from traccuracy.matchers import CTCMatcher, IOUMatcher, PointMatcher, PointSegMatcher
 from traccuracy.metrics import (
     BasicMetrics,
@@ -118,6 +119,23 @@ def test_load_pred_ctc_data(benchmark, path):
         rounds=1,
         iterations=1,
     )
+
+
+def test_load_points(benchmark, tmpdir):
+    nrows = 300
+    df = pd.DataFrame(
+        {
+            "t": range(nrows),
+            "x": range(nrows),
+            "y": range(nrows),
+            "z": range(nrows),
+            "parent": range(-1, nrows - 1),
+            "node_id": range(nrows),
+        }
+    )
+    filepath = os.path.join(tmpdir, "test.csv")
+    df.to_csv(filepath)
+    benchmark(load_point_data, filepath)
 
 
 @pytest.mark.parametrize(
