@@ -129,7 +129,10 @@ plot_matched(
 )
 ```
 
-After classifying basic division errors, we consider all false positive and false negative divisions. If a pair of errors occurs within the specified frame buffer, the pair is considered a true positive division if the parent nodes and daughter nodes match. We determine the "parent node" of the late division by traversing back along the graph until we find the node in the same frame as the parent node of the early division. We repeat the process for finding daughters of the early division, by advancing along the graph to find nodes in the same frame as the late division daughters.
+After classifying basic division errors, we consider all false positive and false negative divisions. If a pair of errors occurs within the specified frame buffer, the pair is considered a true positive division if the parent nodes and daughter nodes match. We determine the "parent node" of the late division by traversing back along the graph until we find the node in the same frame as the parent node of the early division. We repeat the process for finding daughters of the early division, by advancing along the graph to find nodes in the same frame as the late division daughters. Note that
+if a division is corrected by a given frame buffer value, it will also be considered correct for
+larger frame buffer values. For example, if a frame buffer of 1 corrects a division, that division
+will also be considered correct for frame buffer values of 2+.
 
 ## False Negative
 
