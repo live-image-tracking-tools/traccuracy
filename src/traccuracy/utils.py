@@ -28,6 +28,10 @@ def get_corrected_division_graphs_with_delta(
         tuple[traccuracy.TrackingGraph, traccuracy.TrackingGraph]: Tuple of corrected
         GT and Pred graphs
     """
+    if not matched.gt_graph.division_annotations:
+        raise ValueError("Ground truth graph must have divisions annotated.")
+    if not matched.pred_graph.division_annotations:
+        raise ValueError("Predicted graph must have divisions annotated.")
     corrected_gt_graph = copy.deepcopy(matched.gt_graph)
     corrected_pred_graph = copy.deepcopy(matched.pred_graph)
 

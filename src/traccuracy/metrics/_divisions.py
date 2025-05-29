@@ -142,7 +142,7 @@ class DivisionMetrics(Metric):
         }
         for fb in range(1, self.frame_buffer + 1):
             new_tp_div_count = 0
-            for node in g_pred.graph.nodes:
+            for node in g_pred.get_divisions():
                 node_info = g_pred.graph.nodes[node]
                 if node_info.get("min_buffer_correct", np.nan) <= fb:
                     new_tp_div_count += 1

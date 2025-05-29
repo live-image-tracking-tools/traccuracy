@@ -172,7 +172,7 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
         # Move on if this division has already been corrected by a smaller buffer value
         if (
             fp_node_info.get("min_buffer_correct", np.nan) is not np.nan
-            and fn_node_info.get("min_buffer_correct", np.nan) is not np.nan
+            or fn_node_info.get("min_buffer_correct", np.nan) is not np.nan
         ):
             continue
 
