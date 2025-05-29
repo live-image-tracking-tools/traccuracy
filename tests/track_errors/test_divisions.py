@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 import tests.examples.graphs as ex_graphs
@@ -12,6 +11,19 @@ from traccuracy.track_errors.divisions import (
     _get_pred_by_t,
     _get_succ_by_t,
 )
+from traccuracy.utils import get_corrected_division_graphs_with_delta
+
+
+def assert_corrected_graphs(matched, gt_node, pred_node, n_frames):
+    corrected_gt, corrected_pred = get_corrected_division_graphs_with_delta(matched, n_frames)
+
+    attrs = corrected_gt.nodes[gt_node]
+    assert NodeFlag.FN_DIV not in attrs
+    assert NodeFlag.TP_DIV in attrs
+
+    attrs = corrected_pred.nodes[pred_node]
+    assert NodeFlag.FP_DIV not in attrs
+    assert NodeFlag.TP_DIV in attrs
 
 
 class TestStandardsDivisions:
@@ -127,15 +139,17 @@ class TestStandardShifted:
     )
     def test_div_1early(self, n_frames, matched, gt_node, pred_node):
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=n_frames)
+        _correct_shifted_divisions(matched, n_frames=n_frames)
 
-        attrs = shifted.gt_graph.nodes[gt_node]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FN_DIV not in attrs
+        attrs = matched.gt_graph.nodes[gt_node]
+        assert NodeFlag.FN_DIV in attrs
+        assert attrs.get("min_buffer_correct") == 1
 
-        attrs = shifted.pred_graph.nodes[pred_node]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FP_DIV not in attrs
+        attrs = matched.pred_graph.nodes[pred_node]
+        assert NodeFlag.FP_DIV in attrs
+        assert attrs.get("min_buffer_correct") == 1
+
+        assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
@@ -145,22 +159,21 @@ class TestStandardShifted:
     )
     def test_div_2early(self, n_frames, matched, gt_node, pred_node):
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=n_frames)
+        _correct_shifted_divisions(matched, n_frames=n_frames)
 
-        if n_frames == 1:  # Not corrected
-            attrs = shifted.gt_graph.nodes[gt_node]
-            assert attrs.get(NodeFlag.FN_DIV) is True
+        attrs = matched.gt_graph.nodes[gt_node]
+        assert attrs.get(NodeFlag.FN_DIV) is True
 
-            attrs = shifted.pred_graph.nodes[pred_node]
-            assert attrs.get(NodeFlag.FP_DIV) is True
-        elif n_frames == 3:  # corrected
-            attrs = shifted.gt_graph.nodes[gt_node]
-            assert attrs.get(NodeFlag.TP_DIV) is True
-            assert NodeFlag.FN_DIV not in attrs
+        attrs = matched.pred_graph.nodes[pred_node]
+        assert attrs.get(NodeFlag.FP_DIV) is True
+        if n_frames == 3:  # corrected
+            attrs = matched.gt_graph.nodes[gt_node]
+            assert attrs.get("min_buffer_correct") == 3
 
-            attrs = shifted.pred_graph.nodes[pred_node]
-            assert attrs.get(NodeFlag.TP_DIV) is True
-            assert NodeFlag.FP_DIV not in attrs
+            attrs = matched.pred_graph.nodes[pred_node]
+            assert attrs.get("min_buffer_correct") == 3
+
+            assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
     @pytest.mark.parametrize("n_frames", [1, 2])
     @pytest.mark.parametrize(
@@ -170,15 +183,17 @@ class TestStandardShifted:
     )
     def test_div_1late(self, n_frames, matched, gt_node, pred_node):
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=n_frames)
+        _correct_shifted_divisions(matched, n_frames=n_frames)
 
-        attrs = shifted.gt_graph.nodes[gt_node]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FN_DIV not in attrs
+        attrs = matched.gt_graph.nodes[gt_node]
+        assert attrs.get(NodeFlag.FN_DIV) is True
+        assert attrs.get("min_buffer_correct") == 1
 
-        attrs = shifted.pred_graph.nodes[pred_node]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FP_DIV not in attrs
+        attrs = matched.pred_graph.nodes[pred_node]
+        assert attrs.get(NodeFlag.FP_DIV) is True
+        assert attrs.get("min_buffer_correct") == 1
+
+        assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
@@ -188,35 +203,40 @@ class TestStandardShifted:
     )
     def test_div_2late(self, n_frames, matched, gt_node, pred_node):
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=n_frames)
+        _correct_shifted_divisions(matched, n_frames=n_frames)
 
         if n_frames == 1:  # Not corrected
-            attrs = shifted.gt_graph.nodes[gt_node]
+            attrs = matched.gt_graph.nodes[gt_node]
             assert attrs.get(NodeFlag.FN_DIV) is True
 
-            attrs = shifted.pred_graph.nodes[pred_node]
+            attrs = matched.pred_graph.nodes[pred_node]
             assert attrs.get(NodeFlag.FP_DIV) is True
-        elif n_frames == 3:  # corrected
-            attrs = shifted.gt_graph.nodes[gt_node]
-            assert attrs.get(NodeFlag.TP_DIV) is True
-            assert NodeFlag.FN_DIV not in attrs
 
-            attrs = shifted.pred_graph.nodes[pred_node]
-            assert attrs.get(NodeFlag.TP_DIV) is True
-            assert NodeFlag.FP_DIV not in attrs
+        elif n_frames == 3:  # corrected
+            attrs = matched.gt_graph.nodes[gt_node]
+            assert NodeFlag.FN_DIV in attrs
+            assert attrs.get("min_buffer_correct") == 3
+
+            attrs = matched.pred_graph.nodes[pred_node]
+            assert NodeFlag.FP_DIV in attrs
+            assert attrs.get("min_buffer_correct") == 3
+
+            assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
     def test_minimal_matching(self):
         matched = ex_graphs.div_shift_min_match()
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=1)
+        _correct_shifted_divisions(matched, n_frames=1)
 
-        attrs = shifted.gt_graph.nodes[2]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FN_DIV not in attrs
+        attrs = matched.gt_graph.nodes[2]
+        assert NodeFlag.FN_DIV in attrs
+        assert attrs.get("min_buffer_correct") == 1
 
-        attrs = shifted.pred_graph.nodes[11]
-        assert attrs.get(NodeFlag.TP_DIV) is True
-        assert NodeFlag.FP_DIV not in attrs
+        attrs = matched.pred_graph.nodes[11]
+        assert NodeFlag.FP_DIV in attrs
+        assert attrs.get("min_buffer_correct") == 1
+
+        assert_corrected_graphs(matched, 2, 11, 1)
 
     @pytest.mark.parametrize(
         "matched",
@@ -228,14 +248,14 @@ class TestStandardShifted:
     )
     def test_bad_matching(self, matched):
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=1)
+        _correct_shifted_divisions(matched, n_frames=1)
 
         # No correction of shifted divisions b/c matching criteria not met
-        attrs = shifted.gt_graph.nodes[2]
+        attrs = matched.gt_graph.nodes[2]
         assert attrs.get(NodeFlag.TP_DIV) is None
         assert attrs.get(NodeFlag.FN_DIV) is True
 
-        attrs = shifted.pred_graph.nodes[11]
+        attrs = matched.pred_graph.nodes[11]
         assert attrs.get(NodeFlag.TP_DIV) is None
         assert attrs.get(NodeFlag.FP_DIV) is True
 
@@ -259,24 +279,24 @@ class TestGapCloseDivisions:
     def test_gap_close_shift(self):
         matched = ex_graphs.div_parent_gap()
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=1)
+        _correct_shifted_divisions(matched, n_frames=1)
         # division is not corrected because `get_succ_by_t` traverses
         # two successors given a delta of 1, but our immediate successors
         # are two frames apart. We therefore end up checking children 13 and 14
         # against gt children 4 and 5.
-        assert NodeFlag.FP_DIV in shifted.pred_graph.nodes[9]
-        assert NodeFlag.FN_DIV in shifted.gt_graph.nodes[3]
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
 
         #
         matched = ex_graphs.div_daughter_gap()
         _classify_divisions(matched)
-        shifted = _correct_shifted_divisions(matched, n_frames=1)
+        _correct_shifted_divisions(matched, n_frames=1)
         # `_correct_shifted_divisions` only checks pairs of TP/FP
         # divisions, so the WC_DIV is not corrected. To correct it,
         # we would need to check shifted successors of all WC_DIV
         # matched nodes
-        assert NodeFlag.WC_DIV in shifted.pred_graph.nodes[10]
-        assert NodeFlag.WC_DIV in shifted.gt_graph.nodes[3]
+        assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
+        assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
 
 
 def test_evaluate_division_events():
@@ -288,6 +308,9 @@ def test_evaluate_division_events():
         TrackingGraph(g_gt), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"}
     )
 
-    results = _evaluate_division_events(matched_data, max_frame_buffer=frame_buffer)
+    matched = _evaluate_division_events(matched_data, max_frame_buffer=frame_buffer)
 
-    assert np.all([isinstance(k, int) for k in results.keys()])
+    for node in matched.gt_graph.get_nodes_with_flag(NodeFlag.FN_DIV):
+        assert "min_buffer_correct" in matched.gt_graph.nodes[node]
+    for node in matched.pred_graph.get_nodes_with_flag(NodeFlag.FP_DIV):
+        assert "min_buffer_correct" in matched.pred_graph.nodes[node]

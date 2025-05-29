@@ -49,6 +49,8 @@ class NodeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    MIN_BUFFER_CORRECT = "min_buffer_correct"
+
     @classmethod
     def has_value(cls, value: str) -> bool:
         """Check if a value is one of the enum's values.
