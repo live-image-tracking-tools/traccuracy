@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from traccuracy.matchers._base import Matched
 
 
-def is_equivalent_expanded_skip_edge(
+def is_equivalent_skip_edge(
     skip_other_matched: Matched,
     skip_src: Hashable,
     skip_dst: Hashable,
@@ -21,9 +21,7 @@ def is_equivalent_expanded_skip_edge(
     matched_dst if:
         - skip_src is a valid match for matched_src,
         - skip_dst is a valid match for matched_dst,
-        - matched_src is an ancestor of matched_dst (regardless of intervening nodes),
-        - all nodes on the path matched_src -> .. -> matched_dst have incoming and outgoing
-        degrees of 1, AND
+        - matched_src is an ancestor of matched_dst (regardless of intervening nodes) AND
         - all nodes on the path matched_src -> .. -> matched_dst have no valid matches in
         skip_matched.
 
@@ -81,9 +79,6 @@ def is_equivalent_expanded_skip_edge(
         # otherwise we have to keep traversing
         # check that this predecessor doesn't have a match in skip graph
         if other_pred in other_skip_map:
-            return False
-        # check that this predecessor has incoming & outgoing degree of 1
-        if other_graph.in_degree(other_pred) > 1 or other_graph.out_degree(other_pred) > 1:  # type: ignore[operator]
             return False
         other_predecessors = list(other_graph.predecessors(other_pred))
     # if we get here, matched_src is not an ancestor of matched_dst
