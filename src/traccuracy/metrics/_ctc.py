@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING
 
+import networkx as nx
 import numpy as np
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
@@ -271,25 +272,6 @@ class CellCycleAccuracy(Metric):
         valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
         super().__init__(valid_matching_types)
 
-    def _get_lengths(self, track_graph: TrackingGraph) -> list[int]:
-        """Identifies the length of complete cell cycles in a tracking graph
-
-        Args:
-            track_graph (TrackingGraph): The graph to evaluate
-
-        Returns:
-            list[int]: a list of complete cell cycle lengths
-        """
-        lengths = []
-        # Loop over subgraphs
-        for g in track_graph.get_connected_components():
-            divs = g.get_divisions()
-            # Need at least two divisions to calculate cell cycle length
-            if len(list(divs)) >= 2:
-                lengths.extend(self._get_subgraph_lengths(g, divs))
-
-        return lengths
-
     def _get_subgraph_lengths(self, subgraph: TrackingGraph, divs: list[Hashable]) -> list[int]:
         """For a given subgraph, computes the lengths of complete cell cycles by walking the
         graph from one division to the next
@@ -347,8 +329,8 @@ class CellCycleAccuracy(Metric):
         return cumsum
 
     def _compute(self, data: Matched) -> dict[str, float]:
-        gt_lengths = self._get_lengths(data.gt_graph)
-        pred_lengths = self._get_lengths(data.pred_graph)
+        gt_lengths = _get_lengths(data.gt_graph.graph)
+        pred_lengths = _get_lengths(data.pred_graph.graph)
 
         cca = self._get_cca(gt_lengths, pred_lengths)
         return {"CCA": cca}
@@ -380,3 +362,67 @@ class CellCycleAccuracy(Metric):
 
         cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
         return cca
+
+
+def _get_lengths(nx_graph: nx.DiGraph) -> list[int]:
+    """Identifies the length of complete cell cycles in a tracking graph
+
+    Args:
+        track_graph (TrackingGraph): The graph to evaluate
+
+    Returns:
+        list[int]: a list of complete cell cycle lengths
+    """
+    # Keep only components with >= 2 divisions
+    to_remove_nodes = set()
+    to_remove_edges = set()
+    divs = set()
+    track_ends = set()
+    track_starts = set()
+    for g in nx.weakly_connected_components(nx_graph):
+        out_degrees = list(nx_graph.out_degree(g))
+        for node, degree in out_degrees:
+            if degree > 1:
+                divs.add(node)
+        # if the whole component has fewer than 2 divs we don't keep it
+        if len(divs) < 2:
+            continue
+
+        # this component is valid, go find all the dangling nodes
+        for node, degree in out_degrees:
+            if degree == 0:
+                track_ends.add(node)
+        for node, degree in nx_graph.in_degree(g):
+            if degree == 0:
+                track_starts.add(node)
+        # not keeping any dangling single node tracks
+        for node in track_ends:
+            dangling_node = node
+            to_remove_nodes.add(dangling_node)
+            predecessors = list(nx_graph.predecessors(dangling_node))
+            # traverse back to find the div predecessor
+            while len(predecessors) == 1 and predecessors[0] not in divs:
+                dangling_node = predecessors[0]
+                to_remove_nodes.add(dangling_node)
+                predecessors = list(nx_graph.predecessors(dangling_node))
+        for node in track_starts:
+            dangling_node = node
+            to_remove_nodes.add(dangling_node)
+            successors = list(nx_graph.successors(dangling_node))
+            # traverse forward to find the div successor
+            while len(successors) == 1 and successors[0] not in divs:
+                dangling_node = successors[0]
+                to_remove_nodes.add(dangling_node)
+                successors = list(nx_graph.successors(dangling_node))
+    # we make a subgraph with no dangling tracks
+    dividing_only_subgraph = nx_graph.subgraph(set(nx_graph.nodes) - to_remove_nodes)
+    # now we want to remove all dividing edges
+    for dividing_node in divs:
+        successors = list(dividing_only_subgraph.successors(dividing_node))
+        to_remove_edges.update({(dividing_node, succ) for succ in successors})
+    # only keep subgraph of individual tracks
+    complete_cell_cycles = dividing_only_subgraph.edge_subgraph(
+        set(dividing_only_subgraph.edges) - to_remove_edges
+    )
+    lengths = [len(g) for g in nx.weakly_connected_components(complete_cell_cycles)]
+    return lengths
