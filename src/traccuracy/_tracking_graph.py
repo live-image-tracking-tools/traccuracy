@@ -87,6 +87,10 @@ class EdgeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    SKIP_FALSE_POS = "is_skip_fp"
+    SKIP_FALSE_NEG = "is_skip_fn"
+    SKIP_TRUE_POS = "is_skip_tp"
+
 
 class TrackingGraph:
     """A directed graph representing a tracking solution where edges go forward in time.
