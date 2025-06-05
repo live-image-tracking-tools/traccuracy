@@ -329,7 +329,8 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
         [
             [node_info[track_graph.frame_key], *[node_info[k] for k in track_graph.location_keys]]  # type: ignore
             for _, node_info in track_graph.graph.nodes(data=True)
-        ]
+        ],
+        dtype=np.float64,
     )
 
     sparse_graph = nx.to_scipy_sparse_array(track_graph.graph, dtype=np.float64, format="coo")  # type: ignore
@@ -350,8 +351,8 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
     summary = summarize(s, separator="_")
     # branch_type 2 is junction to junction i.e. division to division
     division_to_division = summary[summary.branch_type == 2]
-    gt_lengths = division_to_division.branch_distance.values.astype(np.uint32)
-    return gt_lengths
+    cycle_lengths = division_to_division.branch_distance.values.astype(np.uint32)
+    return cycle_lengths
 
 
 def _get_cca(gt_lengths: np.ndarray, pred_lengths: np.ndarray) -> float:
