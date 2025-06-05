@@ -68,6 +68,24 @@ class NodeFlag(str, enum.Enum):
         return value in cls.__members__.values()
 
 
+def _check_valid_key_name(key: str, name: str) -> None:
+    """Check if the provided key conflicts with the reserved NodeFlag values and raise
+    a ValueError if so.
+
+    Args:
+        key (str): The key to check if it conflicts with the reserved values
+        name (str): The name of key to use in the error message
+
+    Raises:
+        ValueError: if the provided key conflicts with the NodeFlag values
+    """
+    if NodeFlag.has_value(key):
+        raise ValueError(
+            f"Specified {name} key {key} is reserved for graph"
+            f"annotation. Please change the {name} key."
+        )
+
+
 @enum.unique
 class EdgeFlag(str, enum.Enum):
     """An enum containing standard flags that are used to
@@ -120,8 +138,8 @@ class TrackingGraph:
         frame_key: str
             The name of the node attribute that corresponds to the frame of
             the node. Defaults to "t".
-        location_keys: list of str
-            Keys used to access the location of the cell in space.
+        location_keys: tuple of str | str
+            Key(s) used to access the location of the cell in space.
     """
 
     def __init__(
@@ -130,7 +148,7 @@ class TrackingGraph:
         segmentation: np.ndarray | None = None,
         frame_key: str = "t",
         label_key: str = "segmentation_id",
-        location_keys: tuple[str, ...] = ("x", "y"),
+        location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
     ):
         """A directed graph representing a tracking solution where edges go
@@ -155,10 +173,12 @@ class TrackingGraph:
                 pixel value of the node in the segmentation. Defaults to
                 'segmentation_id'. Pass `None` if there is not a label
                 attribute on the graph.
-            location_keys (tuple, optional): The list of keys on each node in
-                graph that contains the spatial location of the node. Every
-                node must have a value stored at each of these keys.
-                Defaults to ('x', 'y').
+            location_key (str | tuple, optional): The key or list of keys on each node
+                in graph that contains the spatial location of the node, in the order
+                needed to index the segmentation, if applicable. Every
+                node must have a value stored at each of these provided keys.
+                If a single string, it is assumed that the location is stored as a list
+                or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
         """
@@ -172,18 +192,17 @@ class TrackingGraph:
                 "annotation. Please change the frame key."
             )
         self.frame_key = frame_key
-        if label_key is not None and NodeFlag.has_value(label_key):
-            raise ValueError(
-                f"Specified label key {label_key} is reserved for graph"
-                "annotation. Please change the label key."
-            )
+
+        if label_key is not None:
+            _check_valid_key_name(label_key, "label")
         self.label_key = label_key
-        for loc_key in location_keys:
-            if NodeFlag.has_value(loc_key):
-                raise ValueError(
-                    f"Specified location key {loc_key} is reserved for graph"
-                    "annotation. Please change the location key."
-                )
+
+        if location_keys is not None:
+            if isinstance(location_keys, str):
+                _check_valid_key_name(location_keys, "location")
+            else:
+                for loc_key in location_keys:
+                    _check_valid_key_name(loc_key, "location")
         self.location_keys = location_keys
         self.name = name
 
@@ -203,13 +222,23 @@ class TrackingGraph:
         self.edges_by_flag: dict[EdgeFlag, set[tuple[Hashable, Hashable]]] = {
             flag: set() for flag in EdgeFlag
         }
+
         for node, attrs in self.graph.nodes.items():
-            # check that every node has the time frame and location specified
             assert self.frame_key in attrs.keys(), (
                 f"Frame key {self.frame_key} not present for node {node}."
             )
-            for key in self.location_keys:
-                assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+
+            # check that every node has the time frame and location specified
+            if self.location_keys is not None:
+                if isinstance(self.location_keys, str):
+                    assert self.location_keys in attrs.keys(), (
+                        f"Location key {self.location_keys} not present for node {node}."
+                    )
+                else:
+                    for key in self.location_keys:
+                        assert key in attrs.keys(), (
+                            f"Location key {key} not present for node {node}."
+                        )
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -260,7 +289,7 @@ class TrackingGraph:
         """
         return self.graph.edges
 
-    def get_location(self, node_id: Hashable) -> list[float]:
+    def get_location(self, node_id: Hashable) -> list[float] | tuple[float] | np.ndarray:
         """Get the spatial location of the node with node_id using self.location_keys.
 
         Args:
@@ -268,8 +297,16 @@ class TrackingGraph:
 
         Returns:
             list of float: A list of location values in the same order as self.location_keys
+
+        Raises:
+            ValueError if location keys were not provided
         """
-        return [self.graph.nodes[node_id][key] for key in self.location_keys]
+        if self.location_keys is None:
+            raise ValueError("Must provide location key(s) to access node locations")
+        if isinstance(self.location_keys, str):
+            return self.graph.nodes[node_id][self.location_keys]
+        else:
+            return [self.graph.nodes[node_id][key] for key in self.location_keys]
 
     def get_nodes_with_flag(self, flag: NodeFlag) -> set[Hashable]:
         """Get all nodes with specified NodeFlag set to True.
