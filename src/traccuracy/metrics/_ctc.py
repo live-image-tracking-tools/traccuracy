@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+from scipy.sparse import coo_array
+from skan.csr import PathGraph, Skeleton, summarize
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.matchers._base import Matched
@@ -305,124 +307,101 @@ class CellCycleAccuracy(Metric):
 
         return lengths
 
-    def _get_cumsum(self, lengths: list[int], bins: np.ndarray) -> np.ndarray:
-        """Given a list of cell cycle lengths, computes cumulative sum from a normalized
-        histogram of the lengths
-
-        Args:
-            lengths (list[int]): a list of cell cycle lengths
-            bins (np.ndarray): bins for the histogram usually determined
-                by the max cell cycle length
-
-        Returns:
-            np.ndarray: an array the cumulative sum of the normalized histogram
-        """
-        # Compute track length histogram
-        hist, _ = np.histogram(lengths, bins=bins)
-
-        # Normalize
-        hist = hist / hist.sum()
-
-        # Compute cumsum
-        cumsum = np.cumsum(hist)
-
-        return cumsum
-
     def _compute(self, data: Matched) -> dict[str, float]:
-        gt_lengths = _get_lengths(data.gt_graph.graph)
-        pred_lengths = _get_lengths(data.pred_graph.graph)
+        gt_lengths = _get_lengths(data.gt_graph)
+        pred_lengths = _get_lengths(data.pred_graph)
 
-        cca = self._get_cca(gt_lengths, pred_lengths)
+        cca = _get_cca(gt_lengths, pred_lengths)
         return {"CCA": cca}
 
-    def _get_cca(self, gt_lengths: list[int], pred_lengths: list[int]) -> float:
-        """Compute CCA given two lists of cell cycle lengths
 
-        Args:
-            gt_lengths (list[int]): cell cycle lengths from the ground truth data
-            pred_lengths (list[int]): cell cycle lengths from the predicted data
-
-        Returns:
-            float: the cell cycle accuracy
-        """
-        # GT and pred must both contain complete cell cycles to compute this metric
-        if np.sum(gt_lengths) == 0 or np.sum(pred_lengths) == 0:
-            warnings.warn(
-                "GT and pred data do not both contain complete cell cycles. Returning CCA = 0",
-                stacklevel=2,
-            )
-            return np.nan
-
-        max_track_length = np.max([np.max(gt_lengths), np.max(pred_lengths)])
-        bins = np.arange(0, max_track_length + 1)
-
-        # Compute cumulative sum
-        gt_cumsum = self._get_cumsum(gt_lengths, bins)
-        pred_cumsum = self._get_cumsum(pred_lengths, bins)
-
-        cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
-        return cca
-
-
-def _get_lengths(nx_graph: nx.DiGraph) -> list[int]:
+def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
     """Identifies the length of complete cell cycles in a tracking graph
 
     Args:
         track_graph (TrackingGraph): The graph to evaluate
 
     Returns:
-        list[int]: a list of complete cell cycle lengths
+        np.ndarray[int]: an array of complete cell cycle lengths
     """
-    # Keep only components with >= 2 divisions
-    to_remove_nodes = set()
-    to_remove_edges = set()
-    divs = set()
-    track_ends = set()
-    track_starts = set()
-    for g in nx.weakly_connected_components(nx_graph):
-        out_degrees = list(nx_graph.out_degree(g))
-        for node, degree in out_degrees:
-            if degree > 1:
-                divs.add(node)
-        # if the whole component has fewer than 2 divs we don't keep it
-        if len(divs) < 2:
-            continue
 
-        # this component is valid, go find all the dangling nodes
-        for node, degree in out_degrees:
-            if degree == 0:
-                track_ends.add(node)
-        for node, degree in nx_graph.in_degree(g):
-            if degree == 0:
-                track_starts.add(node)
-        # not keeping any dangling single node tracks
-        for node in track_ends:
-            dangling_node = node
-            to_remove_nodes.add(dangling_node)
-            predecessors = list(nx_graph.predecessors(dangling_node))
-            # traverse back to find the div predecessor
-            while len(predecessors) == 1 and predecessors[0] not in divs:
-                dangling_node = predecessors[0]
-                to_remove_nodes.add(dangling_node)
-                predecessors = list(nx_graph.predecessors(dangling_node))
-        for node in track_starts:
-            dangling_node = node
-            to_remove_nodes.add(dangling_node)
-            successors = list(nx_graph.successors(dangling_node))
-            # traverse forward to find the div successor
-            while len(successors) == 1 and successors[0] not in divs:
-                dangling_node = successors[0]
-                to_remove_nodes.add(dangling_node)
-                successors = list(nx_graph.successors(dangling_node))
-    # we make a subgraph with no dangling tracks
-    dividing_only_subgraph = nx_graph.subgraph(set(nx_graph.nodes) - to_remove_nodes)
-    # now we want to remove all dividing edges
-    for dividing_node in divs:
-        successors = list(dividing_only_subgraph.successors(dividing_node))
-        to_remove_edges.update({(dividing_node, succ) for succ in successors})
-    # only keep subgraph of individual tracks
-    complete_cell_cycles = dividing_only_subgraph.edge_subgraph(
-        set(dividing_only_subgraph.edges) - to_remove_edges
+    coords_array = np.asarray(
+        [
+            [node_info[track_graph.frame_key], *[node_info[k] for k in track_graph.location_keys]]  # type: ignore
+            for _, node_info in track_graph.graph.nodes(data=True)
+        ]
     )
-    lengths = [len(g) for g in nx.weakly_connected_components(complete_cell_cycles)]
-    return lengths
+
+    sparse_graph = nx.to_scipy_sparse_array(track_graph.graph, dtype=np.float64, format="coo")  # type: ignore
+
+    # build sparse array with frame spans of edges as weight
+    # this ensures gap-closing edges have the right "length"
+    i, j = sparse_graph.coords
+    t = coords_array[:, 0]
+    frame_span = np.abs(t[i] - t[j])
+    weighted_sparse_graph = coo_array((frame_span, (i, j)), shape=sparse_graph.shape).tocsr()
+
+    csr_graph = weighted_sparse_graph + weighted_sparse_graph.T
+    csr_graph.indptr = csr_graph.indptr.astype(np.int32)
+    csr_graph.indices = csr_graph.indices.astype(np.int32)
+    skan_graph = PathGraph.from_graph(node_coordinates=coords_array, graph=csr_graph)
+
+    s = Skeleton.from_path_graph(skan_graph)
+    summary = summarize(s, separator="_")
+    # branch_type 2 is junction to junction i.e. division to division
+    division_to_division = summary[summary.branch_type == 2]
+    gt_lengths = division_to_division.branch_distance.values.astype(np.uint32)
+    return gt_lengths
+
+
+def _get_cca(gt_lengths: np.ndarray, pred_lengths: np.ndarray) -> float:
+    """Compute CCA given two arrays of cell cycle lengths
+
+    Args:
+        gt_lengths (np.ndarray[int]): cell cycle lengths from the ground truth data
+        pred_lengths (np.ndarray[int]): cell cycle lengths from the predicted data
+
+    Returns:
+        float: the cell cycle accuracy
+    """
+    # GT and pred must both contain complete cell cycles to compute this metric
+    if np.sum(gt_lengths) == 0 or np.sum(pred_lengths) == 0:
+        warnings.warn(
+            "GT and pred data do not both contain complete cell cycles. Returning CCA = 0",
+            stacklevel=2,
+        )
+        return np.nan
+
+    max_track_length = np.max([np.max(gt_lengths), np.max(pred_lengths)])
+    bins = np.arange(0, max_track_length + 1)
+
+    # Compute cumulative sum
+    gt_cumsum = _get_cumsum(gt_lengths, bins)
+    pred_cumsum = _get_cumsum(pred_lengths, bins)
+
+    cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
+    return cca
+
+
+def _get_cumsum(lengths: np.ndarray, bins: np.ndarray) -> np.ndarray:
+    """Given an array of cell cycle lengths, computes cumulative sum from a normalized
+    histogram of the lengths
+
+    Args:
+        lengths (np.ndarray[int]): an array of cell cycle lengths
+        bins (np.ndarray): bins for the histogram usually determined
+            by the max cell cycle length
+
+    Returns:
+        np.ndarray: an array the cumulative sum of the normalized histogram
+    """
+    # Compute track length histogram
+    hist, _ = np.histogram(lengths, bins=bins)
+
+    # Normalize
+    hist = hist / hist.sum()
+
+    # Compute cumsum
+    cumsum = np.cumsum(hist)
+
+    return cumsum
