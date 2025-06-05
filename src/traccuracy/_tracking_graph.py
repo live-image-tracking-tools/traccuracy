@@ -349,9 +349,10 @@ class TrackingGraph:
                 del new_trackgraph.nodes_by_frame[frame]
 
         for node_flag in NodeFlag:
-            new_trackgraph.nodes_by_flag[node_flag] = self.nodes_by_flag[node_flag].intersection(
-                nodes
-            )
+            if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
+                new_trackgraph.nodes_by_flag[node_flag] = self.nodes_by_flag[
+                    node_flag
+                ].intersection(nodes)
         for edge_flag in EdgeFlag:
             new_trackgraph.edges_by_flag[edge_flag] = self.edges_by_flag[edge_flag].intersection(
                 new_trackgraph.edges
