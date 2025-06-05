@@ -372,31 +372,29 @@ def _get_cca(gt_lengths: np.ndarray, pred_lengths: np.ndarray) -> float:
         )
         return np.nan
 
-    max_track_length = np.max([np.max(gt_lengths), np.max(pred_lengths)])
-    bins = np.arange(0, max_track_length + 1)
+    n_bins = np.max([np.max(gt_lengths), np.max(pred_lengths)]) + 1
 
     # Compute cumulative sum
-    gt_cumsum = _get_cumsum(gt_lengths, bins)
-    pred_cumsum = _get_cumsum(pred_lengths, bins)
+    gt_cumsum = _get_cumsum(gt_lengths, n_bins)
+    pred_cumsum = _get_cumsum(pred_lengths, n_bins)
 
     cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
     return cca
 
 
-def _get_cumsum(lengths: np.ndarray, bins: np.ndarray) -> np.ndarray:
+def _get_cumsum(lengths: np.ndarray, n_bins: int) -> np.ndarray:
     """Given an array of cell cycle lengths, computes cumulative sum from a normalized
     histogram of the lengths
 
     Args:
         lengths (np.ndarray[int]): an array of cell cycle lengths
-        bins (np.ndarray): bins for the histogram usually determined
-            by the max cell cycle length
+        n_bins (int): number of bins for counting histogram
 
     Returns:
         np.ndarray: an array the cumulative sum of the normalized histogram
     """
     # Compute track length histogram
-    hist, _ = np.histogram(lengths, bins=bins)
+    hist = np.bincount(lengths, minlength=n_bins)
 
     # Normalize
     hist = hist / hist.sum()
