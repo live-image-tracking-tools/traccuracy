@@ -49,6 +49,7 @@ class NodeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    # Minimum buffer value that would correct a shifted division.
     MIN_BUFFER_CORRECT = "min_buffer_correct"
 
     @classmethod
@@ -190,7 +191,15 @@ class TrackingGraph:
 
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
-        self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {flag: set() for flag in NodeFlag}
+        self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
+            # We do not include MIN_BUFFER_CORRECT here, as it is not a boolean
+            # "flag" but rather an integer. In future, if we decide to store
+            # more "flags" that take on integer values, we may wish to make a
+            # separate enum for them.
+            flag: set()
+            for flag in NodeFlag
+            if flag != NodeFlag.MIN_BUFFER_CORRECT
+        }
         self.edges_by_flag: dict[EdgeFlag, set[tuple[Hashable, Hashable]]] = {
             flag: set() for flag in EdgeFlag
         }
