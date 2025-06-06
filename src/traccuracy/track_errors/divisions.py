@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _classify_divisions(matched_data: Matched) -> None:
+def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -> None:
     """Identify each division as a true positive, false positive or false negative
 
     This function only works on node mappers that are one-to-one
@@ -28,6 +28,8 @@ def _classify_divisions(matched_data: Matched) -> None:
     Args:
         matched_data (Matched): Matched data object containing gt and pred graphs
             with their associated mapping
+        allow_skip_edges (bool): Allows skip edges between parents and daughters
+            as long as the parent is in the correct frame. Defaults to False.
 
     Raises:
         ValueError: mapper must contain a one-to-one mapping of nodes
@@ -80,8 +82,12 @@ def _classify_divisions(matched_data: Matched) -> None:
         g_pred.set_flag_on_node(fp_div, NodeFlag.FP_DIV)
 
     # Set division annotation flag
-    g_gt.division_annotations = True
-    g_pred.division_annotations = True
+    if allow_skip_edges is False:
+        g_gt.division_annotations = True
+        g_pred.division_annotations = True
+    else:
+        g_gt.division_skip_annotations = True
+        g_pred.division_skip_annotations = True
 
 
 def _get_pred_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hashable:

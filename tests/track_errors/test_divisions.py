@@ -289,6 +289,36 @@ class TestGapCloseDivisions:
         assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
         assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
 
+    def test_gap_close_skip_no_shift(self):  # IN PROGRESS
+        matched = ex_graphs.div_parent_gap()
+        # without a shift we should have an FP and an FN division
+        # as the parent nodes are in different frames
+        # Still incorrect with skip edges and no shift
+        _classify_divisions(matched, allow_skip_edges=True)
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
+
+        # Check that the skip flag is set
+        assert matched.gt_graph.division_skip_annotations is True
+
+        matched = ex_graphs.div_daughter_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        # division is correct with skip edge to daughter
+        assert NodeFlag.TP_DIV_SKIP in matched.pred_graph.nodes[10]
+        assert NodeFlag.TP_DIV_SKIP in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_daughter_dual_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        # both children connected by skip edges so correct
+        assert NodeFlag.TP_DIV_SKIP in matched.pred_graph.nodes[10]
+        assert NodeFlag.TP_DIV_SKIP in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_parent_daughter_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        # Division in wrong frame w/o shift so skip edges don't correct
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
+
     def test_gap_close_shift(self):
         matched = ex_graphs.div_parent_gap()
         _classify_divisions(matched)
@@ -312,16 +342,54 @@ class TestGapCloseDivisions:
 
         matched = ex_graphs.div_daughter_dual_gap()
         _classify_divisions(matched)
+        _correct_shifted_divisions(matched, n_frames=1)
         # both children are now incorrect b/c they are in the next frame
         assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
         assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
 
         matched = ex_graphs.div_parent_daughter_gap()
         _classify_divisions(matched)
+        _correct_shifted_divisions(matched, n_frames=1)
         # Both a FP/FN division
         # daughters are not detected at all
         assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
         assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
+
+    def test_gap_close_shift_skip(self):  # IN PROGRESS
+        matched = ex_graphs.div_parent_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        _correct_shifted_divisions(matched, n_frames=1, allow_skip_edges=True)
+        # becomes correct b/c div is now matched with 1 frame offset
+        # And daughters are connected by skip edge, but no skip specific annotation needed
+        attrs = matched.pred_graph.nodes[9]
+        assert NodeFlag.FP_DIV in attrs
+        assert attrs.get("min_buffer_correct_skip") == 1
+        attrs = matched.gt_graph.nodes[3]
+        assert NodeFlag.FN_DIV in attrs
+        assert attrs.get("min_buffer_correct_skip") == 1
+
+        matched = ex_graphs.div_daughter_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        _correct_shifted_divisions(matched, n_frames=1, allow_skip_edges=True)
+        # Shifting doesn't change result, but skip edge allows connection to daughter
+        assert NodeFlag.TP_DIV_SKIP in matched.pred_graph.nodes[10]
+        assert NodeFlag.TP_DIV_SKIP in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_daughter_dual_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        _correct_shifted_divisions(matched, n_frames=1, allow_skip_edges=True)
+        # Shifting doesn't change result, but skip edge allows connection to daughter
+        assert NodeFlag.TP_DIV_SKIP in matched.pred_graph.nodes[10]
+        assert NodeFlag.TP_DIV_SKIP in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_parent_daughter_gap()
+        _classify_divisions(matched, allow_skip_edges=True)
+        _correct_shifted_divisions(matched, n_frames=1, allow_skip_edges=True)
+        # buffer allows offset division to be correct
+        # skip edge connects to daughters
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
+        assert attrs.get("min_buffer_correct_skip") == 1
 
 
 def test_evaluate_division_events():
