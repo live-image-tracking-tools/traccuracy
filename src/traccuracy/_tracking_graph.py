@@ -138,7 +138,7 @@ class TrackingGraph:
         frame_key: str
             The name of the node attribute that corresponds to the frame of
             the node. Defaults to "t".
-        location_keys: tuple of str | str
+        location_keys: tuple of str | str | None
             Key(s) used to access the location of the cell in space.
     """
 
@@ -353,19 +353,6 @@ class TrackingGraph:
         """
         in_degree: DiDegreeView = self.graph.in_degree()  # type: ignore
         return [node for node, degree in in_degree if degree >= 2]
-
-    def get_connected_components(self) -> list[TrackingGraph]:
-        """Get a list of TrackingGraphs, each corresponding to one track
-        (i.e., a connected component in the track graph).
-
-        Returns:
-            A list of TrackingGraphs, one for each track.
-        """
-        graph = self.graph
-        if len(graph.nodes) == 0:
-            return []
-
-        return [self.get_subgraph(g) for g in nx.weakly_connected_components(graph)]
 
     def get_subgraph(self, nodes: Iterable[Hashable]) -> TrackingGraph:
         """Returns a new TrackingGraph with the subgraph defined by the list of nodes.
