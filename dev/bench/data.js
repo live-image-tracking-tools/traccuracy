@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749142799560,
+  "lastUpdate": 1749235685323,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -10437,6 +10437,184 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 887.9944309999246 msec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "cmalinmayor@gmail.com",
+            "name": "Caroline Malin-Mayor",
+            "username": "cmalinmayor"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0e639d46ccdd0e13ebc3fa6bd0672e26f3d0e313",
+          "message": "Merge pull request #252 from live-image-tracking-tools/remove-get-subgraph\n\nRemove get subgraph",
+          "timestamp": "2025-06-06T14:40:10-04:00",
+          "tree_id": "f2591ea904c120fe59cdf2c671cc248d9cf0ac0b",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/0e639d46ccdd0e13ebc3fa6bd0672e26f3d0e313"
+        },
+        "date": 1749235684899,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.1602648045878528,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 6.2396731620000025 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.049444602349407986,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 20.224654512 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.8628999441144609,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1588829119999957 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 10.456935590371275,
+            "unit": "iter/sec",
+            "range": "stddev: 0.02728949274005679",
+            "extra": "mean: 95.63031075000576 msec\nrounds: 12"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 1.2200116671545633,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0013886339745566277",
+            "extra": "mean: 819.6642925000077 msec\nrounds: 2"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.09228357783646104,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 10.836164174000004 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 1.2536183987023308,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 797.6909090000106 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 0.07707225181977646,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 12.97483823799999 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 8.82342604792509,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 113.3346609999819 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.936105858947894,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 340.587174999996 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 1.1333656099991716,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 882.3278130000176 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 0.07150216548183597,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 13.985590411999965 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 4.8003640442478925,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 208.31753400000252 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 2.171643553220008,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 460.48072600001433 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 42.54836451317671,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 23.50266600001305 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 14.043770218644736,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 71.2059499999782 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 136.565231475044,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 7.3225080000156595 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 57.727958036929564,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 17.322628999977496 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 13.962968253374779,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 71.61801000000878 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 4.547971744453071,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 219.8782349999533 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 3.7018743059749504,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 270.1334289999977 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.1158230520886152,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 896.1994449999793 msec\nrounds: 1"
           }
         ]
       }
