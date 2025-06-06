@@ -81,7 +81,7 @@ def _classify_edges(matched: Matched) -> None:
 
     # Extract subset of gt edges where both nodes are matched
     gt_tp_nodes = gt_graph.get_nodes_with_flag(NodeFlag.TRUE_POS)
-    sub_gt_graph = gt_graph.get_subgraph(gt_tp_nodes)
+    sub_gt_graph = gt_graph.graph.subgraph(gt_tp_nodes)
 
     # Process all gt edges with matched nodes to look for matched edge
     for source, target in sub_gt_graph.edges:
