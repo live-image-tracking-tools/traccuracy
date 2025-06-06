@@ -276,6 +276,19 @@ class TestGapCloseDivisions:
         assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
         assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
 
+        matched = ex_graphs.div_daughter_dual_gap()
+        _classify_divisions(matched)
+        # both children are now incorrect b/c they are in the next frame
+        assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
+        assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_parent_daughter_gap()
+        _classify_divisions(matched)
+        # Both a FP/FN division
+        # daughters are not detected at all
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
+
     def test_gap_close_shift(self):
         matched = ex_graphs.div_parent_gap()
         _classify_divisions(matched)
@@ -287,7 +300,6 @@ class TestGapCloseDivisions:
         assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
         assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
 
-        #
         matched = ex_graphs.div_daughter_gap()
         _classify_divisions(matched)
         _correct_shifted_divisions(matched, n_frames=1)
@@ -297,6 +309,19 @@ class TestGapCloseDivisions:
         # matched nodes
         assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
         assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_daughter_dual_gap()
+        _classify_divisions(matched)
+        # both children are now incorrect b/c they are in the next frame
+        assert NodeFlag.WC_DIV in matched.pred_graph.nodes[10]
+        assert NodeFlag.WC_DIV in matched.gt_graph.nodes[3]
+
+        matched = ex_graphs.div_parent_daughter_gap()
+        _classify_divisions(matched)
+        # Both a FP/FN division
+        # daughters are not detected at all
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[9]
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[3]
 
 
 def test_evaluate_division_events():

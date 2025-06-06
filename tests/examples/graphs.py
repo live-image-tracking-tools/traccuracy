@@ -621,6 +621,7 @@ def div_shift_bad_match_daughter():
     return Matched(gt, pred, mapping, {})
 
 
+# division gaps
 def div_parent_gap():
     gt = longer_division(2)
     start_id = max(gt.nodes) + 1
@@ -647,4 +648,40 @@ def div_daughter_gap():
     pred = TrackingGraph(pred, location_keys=("y"))
 
     mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_daughter_dual_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove both immediate daughter node from prediction
+    pred.remove_node(11)
+    pred.add_edge(10, 13)
+    pred.remove_node(12)
+    pred.add_edge(10, 14)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (3, 10), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_parent_daughter_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove both immediate daughter node from prediction
+    pred.remove_node(11)
+    pred.remove_node(12)
+
+    # Remove initial parent node
+    pred.remove_node(10)
+    pred.add_edge(9, 13)
+    pred.add_edge(9, 14)
+
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (6, 13), (7, 14)]
     return Matched(gt, pred, mapping, {})
