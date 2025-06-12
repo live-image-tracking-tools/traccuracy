@@ -260,7 +260,12 @@ class TrackingGraph:
         self.edge_errors = False
 
     def _validate_node(self, node: Hashable, attrs: dict) -> None:
-        """check that every node has the time frame, location and seg_id (if needed) specified"""
+        """Check that every node has the time frame, location and seg_id (if needed) specified
+
+        Args:
+            node (Hashable): Node id
+            attrs (dict): Attributes extracted from the graph for the given node
+        """
         assert self.frame_key in attrs.keys(), (
             f"Frame key {self.frame_key} not present for node {node}."
         )
