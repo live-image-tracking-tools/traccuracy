@@ -115,8 +115,8 @@ kernel-config = { cmd = "python -m ipykernel install --user --name=\"traccuracy-
 docs = { cmd = "sphinx-build docs/source docs/_build", depends-on = ["kernel-config"]}
 
 [project.urls]
-homepage = "https://github.com/Janelia-Trackathon-2023/traccuracy"
-repository = "https://github.com/Janelia-Trackathon-2023/traccuracy"
+homepage = "https://github.com/live-image-tracking-tools/traccuracy"
+repository = "https://github.com/live-image-tracking-tools/traccuracy"
 documentation = "https://traccuracy.readthedocs.io/"
 
 [project.scripts]
