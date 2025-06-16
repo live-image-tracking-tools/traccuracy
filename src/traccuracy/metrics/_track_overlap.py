@@ -49,6 +49,11 @@ class TrackOverlapMetrics(Metric):
     def _compute(
         self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
     ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            raise NotImplementedError(
+                "Cannot currently compute track overlap metrics with relaxed skips."
+            )
+
         gt_tracklets = matched.gt_graph.get_tracklets(
             include_division_edges=self.include_division_edges
         )

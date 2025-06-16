@@ -84,14 +84,10 @@ def _classify_edges(
         logger.warning("Node errors have not been annotated. Running node annotation.")
         _classify_nodes(matched)
 
-    # if we check gt skips in relaxed mode, we don't annotate them with
-    # the FALSE_NEG flag, and annotate them with SKIP_FALSE_NEG instead
-    non_skip_edges = set(gt_graph.edges)
     gt_skips = set()
     pred_skips = set()
     if relax_skips_gt:
         gt_skips = gt_graph.get_skip_edges()
-        non_skip_edges -= gt_skips
         for edge in gt_skips:
             gt_graph.set_flag_on_edge(edge, EdgeFlag.SKIP_FALSE_NEG)
 
@@ -99,8 +95,7 @@ def _classify_edges(
         pred_skips = pred_graph.get_skip_edges()
 
     # Set all gt edges to false neg and flip to true if match is found
-    for edge in non_skip_edges:
-        gt_graph.set_flag_on_edge(edge, EdgeFlag.FALSE_NEG)
+    gt_graph.set_flag_on_all_edges(EdgeFlag.FALSE_NEG)
 
     # Extract subset of gt edges where both nodes are matched
     gt_tp_nodes = gt_graph.get_nodes_with_flag(NodeFlag.TRUE_POS)
@@ -120,7 +115,6 @@ def _classify_edges(
                 equivalent_path = nx.shortest_path(pred_graph.graph, source_pred, target_pred)
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     pred_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
-            continue
 
         if relax_skips_pred and (source_pred, target_pred) in pred_skips:
             if is_equivalent_skip_edge(matched, source_pred, target_pred, source, target):
@@ -130,7 +124,6 @@ def _classify_edges(
                 equivalent_path = nx.shortest_path(gt_graph.graph, source, target)
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     gt_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
-            continue
 
         if (source_pred, target_pred) in pred_graph.edges:
             gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
@@ -138,9 +131,7 @@ def _classify_edges(
             pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.TRUE_POS)
 
     # Any pred edges that aren't marked as TP are FP
-    pred_fp_edges = (
-        set(pred_graph.edges) - set(pred_graph.get_edges_with_flag(EdgeFlag.TRUE_POS)) - pred_skips
-    )
+    pred_fp_edges = set(pred_graph.edges) - set(pred_graph.get_edges_with_flag(EdgeFlag.TRUE_POS))
     for edge in pred_fp_edges:
         pred_graph.set_flag_on_edge(edge, EdgeFlag.FALSE_POS)
     if relax_skips_pred:
