@@ -231,7 +231,7 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
             g_pred.graph.nodes[fp_node]["min_buffer_correct"] = n_frames
 
 
-def _evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
+def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
     """Classify division errors and correct shifted divisions according to frame_buffer
 
     Note: A copy of matched_data will be created for each frame_buffer other than 0.
