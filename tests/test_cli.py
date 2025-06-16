@@ -45,6 +45,6 @@ def test_run_ctc():
             log_path,
         ],
     )
-    assert result.exit_code == 0, result.stderr
+    assert result.exit_code == 0, result.stout
     assert os.path.exists(log_path)
     os.remove(log_path)

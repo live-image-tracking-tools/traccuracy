@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 
 import networkx as nx
@@ -24,6 +25,68 @@ def nx_comp1():
         {"id": "1_2", "t": 2, "y": 1, "x": 0},
         {"id": "1_3", "t": 2, "y": 1, "x": 2},
         {"id": "1_4", "t": 3, "y": 1, "x": 2},
+    ]
+
+    edges = [
+        {"source": "1_0", "target": "1_1", "is_tp": True},
+        {"source": "1_1", "target": "1_2", "is_tp": False},
+        {"source": "1_1", "target": "1_3"},
+        {"source": "1_3", "target": "1_4"},
+    ]
+    graph = nx.DiGraph()
+    graph.add_nodes_from([(cell["id"], cell) for cell in cells])
+    graph.add_edges_from([(edge["source"], edge["target"], edge) for edge in edges])
+    return graph
+
+
+@pytest.fixture
+def nx_comp1_seg():
+    """Component 1: Y=1
+    x
+    3|
+    2|       /--1_3--1_4
+    1| 1_0--1_1
+    0|       \\--1_2
+    ---------------------- t
+        0    1   2    3
+    """
+    cells = [
+        {"id": "1_0", "t": 0, "y": 1, "x": 1, "segmentation_id": 1},
+        {"id": "1_1", "t": 1, "y": 1, "x": 1, "is_tp_division": True, "segmentation_id": 2},
+        {"id": "1_2", "t": 2, "y": 1, "x": 0, "segmentation_id": 3},
+        {"id": "1_3", "t": 2, "y": 1, "x": 2, "segmentation_id": 4},
+        {"id": "1_4", "t": 3, "y": 1, "x": 2, "segmentation_id": 5},
+    ]
+
+    edges = [
+        {"source": "1_0", "target": "1_1", "is_tp": True},
+        {"source": "1_1", "target": "1_2", "is_tp": False},
+        {"source": "1_1", "target": "1_3"},
+        {"source": "1_3", "target": "1_4"},
+    ]
+    graph = nx.DiGraph()
+    graph.add_nodes_from([(cell["id"], cell) for cell in cells])
+    graph.add_edges_from([(edge["source"], edge["target"], edge) for edge in edges])
+    return graph
+
+
+@pytest.fixture
+def nx_comp1_pos_list():
+    """Component 1: Y=1
+    x
+    3|
+    2|       /--1_3--1_4
+    1| 1_0--1_1
+    0|       \\--1_2
+    ---------------------- t
+        0    1   2    3
+    """
+    cells = [
+        {"id": "1_0", "t": 0, "pos": [1, 1]},
+        {"id": "1_1", "t": 1, "pos": [1, 1], "is_tp_division": True},
+        {"id": "1_2", "t": 2, "pos": [1, 0]},
+        {"id": "1_3", "t": 2, "pos": [1, 2]},
+        {"id": "1_4", "t": 3, "pos": [1, 2]},
     ]
 
     edges = [
@@ -100,20 +163,37 @@ def nx_merge():
 
 @pytest.fixture
 def merge_graph(nx_merge):
-    return TrackingGraph(nx_merge)
+    return TrackingGraph(nx_merge, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def simple_graph(nx_comp1):
-    return TrackingGraph(nx_comp1)
+    return TrackingGraph(nx_comp1, location_keys=("y", "x"))
 
 
 @pytest.fixture
 def complex_graph(nx_comp1, nx_comp2):
-    return TrackingGraph(nx.compose(nx_comp1, nx_comp2))
+    return TrackingGraph(nx.compose(nx_comp1, nx_comp2), location_keys=("y", "x"))
 
 
-def test_constructor(nx_comp1):
+@pytest.mark.parametrize(
+    ("graph_name", "location_key"), [("nx_comp1", ("y", "x")), ("nx_comp1_pos_list", "pos")]
+)
+def test_constructor_and_get_location(graph_name, location_key, request):
+    nx_graph = request.getfixturevalue(graph_name)
+    tracking_graph = TrackingGraph(nx_graph, location_keys=location_key)
+    assert tracking_graph.start_frame == 0
+    assert tracking_graph.end_frame == 4
+    assert tracking_graph.nodes_by_frame == {
+        0: {"1_0"},
+        1: {"1_1"},
+        2: {"1_2", "1_3"},
+        3: {"1_4"},
+    }
+    assert tracking_graph.get_location("1_3") == [1, 2]
+
+
+def test_no_location(nx_comp1):
     tracking_graph = TrackingGraph(nx_comp1)
     assert tracking_graph.start_frame == 0
     assert tracking_graph.end_frame == 4
@@ -123,23 +203,33 @@ def test_constructor(nx_comp1):
         2: {"1_2", "1_3"},
         3: {"1_4"},
     }
+    with pytest.raises(
+        ValueError, match=re.escape("Must provide location key(s) to access node locations")
+    ):
+        tracking_graph.get_location("1_3")
 
+
+def test_invalid_constructor(nx_comp1):
     # raise AssertionError if frame key not present or ValueError if overlaps
     # with reserved values
     with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*."):
         TrackingGraph(nx_comp1, frame_key="f")
     with pytest.raises(ValueError):
         TrackingGraph(nx_comp1, frame_key=NodeFlag.CTC_FALSE_NEG)
+    with pytest.raises(ValueError):
+        TrackingGraph(nx_comp1, location_keys=NodeFlag.CTC_FALSE_NEG.value)
     with pytest.raises(AssertionError):
         TrackingGraph(nx_comp1, location_keys=["x", "y", "z"])
     with pytest.raises(ValueError):
         TrackingGraph(nx_comp1, location_keys=["x", NodeFlag.CTC_FALSE_NEG])
+    with pytest.raises(AssertionError, match=r"Location key .* not present for node .*."):
+        TrackingGraph(nx_comp1, location_keys="pos")
 
 
-def test_constructor_seg(nx_comp1):
+def test_constructor_seg(nx_comp1_seg):
     # empty segmentation for now, until we get paired seg and graph examples
     segmentation = np.zeros(shape=(5, 5, 5), dtype=np.uint16)
-    tracking_graph = TrackingGraph(nx_comp1, segmentation=segmentation)
+    tracking_graph = TrackingGraph(nx_comp1_seg, segmentation=segmentation)
     assert tracking_graph.start_frame == 0
     assert tracking_graph.end_frame == 4
     assert tracking_graph.nodes_by_frame == {
@@ -153,6 +243,42 @@ def test_constructor_seg(nx_comp1):
     segmentation = segmentation.astype(np.float32)
     with pytest.raises(TypeError, match="Segmentation must have integer dtype, found float32"):
         TrackingGraph(nx_comp1, segmentation=segmentation)
+
+
+def test_constructor_validate_false(nx_comp1):
+    # Strip attributes except for id from nodes
+    for node, attrs in nx_comp1.nodes.items():
+        for key in list(attrs.keys()):
+            del nx_comp1.nodes[node][key]
+
+    # Validation error if defaults are kept
+    with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*"):
+        TrackingGraph(nx_comp1)
+
+    # If validation off, then it should raise another rando error
+    with pytest.raises(Exception):  # noqa: B017
+        TrackingGraph(nx_comp1, validate=False)
+
+
+def test_validate_node():
+    tg = TrackingGraph(nx.DiGraph(), location_keys=("y", "x"))
+    node = "1_0"
+
+    # No frame
+    attrs = {}
+    with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*"):
+        tg._validate_node(node, attrs)
+
+    # No location
+    attrs = {tg.frame_key: 1}
+    with pytest.raises(AssertionError, match=r"Location key .* not present for node .*."):
+        tg._validate_node(node, attrs)
+
+    # No label_key with segmentation
+    tg = TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 5), dtype="int"))
+    attrs = {**attrs, "x": 0, "y": 0}
+    with pytest.raises(AssertionError, match=r"Segmentation label key .* not present for node .*"):
+        tg._validate_node(node, attrs)
 
 
 def test_get_cells_by_frame(simple_graph):
@@ -182,38 +308,6 @@ def test_get_divisions(complex_graph):
 
 def test_get_merges(merge_graph):
     assert merge_graph.get_merges() == ["3_2"]
-
-
-def test_get_connected_components(complex_graph, nx_comp1, nx_comp2):
-    tracks = complex_graph.get_connected_components()
-    assert len(tracks) == 2
-    if "1_1" in tracks[0].graph:
-        track1 = tracks[0]
-        track2 = tracks[1]
-    else:
-        track1 = tracks[1]
-        track2 = tracks[0]
-    assert track1.graph.nodes == nx_comp1.nodes
-    assert track1.graph.edges == nx_comp1.edges
-    assert track2.graph.nodes == nx_comp2.nodes
-    assert track2.graph.edges == nx_comp2.edges
-
-
-def test_get_subgraph(simple_graph):
-    target_nodes = ("1_0", "1_1")
-    subgraph = simple_graph.get_subgraph(target_nodes)
-    assert len(subgraph.nodes) == 2
-    assert len(subgraph.edges) == 1
-    # test that nodes_by_flag dicts are maintained
-    assert Counter(subgraph.nodes_by_flag[NodeFlag.TP_DIV]) == Counter(["1_1"])
-    assert Counter(subgraph.edges_by_flag[EdgeFlag.TRUE_POS]) == Counter([("1_0", "1_1")])
-    # test that start and end frame are updated
-    assert subgraph.start_frame == 0
-    assert subgraph.end_frame == 2
-
-    # test empty target nodes
-    empty_graph = simple_graph.get_subgraph([])
-    assert Counter(empty_graph.nodes) == Counter([])
 
 
 def test_set_flag_on_node(simple_graph):
