@@ -23,7 +23,7 @@ def _classify_nodes(matched: Matched) -> None:
     False positive nodes are all those remaining in the pred graph that are not true positives.
     False negative nodes are all those remaining in the gt graph that are not true positives.
     Args:
-        matched (traccuracy.matches.Matched): Matched data object containing gt
+        matched (traccuracy.matchers.Matched): Matched data object containing gt
             and pred graphs with their associated mapping
     """
     pred_graph = matched.pred_graph
