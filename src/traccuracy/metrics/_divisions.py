@@ -42,7 +42,7 @@ import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._base import Matched
-from traccuracy.track_errors.divisions import _evaluate_division_events
+from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
 
@@ -86,7 +86,7 @@ class DivisionMetrics(Metric):
         Returns:
             dict: Returns a nested dictionary with one dictionary per frame buffer value
         """
-        _evaluate_division_events(
+        evaluate_division_events(
             data,
             max_frame_buffer=self.frame_buffer,
         )

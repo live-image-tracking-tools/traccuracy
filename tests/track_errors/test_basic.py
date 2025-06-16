@@ -2,7 +2,7 @@ import pytest
 
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
-from traccuracy.track_errors.basic import _classify_edges, _classify_nodes
+from traccuracy.track_errors._basic import _classify_edges, _classify_nodes
 
 
 class TestStandardNode:
