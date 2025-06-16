@@ -1,3 +1,5 @@
+import re
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -149,8 +151,15 @@ class TestPointSegMatcher:
 
     matcher = PointSegMatcher()
 
-    def test_no_seg(self):
+    def test_no_loc_key(self):
         data = TrackingGraph(self.track_graph.graph)
+        with pytest.raises(
+            ValueError, match=re.escape("Must provide location key(s) to access node locations")
+        ):
+            self.matcher._compute_mapping(data, self.track_graph)
+
+    def test_no_seg(self):
+        data = TrackingGraph(self.track_graph.graph, location_keys=self.track_graph.location_keys)
         with pytest.raises(ValueError, match="Data provided does not contain segmentations."):
             self.matcher._compute_mapping(data, data)
 
@@ -167,7 +176,7 @@ class TestPointSegMatcher:
         pgraph = nx.relabel_nodes(
             self.track_graph.graph, {node: f"p_{node}" for node in self.track_graph.graph}
         )
-        point_data = TrackingGraph(pgraph)
+        point_data = TrackingGraph(pgraph, location_keys=self.track_graph.location_keys)
         # Nodes ids are label_time so not an exact mapping from segmentation label value
         seg_data = self.track_graph
 
@@ -187,8 +196,10 @@ class TestPointSegMatcher:
             assert pair[0] == pair[1][2:]
 
     def test_empty(self):
-        point_empty = TrackingGraph(nx.DiGraph())
-        seg_empty = TrackingGraph(nx.DiGraph(), segmentation=np.ndarray(shape=(), dtype="int64"))
+        point_empty = TrackingGraph(nx.DiGraph(), location_keys=("x", "y"))
+        seg_empty = TrackingGraph(
+            nx.DiGraph(), segmentation=np.ndarray(shape=(), dtype="int64"), location_keys=("x", "y")
+        )
 
         matched = self.matcher.compute_mapping(point_empty, seg_empty)
         assert len(matched.mapping) == 0

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import enum
 import logging
 from collections import defaultdict
@@ -9,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 import networkx as nx
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Hashable
 
     import numpy as np
     from networkx.classes.reportviews import DiDegreeView, NodeView, OutEdgeView
@@ -49,6 +48,9 @@ class NodeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    # Minimum buffer value that would correct a shifted division.
+    MIN_BUFFER_CORRECT = "min_buffer_correct"
+
     @classmethod
     def has_value(cls, value: str) -> bool:
         """Check if a value is one of the enum's values.
@@ -63,6 +65,24 @@ class NodeFlag(str, enum.Enum):
                 false otherwise
         """
         return value in cls.__members__.values()
+
+
+def _check_valid_key_name(key: str, name: str) -> None:
+    """Check if the provided key conflicts with the reserved NodeFlag values and raise
+    a ValueError if so.
+
+    Args:
+        key (str): The key to check if it conflicts with the reserved values
+        name (str): The name of key to use in the error message
+
+    Raises:
+        ValueError: if the provided key conflicts with the NodeFlag values
+    """
+    if NodeFlag.has_value(key):
+        raise ValueError(
+            f"Specified {name} key {key} is reserved for graph"
+            f"annotation. Please change the {name} key."
+        )
 
 
 @enum.unique
@@ -117,8 +137,8 @@ class TrackingGraph:
         frame_key: str
             The name of the node attribute that corresponds to the frame of
             the node. Defaults to "t".
-        location_keys: list of str
-            Keys used to access the location of the cell in space.
+        location_keys: tuple of str | str | None
+            Key(s) used to access the location of the cell in space.
     """
 
     def __init__(
@@ -127,8 +147,9 @@ class TrackingGraph:
         segmentation: np.ndarray | None = None,
         frame_key: str = "t",
         label_key: str = "segmentation_id",
-        location_keys: tuple[str, ...] = ("x", "y"),
+        location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
+        validate: bool = True,
     ):
         """A directed graph representing a tracking solution where edges go
         forward in time.
@@ -152,12 +173,16 @@ class TrackingGraph:
                 pixel value of the node in the segmentation. Defaults to
                 'segmentation_id'. Pass `None` if there is not a label
                 attribute on the graph.
-            location_keys (tuple, optional): The list of keys on each node in
-                graph that contains the spatial location of the node. Every
-                node must have a value stored at each of these keys.
-                Defaults to ('x', 'y').
+            location_key (str | tuple, optional): The key or list of keys on each node
+                in graph that contains the spatial location of the node, in the order
+                needed to index the segmentation, if applicable. Every
+                node must have a value stored at each of these provided keys.
+                If a single string, it is assumed that the location is stored as a list
+                or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
+            validate (bool, optional): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided). Default = True.
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -169,18 +194,17 @@ class TrackingGraph:
                 "annotation. Please change the frame key."
             )
         self.frame_key = frame_key
-        if label_key is not None and NodeFlag.has_value(label_key):
-            raise ValueError(
-                f"Specified label key {label_key} is reserved for graph"
-                "annotation. Please change the label key."
-            )
+
+        if label_key is not None:
+            _check_valid_key_name(label_key, "label")
         self.label_key = label_key
-        for loc_key in location_keys:
-            if NodeFlag.has_value(loc_key):
-                raise ValueError(
-                    f"Specified location key {loc_key} is reserved for graph"
-                    "annotation. Please change the location key."
-                )
+
+        if location_keys is not None:
+            if isinstance(location_keys, str):
+                _check_valid_key_name(location_keys, "location")
+            else:
+                for loc_key in location_keys:
+                    _check_valid_key_name(loc_key, "location")
         self.location_keys = location_keys
         self.name = name
 
@@ -188,17 +212,22 @@ class TrackingGraph:
 
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
-        self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {flag: set() for flag in NodeFlag}
+        self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
+            # We do not include MIN_BUFFER_CORRECT here, as it is not a boolean
+            # "flag" but rather an integer. In future, if we decide to store
+            # more "flags" that take on integer values, we may wish to make a
+            # separate enum for them.
+            flag: set()
+            for flag in NodeFlag
+            if flag != NodeFlag.MIN_BUFFER_CORRECT
+        }
         self.edges_by_flag: dict[EdgeFlag, set[tuple[Hashable, Hashable]]] = {
             flag: set() for flag in EdgeFlag
         }
+
         for node, attrs in self.graph.nodes.items():
-            # check that every node has the time frame and location specified
-            assert self.frame_key in attrs.keys(), (
-                f"Frame key {self.frame_key} not present for node {node}."
-            )
-            for key in self.location_keys:
-                assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+            if validate:
+                self._validate_node(node, attrs)
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -230,6 +259,32 @@ class TrackingGraph:
         self.node_errors = False
         self.edge_errors = False
 
+    def _validate_node(self, node: Hashable, attrs: dict) -> None:
+        """Check that every node has the time frame, location and seg_id (if needed) specified
+
+        Args:
+            node (Hashable): Node id
+            attrs (dict): Attributes extracted from the graph for the given node
+        """
+        assert self.frame_key in attrs.keys(), (
+            f"Frame key {self.frame_key} not present for node {node}."
+        )
+
+        if self.location_keys is not None:
+            if isinstance(self.location_keys, str):
+                assert self.location_keys in attrs.keys(), (
+                    f"Location key {self.location_keys} not present for node {node}."
+                )
+            else:
+                for key in self.location_keys:
+                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+
+        # seg id check
+        if self.segmentation is not None:
+            assert self.label_key in attrs.keys(), {
+                f"Segmentation label key {self.label_key} not present for node {node}"
+            }
+
     @property
     def nodes(self) -> NodeView:
         """Get all the nodes in the graph, along with their attributes.
@@ -249,7 +304,7 @@ class TrackingGraph:
         """
         return self.graph.edges
 
-    def get_location(self, node_id: Hashable) -> list[float]:
+    def get_location(self, node_id: Hashable) -> list[float] | tuple[float] | np.ndarray:
         """Get the spatial location of the node with node_id using self.location_keys.
 
         Args:
@@ -257,8 +312,16 @@ class TrackingGraph:
 
         Returns:
             list of float: A list of location values in the same order as self.location_keys
+
+        Raises:
+            ValueError if location keys were not provided
         """
-        return [self.graph.nodes[node_id][key] for key in self.location_keys]
+        if self.location_keys is None:
+            raise ValueError("Must provide location key(s) to access node locations")
+        if isinstance(self.location_keys, str):
+            return self.graph.nodes[node_id][self.location_keys]
+        else:
+            return [self.graph.nodes[node_id][key] for key in self.location_keys]
 
     def get_nodes_with_flag(self, flag: NodeFlag) -> set[Hashable]:
         """Get all nodes with specified NodeFlag set to True.
@@ -305,55 +368,6 @@ class TrackingGraph:
         """
         in_degree: DiDegreeView = self.graph.in_degree()  # type: ignore
         return [node for node, degree in in_degree if degree >= 2]
-
-    def get_connected_components(self) -> list[TrackingGraph]:
-        """Get a list of TrackingGraphs, each corresponding to one track
-        (i.e., a connected component in the track graph).
-
-        Returns:
-            A list of TrackingGraphs, one for each track.
-        """
-        graph = self.graph
-        if len(graph.nodes) == 0:
-            return []
-
-        return [self.get_subgraph(g) for g in nx.weakly_connected_components(graph)]
-
-    def get_subgraph(self, nodes: Iterable[Hashable]) -> TrackingGraph:
-        """Returns a new TrackingGraph with the subgraph defined by the list of nodes.
-
-        Args:
-            nodes (list): A list of node ids to use in constructing the subgraph
-        """
-        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
-        new_graph = cast("nx.DiGraph", self.graph.subgraph(nodes).copy())
-
-        new_trackgraph = copy.deepcopy(self)
-        new_trackgraph.graph = new_graph
-        for frame, nodes_in_frame in self.nodes_by_frame.items():
-            new_nodes_in_frame = nodes_in_frame.intersection(nodes)
-            if new_nodes_in_frame:
-                new_trackgraph.nodes_by_frame[frame] = new_nodes_in_frame
-            else:
-                del new_trackgraph.nodes_by_frame[frame]
-
-        for node_flag in NodeFlag:
-            new_trackgraph.nodes_by_flag[node_flag] = self.nodes_by_flag[node_flag].intersection(
-                nodes
-            )
-        for edge_flag in EdgeFlag:
-            new_trackgraph.edges_by_flag[edge_flag] = self.edges_by_flag[edge_flag].intersection(
-                new_trackgraph.edges
-            )
-
-        if len(new_trackgraph.nodes_by_frame) == 0:
-            new_trackgraph.start_frame = None
-            new_trackgraph.end_frame = None
-        else:
-            new_trackgraph.start_frame = min(new_trackgraph.nodes_by_frame.keys())
-            new_trackgraph.end_frame = max(new_trackgraph.nodes_by_frame.keys()) + 1
-
-        return new_trackgraph
 
     def set_flag_on_node(self, _id: Hashable, flag: NodeFlag, value: bool = True) -> None:
         """Set an attribute flag for a single node.
