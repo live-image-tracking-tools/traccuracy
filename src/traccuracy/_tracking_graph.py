@@ -564,3 +564,17 @@ class TrackingGraph:
 
         # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
         return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in tracklets]
+
+    def get_skip_edges(self) -> set[tuple[Hashable, Hashable]]:
+        """Get all edges that skip one or more frames.
+
+        Returns:
+            set of tuples: A set of edges that skip one or more frames.
+                Each edge is represented as a tuple of (source_node, target_node).
+        """
+        return {
+            (source, target)
+            for source, target in self.graph.edges
+            if self.graph.nodes[source][self.frame_key] + 1
+            != self.graph.nodes[target][self.frame_key]
+        }

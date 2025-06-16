@@ -76,7 +76,9 @@ class DivisionMetrics(Metric):
 
         self.frame_buffer = max_frame_buffer
 
-    def _compute(self, data: Matched) -> dict[str, dict[str, float]]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, dict[str, float]]:
         """Runs `_evaluate_division_events` and calculates summary metrics for each frame buffer
 
         Args:

@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import copy
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from typing import TYPE_CHECKING
+from traccuracy._tracking_graph import NodeFlag
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from traccuracy._tracking_graph import NodeFlag, TrackingGraph
+    from traccuracy._tracking_graph import TrackingGraph
     from traccuracy.matchers._base import Matched
 
-if TYPE_CHECKING:
-    from traccuracy.matchers._base import Matched
 
 def is_equivalent_skip_edge(
     skip_other_matched: Matched,
@@ -78,15 +78,15 @@ def is_equivalent_skip_edge(
         return False
     other_predecessors = list(other_graph.predecessors(matched_dst))
     while len(other_predecessors):
-        other_pred = other_predecessors[0]
-        if other_pred == matched_src:
-            # we've traversed back to matched_src with all conditions met
-            return True
-        # otherwise we have to keep traversing
-        # check that this predecessor doesn't have a match in skip graph
-        if other_pred in other_skip_map:
-            return False
-        other_predecessors = list(other_graph.predecessors(other_pred))
+        for other_pred in other_predecessors:
+            if other_pred == matched_src:
+                # we've traversed back to matched_src with all conditions met
+                return True
+            # otherwise we have to keep traversing
+            # check that this predecessor doesn't have a match in skip graph
+            if other_pred in other_skip_map:
+                return False
+            other_predecessors = list(other_graph.predecessors(other_pred))
     # if we get here, matched_src is not an ancestor of matched_dst
     return False
 

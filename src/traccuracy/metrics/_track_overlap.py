@@ -46,7 +46,9 @@ class TrackOverlapMetrics(Metric):
         super().__init__(valid_match_types)
         self.include_division_edges = include_division_edges
 
-    def _compute(self, matched: Matched) -> dict[str, float]:
+    def _compute(
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
         gt_tracklets = matched.gt_graph.get_tracklets(
             include_division_edges=self.include_division_edges
         )
