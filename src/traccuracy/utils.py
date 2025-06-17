@@ -22,16 +22,16 @@ def get_equivalent_skip_edge(
     matched_src: Hashable,
     matched_dst: Hashable,
 ) -> list[Hashable]:
-    """Get path matched_src ->...-> matched_dst equivalent to skip_src -> skip_dst.
+    """Get path `matched_src ->...-> matched_dst` equivalent to `skip_src -> skip_dst`.
 
-    A skip edge skip_src -> skip_dst is equivalent to edges connecting matched_src and
-    matched_dst if:
+    A skip edge `skip_src -> skip_dst` is equivalent to a path connecting `matched_src` and
+    `matched_dst` if:
 
-    - skip_src is a valid match for matched_src,
-    - skip_dst is a valid match for matched_dst,
-    - matched_src is an ancestor of matched_dst (regardless of intervening nodes) AND
-    - all nodes on the path matched_src -> .. -> matched_dst have no valid matches in
-        skip_matched.
+    - `skip_src` is a valid match for `matched_src`,
+    - `skip_dst` is a valid match for `matched_dst`,
+    - `matched_src` is an ancestor of `matched_dst` (regardless of intervening nodes) AND
+    - all nodes on the path `matched_src ->...-> matched_dst` have no valid matches in
+    `skip_other_matched`.
 
     Args:
         skip_other_matched (traccuracy.matchers._base.Matched): Matched object mapping
