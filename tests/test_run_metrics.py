@@ -10,7 +10,7 @@ class DummyMetric(Metric):
     def __init__(self):
         super().__init__(["one-to-one"])
 
-    def _compute(self, matched):
+    def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
         return {}
 
 
@@ -19,7 +19,7 @@ class DummyMetricParam(Metric):
         super().__init__(["one-to-one"])
         self.param = param
 
-    def _compute(self, matched):
+    def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
         return {}
 
 

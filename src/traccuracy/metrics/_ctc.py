@@ -39,7 +39,16 @@ class AOGMMetrics(Metric):
             "ws": edge_ws_weight,
         }
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         evaluate_ctc_events(data)
 
         vertex_error_counts: dict[str, float] = {
@@ -91,7 +100,16 @@ class CTCMetrics(AOGMMetrics):
             edge_ws_weight=edge_weight_ws,
         )
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         errors = super()._compute(data)
         gt_graph = data.gt_graph.graph
         n_nodes = gt_graph.number_of_nodes()
