@@ -95,7 +95,7 @@ def get_corrected_division_graphs_with_delta(
     to the given frame buffer are marked as `TP_DIV`.
 
     Args:
-        matched (traccuracy.matchers.Matched): Matched object for set of GT and Pred data.
+        matched (Matched): Matched object for set of GT and Pred data.
             Must be annotated with division events.
         frame_buffer (int): Maximum frame buffer to use for division correction
 
