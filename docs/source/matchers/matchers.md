@@ -16,6 +16,10 @@ mappings. Matchers can operate on the segmentation or directly on the point loca
 Below is a table summarizing the implemented matchers, what types of matchings
 they can produce, and a brief description of behavior and any hyperparameters.
 
+:::{warning}
+Unless otherwise noted, matchers are written assuming that you have dense ground truth annotations. The results on sparse annotations may be unpredictable and should be interpreted cautiously.
+:::
+
 | Matcher | Matching Type(s) | Description |
 ----------|------------------|-------------
 | Point | `one-to-one`  |  Given a maximum distance threshold, the matcher will perform hungarian matching on the points in each frame of the ground truth and predicted graphs, minimizing the overall distance while never matching any points with distance greater than the threshold. |
