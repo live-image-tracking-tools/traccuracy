@@ -124,6 +124,11 @@ def _classify_edges(
             gt_graph.set_flag_on_edge((source, target), EdgeFlag.TRUE_POS)
             pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.TRUE_POS)
 
+    # Any pred edges that aren't marked as TP are FP
+    pred_fp_edges = set(pred_graph.edges) - set(pred_graph.get_edges_with_flag(EdgeFlag.TRUE_POS))
+    for edge in pred_fp_edges:
+        pred_graph.set_flag_on_edge(edge, EdgeFlag.FALSE_POS)
+
     # Need to go through pred skip edges separately to check if
     # they have an equivalent path in GT (since they won't be captured by checking GT edges)
     if relax_skips_pred:
@@ -146,11 +151,6 @@ def _classify_edges(
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     gt_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
-    # Any pred edges that aren't marked as TP are FP
-    pred_fp_edges = set(pred_graph.edges) - set(pred_graph.get_edges_with_flag(EdgeFlag.TRUE_POS))
-    for edge in pred_fp_edges:
-        pred_graph.set_flag_on_edge(edge, EdgeFlag.FALSE_POS)
-    if relax_skips_pred:
         skip_tps = pred_graph.get_edges_with_flag(EdgeFlag.SKIP_TRUE_POS)
         fp_skips = pred_skips - skip_tps
         for edge in fp_skips:

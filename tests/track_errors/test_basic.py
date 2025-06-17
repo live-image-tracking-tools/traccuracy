@@ -289,6 +289,10 @@ class TestGapCloseEdge:
         for edge in pred_graph.edges:
             assert EdgeFlag.TRUE_POS in pred_graph.edges[edge]
 
+        _classify_edges(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(1, 3)]
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(5, 7)]
+
     def test_gap_close_offset_edge(self):
         matched = ex_graphs.gap_close_offset()
         _classify_edges(matched)
@@ -299,6 +303,12 @@ class TestGapCloseEdge:
         # all pred edges are FP
         for edge in matched.pred_graph.edges:
             assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[edge]
+
+        # after relaxing skips, the edges are still offset
+        # so they remain SKIP_FN and SKIP_FP
+        _classify_edges(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert EdgeFlag.SKIP_FALSE_NEG in matched.gt_graph.edges[(1, 3)]
+        assert EdgeFlag.SKIP_FALSE_POS in matched.pred_graph.edges[(6, 8)]
 
     def test_gap_close_division_edges(self):
         matched = ex_graphs.div_parent_gap()
