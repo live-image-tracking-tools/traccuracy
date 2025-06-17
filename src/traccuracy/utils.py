@@ -30,7 +30,7 @@ def get_equivalent_skip_edge(
         - skip_dst is a valid match for matched_dst,
         - matched_src is an ancestor of matched_dst (regardless of intervening nodes) AND
         - all nodes on the path matched_src -> .. -> matched_dst have no valid matches in
-        skip_matched.
+            skip_matched.
 
     Args:
         skip_other_matched (traccuracy.matchers._base.Matched): Matched object mapping
