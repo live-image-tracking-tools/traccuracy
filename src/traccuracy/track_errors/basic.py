@@ -4,10 +4,8 @@ import itertools
 import logging
 from typing import TYPE_CHECKING
 
-import networkx as nx
-
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
-from traccuracy.utils import is_equivalent_skip_edge
+from traccuracy.utils import get_equivalent_skip_edge
 
 if TYPE_CHECKING:
     from traccuracy.matchers import Matched
@@ -108,20 +106,20 @@ def _classify_edges(
         target_pred = matched.get_gt_pred_match(target)
 
         if relax_skips_gt and (source, target) in gt_skips:
-            if is_equivalent_skip_edge(matched, source, target, source_pred, target_pred):
+            if equivalent_path := get_equivalent_skip_edge(
+                matched, source, target, source_pred, target_pred
+            ):
                 gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
                 gt_graph.set_flag_on_edge((source, target), EdgeFlag.SKIP_TRUE_POS)
-                # get path in pred from source_pred to target_pred
-                equivalent_path = nx.shortest_path(pred_graph.graph, source_pred, target_pred)
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     pred_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
         if relax_skips_pred and (source_pred, target_pred) in pred_skips:
-            if is_equivalent_skip_edge(matched, source_pred, target_pred, source, target):
+            if equivalent_path := get_equivalent_skip_edge(
+                matched, source_pred, target_pred, source, target
+            ):
                 gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
                 pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.SKIP_TRUE_POS)
-                # get path in gt from source to target
-                equivalent_path = nx.shortest_path(gt_graph.graph, source, target)
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     gt_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
@@ -142,3 +140,5 @@ def _classify_edges(
 
     pred_graph.edge_errors = True
     gt_graph.edge_errors = True
+    gt_graph.skip_edges_gt_relaxed = relax_skips_gt
+    pred_graph.skip_edges_pred_relaxed = relax_skips_pred

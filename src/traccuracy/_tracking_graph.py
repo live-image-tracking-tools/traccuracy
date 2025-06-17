@@ -262,6 +262,8 @@ class TrackingGraph:
         self.division_annotations = False
         self.node_errors = False
         self.edge_errors = False
+        self.skip_edges_gt_relaxed = False
+        self.skip_edges_pred_relaxed = False
 
     def _validate_node(self, node: Hashable, attrs: dict) -> None:
         """Check that every node has the time frame, location and seg_id (if needed) specified

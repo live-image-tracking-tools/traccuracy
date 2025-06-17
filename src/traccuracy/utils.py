@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING
 
+import networkx as nx
 import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
@@ -14,14 +15,14 @@ if TYPE_CHECKING:
     from traccuracy.matchers._base import Matched
 
 
-def is_equivalent_skip_edge(
+def get_equivalent_skip_edge(
     skip_other_matched: Matched,
     skip_src: Hashable,
     skip_dst: Hashable,
     matched_src: Hashable,
     matched_dst: Hashable,
-) -> bool:
-    """True if edge skip_src -> skip_dst is equivalent to edges matched_src ->...-> matched_dst.
+) -> list[Hashable]:
+    """Get path matched_src ->...-> matched_dst equivalent to skip_src -> skip_dst.
 
     A skip edge skip_src -> skip_dst is equivalent to edges connecting matched_src and
     matched_dst if:
@@ -31,29 +32,28 @@ def is_equivalent_skip_edge(
         - all nodes on the path matched_src -> .. -> matched_dst have no valid matches in
         skip_matched.
 
-    Parameters
-    ----------
-    skip_other_matched : Matched
-        Matched object containing mapping between skip nodes and other nodes
-    skip_src : Hashable
-        ID of source node of skip edge
-    skip_dst : Hashable
-        ID of destination node of skip edge
-    other_src : Hashable
-        matched node of skip_src
-    other_dst : Hashable
-        matched node of skip_dst
+    Args:
+        skip_other_matched (Matched): Matched object mapping skip nodes to other nodes
+        skip_src (Hashable): ID of source node of skip edge
+        skip_dst (Hashable): ID of destination node of skip edge
+        other_src : Hashable
+            matched node of skip_src
+        other_dst : Hashable
+            matched node of skip_dst
+
+    Returns:
+        list[Hashable]: path from matched_src to matched_dst, or empty list if no such path.
     """
     if (skip_src, matched_src) not in skip_other_matched.mapping and (
         matched_src,
         skip_src,
     ) not in skip_other_matched.mapping:
-        return False
+        return []
     if (skip_dst, matched_dst) not in skip_other_matched.mapping and (
         matched_dst,
         skip_dst,
     ) not in skip_other_matched.mapping:
-        return False
+        return []
     gt_graph = skip_other_matched.gt_graph.graph
     pred_graph = skip_other_matched.pred_graph.graph
 
@@ -72,23 +72,18 @@ def is_equivalent_skip_edge(
     else:
         other_skip_map = skip_other_matched.gt_pred_map
 
-    # if matched_dst has incoming degree > 1, skip_edge is definitely not equivalent
-    # (can only happen in graphs with merges, but we technically allow them)
-    if other_graph.in_degree(matched_dst) > 1:  # type: ignore[operator]
-        return False
-    other_predecessors = list(other_graph.predecessors(matched_dst))
-    while len(other_predecessors):
-        for other_pred in other_predecessors:
-            if other_pred == matched_src:
-                # we've traversed back to matched_src with all conditions met
-                return True
-            # otherwise we have to keep traversing
-            # check that this predecessor doesn't have a match in skip graph
-            if other_pred in other_skip_map:
-                return False
-            other_predecessors = list(other_graph.predecessors(other_pred))
-    # if we get here, matched_src is not an ancestor of matched_dst
-    return False
+    # check if there's a path in other_graph from matched_src to matched_dst
+    try:
+        equivalent_path = nx.shortest_path(other_graph, matched_src, matched_dst)
+    except nx.NetworkXNoPath:
+        return []
+
+    # equivalent path includes src and dst which we know are matched
+    # check that no other nodes in the path have a match
+    for path_node in equivalent_path[1:-1]:
+        if path_node in other_skip_map:
+            return []
+    return equivalent_path
 
 
 def get_corrected_division_graphs_with_delta(
