@@ -149,6 +149,7 @@ class TrackingGraph:
         label_key: str = "segmentation_id",
         location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
+        validate: bool = True,
     ):
         """A directed graph representing a tracking solution where edges go
         forward in time.
@@ -180,6 +181,8 @@ class TrackingGraph:
                 or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
+            validate (bool, optional): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided). Default = True.
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -223,21 +226,8 @@ class TrackingGraph:
         }
 
         for node, attrs in self.graph.nodes.items():
-            assert self.frame_key in attrs.keys(), (
-                f"Frame key {self.frame_key} not present for node {node}."
-            )
-
-            # check that every node has the time frame and location specified
-            if self.location_keys is not None:
-                if isinstance(self.location_keys, str):
-                    assert self.location_keys in attrs.keys(), (
-                        f"Location key {self.location_keys} not present for node {node}."
-                    )
-                else:
-                    for key in self.location_keys:
-                        assert key in attrs.keys(), (
-                            f"Location key {key} not present for node {node}."
-                        )
+            if validate:
+                self._validate_node(node, attrs)
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -268,6 +258,32 @@ class TrackingGraph:
         self.division_annotations = False
         self.node_errors = False
         self.edge_errors = False
+
+    def _validate_node(self, node: Hashable, attrs: dict) -> None:
+        """Check that every node has the time frame, location and seg_id (if needed) specified
+
+        Args:
+            node (Hashable): Node id
+            attrs (dict): Attributes extracted from the graph for the given node
+        """
+        assert self.frame_key in attrs.keys(), (
+            f"Frame key {self.frame_key} not present for node {node}."
+        )
+
+        if self.location_keys is not None:
+            if isinstance(self.location_keys, str):
+                assert self.location_keys in attrs.keys(), (
+                    f"Location key {self.location_keys} not present for node {node}."
+                )
+            else:
+                for key in self.location_keys:
+                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+
+        # seg id check
+        if self.segmentation is not None:
+            assert self.label_key in attrs.keys(), {
+                f"Segmentation label key {self.label_key} not present for node {node}"
+            }
 
     @property
     def nodes(self) -> NodeView:

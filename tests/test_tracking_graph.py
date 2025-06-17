@@ -40,6 +40,37 @@ def nx_comp1():
 
 
 @pytest.fixture
+def nx_comp1_seg():
+    """Component 1: Y=1
+    x
+    3|
+    2|       /--1_3--1_4
+    1| 1_0--1_1
+    0|       \\--1_2
+    ---------------------- t
+        0    1   2    3
+    """
+    cells = [
+        {"id": "1_0", "t": 0, "y": 1, "x": 1, "segmentation_id": 1},
+        {"id": "1_1", "t": 1, "y": 1, "x": 1, "is_tp_division": True, "segmentation_id": 2},
+        {"id": "1_2", "t": 2, "y": 1, "x": 0, "segmentation_id": 3},
+        {"id": "1_3", "t": 2, "y": 1, "x": 2, "segmentation_id": 4},
+        {"id": "1_4", "t": 3, "y": 1, "x": 2, "segmentation_id": 5},
+    ]
+
+    edges = [
+        {"source": "1_0", "target": "1_1", "is_tp": True},
+        {"source": "1_1", "target": "1_2", "is_tp": False},
+        {"source": "1_1", "target": "1_3"},
+        {"source": "1_3", "target": "1_4"},
+    ]
+    graph = nx.DiGraph()
+    graph.add_nodes_from([(cell["id"], cell) for cell in cells])
+    graph.add_edges_from([(edge["source"], edge["target"], edge) for edge in edges])
+    return graph
+
+
+@pytest.fixture
 def nx_comp1_pos_list():
     """Component 1: Y=1
     x
@@ -195,10 +226,10 @@ def test_invalid_constructor(nx_comp1):
         TrackingGraph(nx_comp1, location_keys="pos")
 
 
-def test_constructor_seg(nx_comp1):
+def test_constructor_seg(nx_comp1_seg):
     # empty segmentation for now, until we get paired seg and graph examples
     segmentation = np.zeros(shape=(5, 5, 5), dtype=np.uint16)
-    tracking_graph = TrackingGraph(nx_comp1, segmentation=segmentation)
+    tracking_graph = TrackingGraph(nx_comp1_seg, segmentation=segmentation)
     assert tracking_graph.start_frame == 0
     assert tracking_graph.end_frame == 4
     assert tracking_graph.nodes_by_frame == {
@@ -212,6 +243,42 @@ def test_constructor_seg(nx_comp1):
     segmentation = segmentation.astype(np.float32)
     with pytest.raises(TypeError, match="Segmentation must have integer dtype, found float32"):
         TrackingGraph(nx_comp1, segmentation=segmentation)
+
+
+def test_constructor_validate_false(nx_comp1):
+    # Strip attributes except for id from nodes
+    for node, attrs in nx_comp1.nodes.items():
+        for key in list(attrs.keys()):
+            del nx_comp1.nodes[node][key]
+
+    # Validation error if defaults are kept
+    with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*"):
+        TrackingGraph(nx_comp1)
+
+    # If validation off, then it should raise another rando error
+    with pytest.raises(Exception):  # noqa: B017
+        TrackingGraph(nx_comp1, validate=False)
+
+
+def test_validate_node():
+    tg = TrackingGraph(nx.DiGraph(), location_keys=("y", "x"))
+    node = "1_0"
+
+    # No frame
+    attrs = {}
+    with pytest.raises(AssertionError, match=r"Frame key .* not present for node .*"):
+        tg._validate_node(node, attrs)
+
+    # No location
+    attrs = {tg.frame_key: 1}
+    with pytest.raises(AssertionError, match=r"Location key .* not present for node .*."):
+        tg._validate_node(node, attrs)
+
+    # No label_key with segmentation
+    tg = TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 5), dtype="int"))
+    attrs = {**attrs, "x": 0, "y": 0}
+    with pytest.raises(AssertionError, match=r"Segmentation label key .* not present for node .*"):
+        tg._validate_node(node, attrs)
 
 
 def test_get_cells_by_frame(simple_graph):
