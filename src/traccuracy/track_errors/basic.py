@@ -73,7 +73,12 @@ def _classify_edges(
     pred_graph = matched.pred_graph
     gt_graph = matched.gt_graph
 
-    if pred_graph.edge_errors and gt_graph.edge_errors:
+    if (
+        pred_graph.edge_errors
+        and gt_graph.edge_errors
+        and not relax_skips_gt
+        and not relax_skips_pred
+    ):
         logger.warning("Edge errors already calculated. Skipping graph annotation")
         return
 
@@ -109,24 +114,37 @@ def _classify_edges(
             if equivalent_path := get_equivalent_skip_edge(
                 matched, source, target, source_pred, target_pred
             ):
-                gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
+                gt_graph.remove_flag_from_edge((source, target), EdgeFlag.SKIP_FALSE_NEG)
                 gt_graph.set_flag_on_edge((source, target), EdgeFlag.SKIP_TRUE_POS)
                 for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
                     pred_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
-
-        if relax_skips_pred and (source_pred, target_pred) in pred_skips:
-            if equivalent_path := get_equivalent_skip_edge(
-                matched, source_pred, target_pred, source, target
-            ):
-                gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
-                pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.SKIP_TRUE_POS)
-                for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
-                    gt_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
         if (source_pred, target_pred) in pred_graph.edges:
             gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)
             gt_graph.set_flag_on_edge((source, target), EdgeFlag.TRUE_POS)
             pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.TRUE_POS)
+
+    # Need to go through pred skip edges separately to check if
+    # they have an equivalent path in GT (since they won't be captured by checking GT edges)
+    if relax_skips_pred:
+        for source_pred, target_pred in pred_skips:
+            # source and dest must be matched
+            if (
+                NodeFlag.TRUE_POS not in pred_graph.nodes[source_pred]
+                or NodeFlag.TRUE_POS not in pred_graph.nodes[target_pred]
+            ):
+                continue
+
+            # Lookup GT nodes corresponding to pred edge nodes
+            source_gt = matched.get_pred_gt_match(source_pred)
+            target_gt = matched.get_pred_gt_match(target_pred)
+
+            if equivalent_path := get_equivalent_skip_edge(
+                matched, source_pred, target_pred, source_gt, target_gt
+            ):
+                pred_graph.set_flag_on_edge((source_pred, target_pred), EdgeFlag.SKIP_TRUE_POS)
+                for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
+                    gt_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
     # Any pred edges that aren't marked as TP are FP
     pred_fp_edges = set(pred_graph.edges) - set(pred_graph.get_edges_with_flag(EdgeFlag.TRUE_POS))

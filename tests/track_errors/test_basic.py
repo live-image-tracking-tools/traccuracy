@@ -243,6 +243,16 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(5, 6)]
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
 
+        _classify_edges(matched, relax_skips_gt=True)
+        # gap close edge is SKIP_TP and remains FN
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(1, 3)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(1, 3)]
+        # equivalent pred edges are SKIP_TP and still FP
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(5, 6)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(5, 6)]
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(6, 7)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
+
     def test_fp_gap_close_edge(self):
         matched = ex_graphs.gap_close_pred_gap()
         _classify_edges(matched)
@@ -254,6 +264,16 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 8)]
         # pred edges are FN
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(2, 3)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
+
+        _classify_edges(matched, relax_skips_pred=True)
+        # gap close edge is SKIP_TP and remains FP
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(6, 8)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 8)]
+        # equivalent gt edges are SKIP_TP and still FN
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(2, 3)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(2, 3)]
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(3, 4)]
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
 
     def test_good_gap_close_edge(self):
