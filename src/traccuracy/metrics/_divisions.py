@@ -84,6 +84,10 @@ class DivisionMetrics(Metric):
         Args:
             matched_data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
                 Must meet the `needs_one_to_one` criteria
+            relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+                graph have an equivalent multi-edge path in predicted graph
+            relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+                graph have an equivalent multi-edge path in ground truth graph
 
         Returns:
             dict: Returns a nested dictionary with one dictionary per frame buffer value
