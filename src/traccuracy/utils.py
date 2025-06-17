@@ -33,13 +33,12 @@ def get_equivalent_skip_edge(
         skip_matched.
 
     Args:
-        skip_other_matched (Matched): Matched object mapping skip nodes to other nodes
+        skip_other_matched (traccuracy.matchers._base.Matched): Matched object mapping
+            skip nodes to other nodes
         skip_src (Hashable): ID of source node of skip edge
         skip_dst (Hashable): ID of destination node of skip edge
-        other_src : Hashable
-            matched node of skip_src
-        other_dst : Hashable
-            matched node of skip_dst
+        other_src (Hashable): matched node of skip_src
+        other_dst (Hashable): matched node of skip_dst
 
     Returns:
         list[Hashable]: path from matched_src to matched_dst, or empty list if no such path.
@@ -95,7 +94,7 @@ def get_corrected_division_graphs_with_delta(
     to the given frame buffer are marked as `TP_DIV`.
 
     Args:
-        matched (Matched): Matched object for set of GT and Pred data.
+        matched (traccuracy.matchers._base.Matched): Matched object for set of GT and Pred data.
             Must be annotated with division events.
         frame_buffer (int): Maximum frame buffer to use for division correction
 
