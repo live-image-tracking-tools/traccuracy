@@ -14,7 +14,12 @@ if TYPE_CHECKING:
 
 
 class BasicMetrics(Metric):
-    """Generates basic statistics describing node and edge errors"""
+    """Generates basic statistics describing node and edge errors
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+    """
 
     def __init__(self) -> None:
         valid_matching_types = ["one-to-one"]
