@@ -5,13 +5,15 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from traccuracy._tracking_graph import EdgeFlag, NodeFlag
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.matchers._base import Matched
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 
 from ._base import Metric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from traccuracy.matchers import Matched
 
 
@@ -282,3 +284,128 @@ def get_weighted_error_sum(
         edge_error_counts, edge_fp_weight, edge_fn_weight, edge_ws_weight
     )
     return vertex_error_sum + edge_error_sum
+
+
+class CellCycleAccuracy(Metric):
+    """The CCA metric captures the ability of a method to identify a distribution of cell
+    cycle lengths that matches the distribution present in the ground truth. The evaluation
+    is done on distributions and therefore does not require a matching of solution to the
+    ground truth. It ranges from [0,1] with higher values indicating better performance.
+
+    This metric is part of the biologically inspired metrics introduced by the CTC
+    and defined in Ulman 2017.
+    """
+
+    def __init__(self) -> None:
+        valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
+        super().__init__(valid_matching_types)
+
+    def _get_lengths(self, track_graph: TrackingGraph) -> list[int]:
+        """Identifies the length of complete cell cycles in a tracking graph
+
+        Args:
+            track_graph (TrackingGraph): The graph to evaluate
+
+        Returns:
+            list[int]: a list of complete cell cycle lengths
+        """
+        lengths = []
+        # Loop over subgraphs
+        for g in track_graph.get_connected_components():
+            divs = g.get_divisions()
+            # Need at least two divisions to calculate cell cycle length
+            if len(list(divs)) >= 2:
+                lengths.extend(self._get_subgraph_lengths(g, divs))
+
+        return lengths
+
+    def _get_subgraph_lengths(self, subgraph: TrackingGraph, divs: list[Hashable]) -> list[int]:
+        """For a given subgraph, computes the lengths of complete cell cycles by walking the
+        graph from one division to the next
+
+        Args:
+            subgraph (TrackingGraph): a TrackingGraph containing a single subgraph of
+                connected components
+            divs (list[Hashable]): a list of dividing nodes in the subgraph
+
+        Returns:
+            list[int]: a list of the lengths of complete cell cycles in the subgraph
+        """
+        lengths = []
+
+        # Collect list of direct daughters
+        daughters = []
+        for div in divs:
+            daughters.extend(list(subgraph.graph.successors(div)))
+
+        for node in daughters:
+            # Start length at 1 because we're already looking at the daughter
+            length = 1
+            succs = list(subgraph.graph.successors(node))
+            while len(succs) == 1:
+                length += 1
+                succs = list(subgraph.graph.successors(succs[0]))
+
+            # Must end in another division to be valid cycle
+            if len(succs) == 2:
+                lengths.append(length)
+
+        return lengths
+
+    def _get_cumsum(self, lengths: list[int], bins: np.ndarray) -> np.ndarray:
+        """Given a list of cell cycle lengths, computes cumulative sum from a normalized
+        histogram of the lengths
+
+        Args:
+            lengths (list[int]): a list of cell cycle lengths
+            bins (np.ndarray): bins for the histogram usually determined
+                by the max cell cycle length
+
+        Returns:
+            np.ndarray: an array the cumulative sum of the normalized histogram
+        """
+        # Compute track length histogram
+        hist, _ = np.histogram(lengths, bins=bins)
+
+        # Normalize
+        hist = hist / hist.sum()
+
+        # Compute cumsum
+        cumsum = np.cumsum(hist)
+
+        return cumsum
+
+    def _compute(self, data: Matched) -> dict[str, float]:
+        gt_lengths = self._get_lengths(data.gt_graph)
+        pred_lengths = self._get_lengths(data.pred_graph)
+
+        cca = self._get_cca(gt_lengths, pred_lengths)
+        return {"CCA": cca}
+
+    def _get_cca(self, gt_lengths: list[int], pred_lengths: list[int]) -> float:
+        """Compute CCA given two lists of cell cycle lengths
+
+        Args:
+            gt_lengths (list[int]): cell cycle lengths from the ground truth data
+            pred_lengths (list[int]): cell cycle lengths from the predicted data
+
+        Returns:
+            float: the cell cycle accuracy
+        """
+        # GT and pred must both contain complete cell cycles to compute this metric
+        if np.sum(gt_lengths) == 0 or np.sum(pred_lengths) == 0:
+            warnings.warn(
+                "GT and pred data do not both contain complete cell cycles. Returning CCA = 0",
+                stacklevel=2,
+            )
+            return np.nan
+
+        max_track_length = np.max([np.max(gt_lengths), np.max(pred_lengths)])
+        bins = np.arange(0, max_track_length + 1)
+
+        # Compute cumulative sum
+        gt_cumsum = self._get_cumsum(gt_lengths, bins)
+        pred_cumsum = self._get_cumsum(pred_lengths, bins)
+
+        cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
+        return cca
