@@ -64,6 +64,10 @@ class DivisionMetrics(Metric):
         using a Bayesian single cell tracking approach. Frontiers in Computer Science
         3, 734559 (2021).
 
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+
     Args:
         max_frame_buffer (int, optional): Maximum value of frame buffer to use in correcting
             shifted divisions. Divisions will be evaluated for all integer values of frame
