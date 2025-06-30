@@ -25,7 +25,9 @@ class BasicMetrics(Metric):
         valid_matching_types = ["one-to-one"]
         super().__init__(valid_matching_types)
 
-    def _compute(self, matched: Matched) -> dict:
+    def _compute(
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict:
         # Run error analysis on nodes and edges
         classify_basic_errors(matched)
 
