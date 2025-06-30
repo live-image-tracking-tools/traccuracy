@@ -69,10 +69,10 @@ def _classify_edges(
     Args:
         matched (traccuracy.matches.Matched): Matched data object containing gt
             and pred graphs with their associated mapping
-            relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
-                graph have an equivalent multi-edge path in predicted graph
-            relax_skips_pred (bool): If True, the metric will check if skips in the predicted
-                graph have an equivalent multi-edge path in ground truth graph
+        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+            graph have an equivalent multi-edge path in predicted graph
+        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+            graph have an equivalent multi-edge path in ground truth graph
     """
     pred_graph = matched.pred_graph
     gt_graph = matched.gt_graph
