@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.matchers._base import Matched
-from traccuracy.track_errors.basic import classify_basic_errors
+from traccuracy.track_errors._basic import classify_basic_errors
 
 from ._base import Metric
 
@@ -26,10 +26,7 @@ class BasicMetrics(Metric):
         super().__init__(valid_matching_types)
 
     def _compute(
-        self,
-        matched: Matched,
-        relax_skips_gt: bool = False,
-        relax_skips_pred: bool = False
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
     ) -> dict:
         # Run error analysis on nodes and edges
         classify_basic_errors(matched)

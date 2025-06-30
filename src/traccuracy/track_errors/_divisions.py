@@ -26,8 +26,8 @@ def _classify_divisions(matched_data: Matched) -> None:
     Graphs are annotated in place and therefore not returned
 
     Args:
-        matched_data (Matched): Matched data object containing gt and pred graphs
-            with their associated mapping
+        matched_data (traccuracy.matchers.Matched): Matched data object
+            containing gt and pred graphs with their associated mapping
 
     Raises:
         ValueError: mapper must contain a one-to-one mapping of nodes
@@ -146,8 +146,8 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
     that would correct the division.
 
     Args:
-        matched_data (Matched): Matched data object containing gt and pred graphs
-            with their associated mapping
+        matched_data (traccuracy.matchers.Matched): Matched data object
+            containing gt and pred graphs with their associated mapping
         n_frames (int): Number of frames to include in the frame buffer
 
     """
@@ -231,21 +231,21 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
             g_pred.graph.nodes[fp_node]["min_buffer_correct"] = n_frames
 
 
-def _evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
+def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
     """Classify division errors and correct shifted divisions according to frame_buffer
 
     Note: A copy of matched_data will be created for each frame_buffer other than 0.
     For large graphs, creating copies may introduce memory problems.
 
     Args:
-        matched_data (Matched): Matched data object containing gt and pred graphs
-            with their associated mapping
+        matched_data (traccuracy.matchers.Matched): Matched data object containing
+            gt and pred graphs with their associated mapping
         max_frame_buffer (int, optional): Maximum value of frame buffer to use in correcting
             shifted divisions. Divisions will be evaluated for all integer values of frame
             buffer between 0 and max_frame_buffer
 
     Returns:
-        matched_data (Matched): Matched data object with annotated FP, FN and TP
+        matched_data (traccuracy.matchers.Matched): Matched data object with annotated FP, FN and TP
         divisions, with a `min_buffer_correct` attribute indicating the minimum frame
         buffer value that corrects this division, if applicable.
     """
