@@ -1,12 +1,12 @@
 # traccuracy: Evaluate Cell Tracking Solutions
 
-[![License](https://img.shields.io/pypi/l/traccuracy.svg?color=green)](https://github.com/Janelia-Trackathon-2023/traccuracy/raw/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/traccuracy.svg?color=green)](https://github.com/live-image-tracking-tools/traccuracy/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/traccuracy.svg?color=green)](https://pypi.org/project/traccuracy)
 [![Python Version](https://img.shields.io/pypi/pyversions/traccuracy.svg?color=green)](https://python.org)
-[![CI](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/ci.yml/badge.svg)](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/ci.yml)
-[![Benchmarking](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/benchmark-report.yml/badge.svg)](https://janelia-trackathon-2023.github.io/traccuracy/dev/bench/)
+[![CI](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/ci.yml/badge.svg)](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/ci.yml)
+[![Benchmarking](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/benchmark-report.yml/badge.svg)](https://live-image-tracking-tools.github.io/traccuracy/dev/bench/)
 [![Documentation Status](https://readthedocs.org/projects/traccuracy/badge/?version=latest)](https://traccuracy.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/Janelia-Trackathon-2023/traccuracy/branch/main/graph/badge.svg)](https://codecov.io/gh/Janelia-Trackathon-2023/traccuracy)
+[![codecov](https://codecov.io/gh/live-image-tracking-tools/traccuracy/branch/main/graph/badge.svg)](https://codecov.io/gh/live-image-tracking-tools/traccuracy)
 
 
 `traccuracy` provides a suite of benchmarking functions that can be used to evaluate cell
@@ -18,7 +18,7 @@ predicted lineages is a crucial step for performing evaluation, `traccuracy` inc
 a number of algorithms for matching ground truth and predicted lineages, both with
 and without segmentation masks.
 
-Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) or check out the [source code](https://github.com/Janelia-Trackathon-2023/traccuracy).
+Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) or check out the [source code](https://github.com/live-image-tracking-tools/traccuracy).
 
 ## Installation
 `pip install traccuracy`

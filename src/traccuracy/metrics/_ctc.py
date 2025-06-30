@@ -16,6 +16,23 @@ if TYPE_CHECKING:
 
 
 class AOGMMetrics(Metric):
+    """AOGM metric is a generalized graph measure that allows users to define their own
+    error weights for each type of node and edge error. The AOGM is simply the
+    weighted sum of all errors.
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+
+    Args:
+        vertex_ns_weight (float): Weight for vertex/node non-split errors. Defaults to 1
+        vertex_fp_weight (float): Weight for false positive vertex/node errors. Defaults to 1
+        vertex_fn_weight (float): Weight for false negative vertex/node errors. Defaults to 1
+        edge_fp_weight (float): Weight for false positive edge errors. Defaults to 1
+        edge_fn_weight (float): Weight for false negative edge errors. Defaults to 1
+        edge_ws_weight (float): Weight for wrong semantic edge errors. Defaults to 1
+    """
+
     def __init__(
         self,
         vertex_ns_weight: float = 1,
@@ -83,6 +100,18 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
+    """CTCMetrics computes three core metrics used by the Cell Tracking Challenge.
+    These metrics are based on the more general AOGM metric.
+
+    - DET: Assesses detection performance
+    - LNK: Assesses linking performance by measuring only edge errors
+    - TRA: Assesses both detection and tracking performance
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+    """
+
     def __init__(self) -> None:
         vertex_weight_ns = 5
         vertex_weight_fn = 10
