@@ -436,3 +436,22 @@ def test_get_tracklets(simple_graph):
             assert end_nodes[0] == "1_2"
         elif start_nodes[0] == "1_3":
             assert end_nodes[0] == "1_4"
+
+
+def test_get_skip_edges(complex_graph):
+    # no skip edges returns empty set
+    assert len(complex_graph.get_skip_edges()) == 0
+
+    # skip edge on simple path
+    complex_graph.graph.remove_edges_from([("2_0", "2_1"), ("2_1", "2_2")])
+    complex_graph.graph.add_edge("2_0", "2_2")
+    skip_edges = complex_graph.get_skip_edges()
+    assert len(skip_edges) == 1
+    assert ("2_0", "2_2") in skip_edges
+
+    # skip edge on division
+    complex_graph.graph.remove_edges_from([("1_1", "1_3"), ("1_3", "1_4")])
+    complex_graph.graph.add_edge("1_1", "1_4")
+    skip_edges = complex_graph.get_skip_edges()
+    assert len(skip_edges) == 2
+    assert ("1_1", "1_4") in skip_edges
