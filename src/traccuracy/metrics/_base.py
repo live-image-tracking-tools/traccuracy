@@ -45,10 +45,7 @@ class Metric(ABC):
 
     @abstractmethod
     def _compute(
-        self,
-        matched: Matched,
-        relax_skips_gt: bool = False,
-        relax_skips_pred: bool = False
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
     ) -> dict:
         """The compute methods of Metric objects return a dictionary with counts and statistics.
 
@@ -68,12 +65,12 @@ class Metric(ABC):
         raise NotImplementedError
 
     def compute(
-            self,
-            matched: Matched,
-            override_matcher: bool = False,
-            relax_skips_gt: bool = False,
-            relax_skips_pred: bool = False
-        ) -> Results:
+        self,
+        matched: Matched,
+        override_matcher: bool = False,
+        relax_skips_gt: bool = False,
+        relax_skips_pred: bool = False,
+    ) -> Results:
         """The compute methods of Metric objects return a Results object populated with results
         and associated metadata
 
@@ -105,13 +102,17 @@ class Metric(ABC):
         res_dict = self._compute(
             matched,
             relax_skips_gt=relax_skips_gt,
-            relax_skips_pred=relax_skips_pred,    
+            relax_skips_pred=relax_skips_pred,
         )
+
+        run_info = self.info
+        run_info["relax_skips_gt"] = relax_skips_gt
+        run_info["relax_skips_pred"] = relax_skips_pred
 
         results = Results(
             results=res_dict,
             matcher_info=matched.matcher_info,
-            metric_info=self.info,
+            metric_info=run_info,
             gt_name=matched.gt_graph.name,
             pred_name=matched.pred_graph.name,
         )

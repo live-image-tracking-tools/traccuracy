@@ -11,7 +11,9 @@ class ValidMetric(Metric):
     def __init__(self):
         super().__init__(valid_matches=["one-to-one"])
 
-    def _compute(self):
+    def _compute(
+        self, matched, override_matcher=False, relax_skips_gt=False, relax_skips_pred=False
+    ):
         return {}
 
 
@@ -107,3 +109,19 @@ class TestMetric:
         assert np.isnan(m._get_f1(precision=0, recall=0))
         assert m._get_f1(precision=0, recall=1) == 0
         assert m._get_f1(precision=1, recall=1) == 1
+
+    def test_relax_info(self):
+        m = ValidMetric()
+
+        # relax_skips_gt and relax_skips_pred are False by default
+        with pytest.warns(UserWarning, match="Mapping is empty"):
+            results = m.compute(self.matched)
+        assert results.metric_info["relax_skips_gt"] is False
+        assert results.metric_info["relax_skips_pred"] is False
+
+        # relax_skips makes it into results when passed
+        # don't need to check for warning here as matching type was set
+        # in previous validation step
+        results = m.compute(self.matched, relax_skips_gt=True, relax_skips_pred=False)
+        assert results.metric_info["relax_skips_gt"] is True
+        assert results.metric_info["relax_skips_pred"] is False
