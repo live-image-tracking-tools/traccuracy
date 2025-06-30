@@ -80,8 +80,10 @@ def _classify_edges(
     if (
         pred_graph.edge_errors
         and gt_graph.edge_errors
-        and not relax_skips_gt
-        and not relax_skips_pred
+        # if we're not requiring relaxation OR it's already been computed,
+        # we can skip edge classification
+        and (not relax_skips_gt or gt_graph.skip_edges_gt_relaxed)
+        and (not relax_skips_pred or pred_graph.skip_edges_pred_relaxed)
     ):
         logger.warning("Edge errors already calculated. Skipping graph annotation")
         return

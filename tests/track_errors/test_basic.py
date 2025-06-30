@@ -231,7 +231,7 @@ class TestStandardEdge:
 
 
 class TestGapCloseEdge:
-    def test_fn_gap_close_edge(self):
+    def test_fn_gap_close_edge(self, caplog):
         matched = ex_graphs.gap_close_gt_gap()
         _classify_edges(matched)
 
@@ -253,7 +253,11 @@ class TestGapCloseEdge:
         assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(6, 7)]
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
 
-    def test_fp_gap_close_edge(self):
+        # Check that it doesn't run a second time
+        _classify_edges(matched, relax_skips_gt=True)
+        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
+
+    def test_fp_gap_close_edge(self, caplog):
         matched = ex_graphs.gap_close_pred_gap()
         _classify_edges(matched)
 
@@ -275,6 +279,10 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(2, 3)]
         assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(3, 4)]
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
+
+        # Check that it doesn't run a second time
+        _classify_edges(matched, relax_skips_pred=True)
+        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
 
     def test_good_gap_close_edge(self):
         matched = ex_graphs.gap_close_matched_gap()
