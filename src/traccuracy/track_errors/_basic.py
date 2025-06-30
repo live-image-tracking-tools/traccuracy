@@ -12,6 +12,22 @@ logger = logging.getLogger(__name__)
 
 
 def classify_basic_errors(matched: Matched) -> None:
+    """Classify basic node and edge errors in the matched graphs.
+
+    A pair of GT/pred nodes is classified as true positive if the
+    matching is one-to-one. False positive nodes are all those remaining
+    in the pred graph. False negative nodes are all those remaining in the
+    GT graph.
+
+    A pair of GT/pred edges is classified as true positive if both the source
+    and target nodes are true positives, and the GT graph contains the edge.
+    All remaining edges in the GT graph are false negatives, and all
+    remaining edges in the prediction graph are false positives.
+
+    Args:
+        matched (traccuracy.matchers.Matched): Matched data object containing gt
+            and pred graphs with their associated mapping
+    """
     _classify_nodes(matched)
     _classify_edges(matched)
 
@@ -23,7 +39,7 @@ def _classify_nodes(matched: Matched) -> None:
     False positive nodes are all those remaining in the pred graph that are not true positives.
     False negative nodes are all those remaining in the gt graph that are not true positives.
     Args:
-        matched (traccuracy.matches.Matched): Matched data object containing gt
+        matched (traccuracy.matchers.Matched): Matched data object containing gt
             and pred graphs with their associated mapping
     """
     pred_graph = matched.pred_graph
