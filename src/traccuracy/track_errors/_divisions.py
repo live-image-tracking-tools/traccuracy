@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from traccuracy._tracking_graph import NodeFlag
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag
+from traccuracy.track_errors._basic import classify_basic_errors
 
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable
@@ -18,7 +19,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -> None:
+def _classify_divisions(
+    matched_data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+) -> None:
     """Identify each division as a true positive, false positive or false negative
 
     This function only works on node mappers that are one-to-one
@@ -28,8 +31,10 @@ def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -
     Args:
         matched_data (traccuracy.matchers.Matched): Matched data object
             containing gt and pred graphs with their associated mapping
-        allow_skip_edges (bool): Allows skip edges between parents and daughters
-            as long as the parent is in the correct frame. Defaults to False.
+        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+            graph have an equivalent multi-edge path in predicted graph
+        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+            graph have an equivalent multi-edge path in ground truth graph
 
     Raises:
         ValueError: mapper must contain a one-to-one mapping of nodes
@@ -40,6 +45,11 @@ def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -
     if g_gt.division_annotations and g_pred.division_annotations:
         logger.info("Division annotations already present. Skipping graph annotation.")
         return
+
+    # Classify edge errors, will be skipped if already computed
+    classify_basic_errors(
+        matched_data, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
+    )
 
     # Collect list of divisions
     div_gt = g_gt.get_divisions()
@@ -56,24 +66,32 @@ def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -
             g_gt.set_flag_on_node(gt_node, NodeFlag.FN_DIV)
         # Check if the division has the correct daughters
         else:
-            succ_gt = g_gt.graph.successors(gt_node)
-            # Map pred succ nodes onto gt, unmapped nodes will return as None
-            succ_pred = [
-                matched_data.get_pred_gt_match(n) for n in g_pred.graph.successors(pred_node)
-            ]
+            # New strategy: infer if daughters match based on the edge error annotations
+            gt_out_edges = g_gt.graph.out_edges(gt_node)
+            correct_daughters = 0
+            skip_div = False
+            for edge in gt_out_edges:
+                flags = g_gt.edges[edge]
+                # Edge is correct so daughter node also matches
+                if EdgeFlag.TRUE_POS in flags:
+                    correct_daughters += 1
+                elif (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in flags:
+                    correct_daughters += 1
+                    skip_div = True
 
-            # If daughters are same, division is correct
-            cnt_gt = Counter(succ_gt)
-            cnt_pred = Counter(succ_pred)
-            if cnt_gt == cnt_pred:
+            # Entirely correct division
+            if correct_daughters == 2 and not skip_div:
                 g_gt.set_flag_on_node(gt_node, NodeFlag.TP_DIV)
                 g_pred.set_flag_on_node(pred_node, NodeFlag.TP_DIV)
-            # If daughters are at all mismatched, division is a wrong child division
+            elif correct_daughters == 2 and skip_div:
+                g_gt.set_flag_on_node(gt_node, NodeFlag.TP_DIV_SKIP)
+                g_pred.set_flag_on_node(pred_node, NodeFlag.TP_DIV_SKIP)
+            # If at least one daughter is wrong, then wrong child division regardless of skip status
             else:
                 g_gt.set_flag_on_node(gt_node, NodeFlag.WC_DIV)
                 g_pred.set_flag_on_node(pred_node, NodeFlag.WC_DIV)
 
-        # Remove res division to record that we have classified it
+        # Remove pred division to record that we have classified it
         if pred_node in div_pred:
             div_pred.remove(pred_node)
 
@@ -82,12 +100,10 @@ def _classify_divisions(matched_data: Matched, allow_skip_edges: bool = False) -
         g_pred.set_flag_on_node(fp_div, NodeFlag.FP_DIV)
 
     # Set division annotation flag
-    if allow_skip_edges is False:
-        g_gt.division_annotations = True
-        g_pred.division_annotations = True
-    else:
-        g_gt.division_skip_annotations = True
-        g_pred.division_skip_annotations = True
+    g_gt.division_annotations = True
+    g_pred.division_annotations = True
+    g_gt.division_skip_gt_relaxed = relax_skips_gt
+    g_pred.division_skip_pred_relaxed = relax_skips_pred
 
 
 def _get_pred_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hashable:
@@ -140,7 +156,12 @@ def _get_succ_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     return node
 
 
-def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None:
+def _correct_shifted_divisions(
+    matched_data: Matched,
+    n_frames: int = 1,
+    relax_skips_gt: bool = False,
+    relax_skips_pred: bool = False,
+) -> None:
     """Allows for divisions to occur within a frame buffer and still be correct
 
     This implementation asserts that the parent lineages and daughter lineages must match.
@@ -155,6 +176,10 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
         matched_data (traccuracy.matchers.Matched): Matched data object
             containing gt and pred graphs with their associated mapping
         n_frames (int): Number of frames to include in the frame buffer
+        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+            graph have an equivalent multi-edge path in predicted graph
+        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+            graph have an equivalent multi-edge path in ground truth graph
 
     """
     g_gt = matched_data.gt_graph
@@ -195,19 +220,41 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
                 # Match does not exist so divisions cannot match
                 continue
 
-            # Check if daughters match
-            fp_succ = [
-                _get_succ_by_t(g_pred, node, t_fn - t_fp)
-                for node in g_pred.graph.successors(fp_node)
-            ]
-            fn_succ = g_gt.graph.successors(fn_node)
-            fn_succ_mapped = [matched_data.get_gt_pred_match(fn) for fn in fn_succ]
-            if Counter(fp_succ) != Counter(fn_succ_mapped):
-                # Daughters don't match so division cannot match
-                continue
+            # Check if this case contains skip edges
+            skip_div = False
+            possible_skip = any(
+                EdgeFlag.SKIP_TRUE_POS in g_gt.edges[edge] for edge in g_gt.graph.out_edges(fn_pred)
+            )
+            if (relax_skips_gt or relax_skips_pred) and possible_skip:
+                # Check if daughters match by checking for TP edges out of fn_pred
+                fn_edges = g_gt.graph.out_edges(fn_pred)
+                correct_daughters = 0
+                for edge in fn_edges:
+                    flags = g_gt.edges[edge]
+                    if EdgeFlag.TRUE_POS in flags:
+                        correct_daughters += 1
+                    elif (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in flags:
+                        correct_daughters += 1
+                        skip_div = True
 
-            # At this point daughters and parents match so division is correct
-            correct = True
+                # If 2 correct daughters then division is correct
+                if correct_daughters == 2:
+                    correct = True
+            else:
+                # Check if daughters match
+                fp_succ = [
+                    _get_succ_by_t(g_pred, node, t_fn - t_fp)
+                    for node in g_pred.graph.successors(fp_node)
+                ]
+                fn_succ = g_gt.graph.successors(fn_node)
+                fn_succ_mapped = [matched_data.get_gt_pred_match(fn) for fn in fn_succ]
+                if Counter(fp_succ) != Counter(fn_succ_mapped):
+                    # Daughters don't match so division cannot match
+                    continue
+
+                # At this point daughters and parents match so division is correct
+                correct = True
+
         # False negative in gt occurs before false positive in pred
         else:
             # Check if fp node matches fn predecessor
@@ -217,24 +264,52 @@ def _correct_shifted_divisions(matched_data: Matched, n_frames: int = 1) -> None
                 # Match does not exist so divisions cannot match
                 continue
 
-            # Check if daughters match
-            fn_succ = [
-                _get_succ_by_t(g_gt, node, t_fp - t_fn) for node in g_gt.graph.successors(fn_node)
-            ]
-            fp_succ = g_pred.graph.successors(fp_node)
+            # Check if this case contains skip edges
+            skip_div = False
+            possible_skip = any(
+                EdgeFlag.SKIP_TRUE_POS in g_pred.edges[edge]
+                for edge in g_pred.graph.out_edges(fp_pred)
+            )
+            if (relax_skips_gt or relax_skips_pred) and possible_skip:
+                # Check if daughters match by checking for TP edges out of fn_pred
+                fp_edges = g_pred.graph.out_edges(fp_pred)
+                correct_daughters = 0
+                skip_div = False
+                for edge in fp_edges:
+                    flags = g_pred.edges[edge]
+                    if EdgeFlag.TRUE_POS in flags:
+                        correct_daughters += 1
+                    elif (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in flags:
+                        correct_daughters += 1
+                        skip_div = True
 
-            fp_succ_mapped = [matched_data.get_pred_gt_match(fp) for fp in fp_succ]
-            if Counter(fp_succ_mapped) != Counter(fn_succ):
-                # Daughters don't match so division cannot match
-                continue
+                # If 2 correct daughters then division is correct
+                if correct_daughters == 2:
+                    correct = True
+            else:
+                # Check if daughters match
+                fn_succ = [
+                    _get_succ_by_t(g_gt, node, t_fp - t_fn)
+                    for node in g_gt.graph.successors(fn_node)
+                ]
+                fp_succ = g_pred.graph.successors(fp_node)
 
-            # At this point daughters and parents match so division is correct
-            correct = True
+                fp_succ_mapped = [matched_data.get_pred_gt_match(fp) for fp in fp_succ]
+                if Counter(fp_succ_mapped) != Counter(fn_succ):
+                    # Daughters don't match so division cannot match
+                    continue
 
-        if correct:
+                # At this point daughters and parents match so division is correct
+                correct = True
+
+        if correct and not skip_div:
             # set the current frame buffer as the minimum correct frame
             g_gt.graph.nodes[fn_node]["min_buffer_correct"] = n_frames
             g_pred.graph.nodes[fp_node]["min_buffer_correct"] = n_frames
+        elif correct and skip_div:
+            # set the current frame buffer as the minimum correct frame
+            g_gt.graph.nodes[fn_node]["min_buffer_correct_skip"] = n_frames
+            g_pred.graph.nodes[fp_node]["min_buffer_correct_skip"] = n_frames
 
 
 def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:

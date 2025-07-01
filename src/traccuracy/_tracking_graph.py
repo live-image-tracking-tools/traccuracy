@@ -264,7 +264,8 @@ class TrackingGraph:
 
         # Record types of annotations that have been calculated
         self.division_annotations = False
-        self.division_skip_annotations = False
+        self.division_skip_gt_relaxed = False
+        self.division_skip_pred_relaxed = False
         self.node_errors = False
         self.edge_errors = False
         self.skip_edges_gt_relaxed = False
