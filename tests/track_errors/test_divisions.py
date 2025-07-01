@@ -4,12 +4,12 @@ import tests.examples.graphs as ex_graphs
 from tests.test_utils import get_division_graphs
 from traccuracy import NodeFlag, TrackingGraph
 from traccuracy.matchers import Matched
-from traccuracy.track_errors.divisions import (
+from traccuracy.track_errors._divisions import (
     _classify_divisions,
     _correct_shifted_divisions,
-    _evaluate_division_events,
     _get_pred_by_t,
     _get_succ_by_t,
+    evaluate_division_events,
 )
 from traccuracy.utils import get_corrected_division_graphs_with_delta
 
@@ -401,7 +401,7 @@ def test_evaluate_division_events():
         TrackingGraph(g_gt), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"}
     )
 
-    matched = _evaluate_division_events(matched_data, max_frame_buffer=frame_buffer)
+    matched = evaluate_division_events(matched_data, max_frame_buffer=frame_buffer)
 
     for node in matched.gt_graph.get_nodes_with_flag(NodeFlag.FN_DIV):
         assert "min_buffer_correct" in matched.gt_graph.nodes[node]

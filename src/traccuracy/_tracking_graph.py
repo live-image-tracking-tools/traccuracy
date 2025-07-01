@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import enum
 import logging
 from collections import defaultdict
@@ -9,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 import networkx as nx
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Hashable
 
     import numpy as np
     from networkx.classes.reportviews import DiDegreeView, NodeView, OutEdgeView
@@ -112,6 +111,10 @@ class EdgeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    SKIP_FALSE_POS = "is_skip_fp"
+    SKIP_FALSE_NEG = "is_skip_fn"
+    SKIP_TRUE_POS = "is_skip_tp"
+
 
 class TrackingGraph:
     """A directed graph representing a tracking solution where edges go forward in time.
@@ -142,7 +145,7 @@ class TrackingGraph:
         frame_key: str
             The name of the node attribute that corresponds to the frame of
             the node. Defaults to "t".
-        location_keys: tuple of str | str
+        location_keys: tuple of str | str | None
             Key(s) used to access the location of the cell in space.
     """
 
@@ -154,6 +157,7 @@ class TrackingGraph:
         label_key: str = "segmentation_id",
         location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
+        validate: bool = True,
     ):
         """A directed graph representing a tracking solution where edges go
         forward in time.
@@ -185,6 +189,8 @@ class TrackingGraph:
                 or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
+            validate (bool, optional): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided). Default = True.
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -228,21 +234,8 @@ class TrackingGraph:
         }
 
         for node, attrs in self.graph.nodes.items():
-            assert self.frame_key in attrs.keys(), (
-                f"Frame key {self.frame_key} not present for node {node}."
-            )
-
-            # check that every node has the time frame and location specified
-            if self.location_keys is not None:
-                if isinstance(self.location_keys, str):
-                    assert self.location_keys in attrs.keys(), (
-                        f"Location key {self.location_keys} not present for node {node}."
-                    )
-                else:
-                    for key in self.location_keys:
-                        assert key in attrs.keys(), (
-                            f"Location key {key} not present for node {node}."
-                        )
+            if validate:
+                self._validate_node(node, attrs)
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -274,6 +267,34 @@ class TrackingGraph:
         self.division_skip_annotations = False
         self.node_errors = False
         self.edge_errors = False
+        self.skip_edges_gt_relaxed = False
+        self.skip_edges_pred_relaxed = False
+
+    def _validate_node(self, node: Hashable, attrs: dict) -> None:
+        """Check that every node has the time frame, location and seg_id (if needed) specified
+
+        Args:
+            node (Hashable): Node id
+            attrs (dict): Attributes extracted from the graph for the given node
+        """
+        assert self.frame_key in attrs.keys(), (
+            f"Frame key {self.frame_key} not present for node {node}."
+        )
+
+        if self.location_keys is not None:
+            if isinstance(self.location_keys, str):
+                assert self.location_keys in attrs.keys(), (
+                    f"Location key {self.location_keys} not present for node {node}."
+                )
+            else:
+                for key in self.location_keys:
+                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+
+        # seg id check
+        if self.segmentation is not None:
+            assert self.label_key in attrs.keys(), {
+                f"Segmentation label key {self.label_key} not present for node {node}"
+            }
 
     @property
     def nodes(self) -> NodeView:
@@ -358,56 +379,6 @@ class TrackingGraph:
         """
         in_degree: DiDegreeView = self.graph.in_degree()  # type: ignore
         return [node for node, degree in in_degree if degree >= 2]
-
-    def get_connected_components(self) -> list[TrackingGraph]:
-        """Get a list of TrackingGraphs, each corresponding to one track
-        (i.e., a connected component in the track graph).
-
-        Returns:
-            A list of TrackingGraphs, one for each track.
-        """
-        graph = self.graph
-        if len(graph.nodes) == 0:
-            return []
-
-        return [self.get_subgraph(g) for g in nx.weakly_connected_components(graph)]
-
-    def get_subgraph(self, nodes: Iterable[Hashable]) -> TrackingGraph:
-        """Returns a new TrackingGraph with the subgraph defined by the list of nodes.
-
-        Args:
-            nodes (list): A list of node ids to use in constructing the subgraph
-        """
-        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
-        new_graph = cast("nx.DiGraph", self.graph.subgraph(nodes).copy())
-
-        new_trackgraph = copy.deepcopy(self)
-        new_trackgraph.graph = new_graph
-        for frame, nodes_in_frame in self.nodes_by_frame.items():
-            new_nodes_in_frame = nodes_in_frame.intersection(nodes)
-            if new_nodes_in_frame:
-                new_trackgraph.nodes_by_frame[frame] = new_nodes_in_frame
-            else:
-                del new_trackgraph.nodes_by_frame[frame]
-
-        for node_flag in NodeFlag:
-            if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
-                new_trackgraph.nodes_by_flag[node_flag] = self.nodes_by_flag[
-                    node_flag
-                ].intersection(nodes)
-        for edge_flag in EdgeFlag:
-            new_trackgraph.edges_by_flag[edge_flag] = self.edges_by_flag[edge_flag].intersection(
-                new_trackgraph.edges
-            )
-
-        if len(new_trackgraph.nodes_by_frame) == 0:
-            new_trackgraph.start_frame = None
-            new_trackgraph.end_frame = None
-        else:
-            new_trackgraph.start_frame = min(new_trackgraph.nodes_by_frame.keys())
-            new_trackgraph.end_frame = max(new_trackgraph.nodes_by_frame.keys()) + 1
-
-        return new_trackgraph
 
     def set_flag_on_node(self, _id: Hashable, flag: NodeFlag, value: bool = True) -> None:
         """Set an attribute flag for a single node.
@@ -600,3 +571,17 @@ class TrackingGraph:
 
         # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
         return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in tracklets]
+
+    def get_skip_edges(self) -> set[tuple[Hashable, Hashable]]:
+        """Get all edges that skip one or more frames.
+
+        Returns:
+            set of tuples: A set of edges that skip one or more frames.
+                Each edge is represented as a tuple of (source_node, target_node).
+        """
+        return {
+            (source, target)
+            for source, target in self.graph.edges
+            if self.graph.nodes[source][self.frame_key] + 1
+            != self.graph.nodes[target][self.frame_key]
+        }

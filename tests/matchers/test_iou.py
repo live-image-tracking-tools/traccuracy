@@ -140,7 +140,7 @@ class TestStandards:
         """test when the segmentation ids are high numbers (the lower numbers should never appear)
         At one point dummy nodes introduced from padding the iou matrix were appearing in the final
         matching
-        See https://github.com/Janelia-Trackathon-2023/traccuracy/pull/173#discussion_r1882231345
+        See https://github.com/live-image-tracking-tools/traccuracy/pull/173#discussion_r1882231345
         """
         gt, pred = data[0], data[1]
         # Change id of segmentation to non sequntial high value
