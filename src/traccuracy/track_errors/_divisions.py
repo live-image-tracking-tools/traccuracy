@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import itertools
 import logging
-from collections import Counter
 from typing import TYPE_CHECKING
 
+import networkx as nx
 import numpy as np
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.track_errors._basic import classify_basic_errors
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Hashable
 
     from traccuracy import TrackingGraph
     from traccuracy.matchers import Matched
@@ -197,9 +197,6 @@ def _correct_shifted_divisions(
     fp_divs = g_pred.get_nodes_with_flag(NodeFlag.FP_DIV)
     fn_divs = g_gt.get_nodes_with_flag(NodeFlag.FN_DIV)
 
-    fn_succ: Iterable[Hashable]
-    fp_succ: Iterable[Hashable]
-
     # Compare all pairs of fp and fn
     for fp_node, fn_node in itertools.product(fp_divs, fn_divs):
         correct = False
@@ -228,39 +225,42 @@ def _correct_shifted_divisions(
                 # Match does not exist so divisions cannot match
                 continue
 
-            # Check if this case contains skip edges
-            skip_div = False
-            possible_skip = any(
-                EdgeFlag.SKIP_TRUE_POS in g_gt.edges[edge] for edge in g_gt.graph.out_edges(fn_pred)
-            )
-            if (relax_skips_gt or relax_skips_pred) and possible_skip:
-                # Check if daughters match by checking for TP edges out of fn_pred
-                fn_edges = g_gt.graph.out_edges(fn_pred)
-                correct_daughters = 0
-                for edge in fn_edges:
-                    flags = g_gt.edges[edge]
-                    if EdgeFlag.TRUE_POS in flags:
-                        correct_daughters += 1
-                    elif (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in flags:
-                        correct_daughters += 1
-                        skip_div = True
+            # Start with the earliest division aka t_fp
+            # Walk successors until we get to two daughters
+            pred_succs = [fp_node]
+            valid = True
+            while len(pred_succs) < 2:
+                if len(pred_succs) == 0:
+                    valid = False
+                    break
+                pred_succs = list(g_pred.graph.successors(pred_succs[0]))
 
-                # If 2 correct daughters then division is correct
-                if correct_daughters == 2:
-                    correct = True
-            else:
-                # Check if daughters match
-                fp_succ = [
-                    _get_succ_by_t(g_pred, node, t_fn - t_fp)
-                    for node in g_pred.graph.successors(fp_node)
-                ]
-                fn_succ = g_gt.graph.successors(fn_node)
-                fn_succ_mapped = [matched_data.get_gt_pred_match(fn) for fn in fn_succ]
-                if Counter(fp_succ) != Counter(fn_succ_mapped):
-                    # Daughters don't match so division cannot match
-                    continue
+            # Graph ran out of successors so can't match the shifted division
+            if not valid:
+                continue
 
-                # At this point daughters and parents match so division is correct
+            # For each daughter, walk successors until we find a true positive node
+            correct_daughters = 0
+            for daughter in pred_succs:
+                daughter_succs = [daughter]
+                # Stop walking if we hit another division or run out of successors
+                while len(daughter_succs) < 2 and len(daughter_succs) > 0:
+                    # Check if the successor grabbed on the previous loop is a tp
+                    if NodeFlag.TRUE_POS in g_pred.graph.nodes[daughter_succs[0]]:
+                        # Check if there is a valid gt path between the matched gt node
+                        # and the fn_pred node
+                        # Node on the gt graph that is matched to the fp node
+                        source = fn_pred
+                        # Node on the gt graph that is matched to the pred daughter successor
+                        target = matched_data.get_pred_gt_match(daughter_succs[0])
+                        if nx.has_path(g_gt.graph, source, target):
+                            correct_daughters += 1
+                            break
+                    # Grab the next successor
+                    daughter_succs = list(g_pred.graph.successors(daughter_succs[0]))
+
+            # If both daughters are correct, then this is a correct shifted division
+            if correct_daughters == 2:
                 correct = True
 
         # False negative in gt occurs before false positive in pred
@@ -272,52 +272,48 @@ def _correct_shifted_divisions(
                 # Match does not exist so divisions cannot match
                 continue
 
-            # Check if this case contains skip edges
-            skip_div = False
-            possible_skip = any(
-                EdgeFlag.SKIP_TRUE_POS in g_pred.edges[edge]
-                for edge in g_pred.graph.out_edges(fp_pred)
-            )
-            if (relax_skips_gt or relax_skips_pred) and possible_skip:
-                # Check if daughters match by checking for TP edges out of fn_pred
-                fp_edges = g_pred.graph.out_edges(fp_pred)
-                correct_daughters = 0
-                skip_div = False
-                for edge in fp_edges:
-                    flags = g_pred.edges[edge]
-                    if EdgeFlag.TRUE_POS in flags:
-                        correct_daughters += 1
-                    elif (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in flags:
-                        correct_daughters += 1
-                        skip_div = True
+            # Start with the earliest division aka fn
+            # Walk gt graph from fn_node until we get to two daughters
+            gt_succs = [fn_node]
+            valid = True
+            while len(gt_succs) < 2:
+                if len(gt_succs) == 0:
+                    valid = False
+                    break
+                gt_succs = list(g_gt.graph.successors(gt_succs[0]))
 
-                # If 2 correct daughters then division is correct
-                if correct_daughters == 2:
-                    correct = True
-            else:
-                # Check if daughters match
-                fn_succ = [
-                    _get_succ_by_t(g_gt, node, t_fp - t_fn)
-                    for node in g_gt.graph.successors(fn_node)
-                ]
-                fp_succ = g_pred.graph.successors(fp_node)
+            # Graph ran out of successors so can't match the shifted division
+            if not valid:
+                continue
 
-                fp_succ_mapped = [matched_data.get_pred_gt_match(fp) for fp in fp_succ]
-                if Counter(fp_succ_mapped) != Counter(fn_succ):
-                    # Daughters don't match so division cannot match
-                    continue
+            # For each daughter, walk gt successors until we find a true positive node
+            correct_daughters = 0
+            for daughter in gt_succs:
+                daughter_succs = [daughter]
+                # Stop walking if we hit another division or run out of successors
+                while len(daughter_succs) < 2 and len(daughter_succs) > 0:
+                    # Check if the successor grabbed on the previous loop is a tp
+                    if NodeFlag.TRUE_POS in g_gt.graph.nodes[daughter_succs[0]]:
+                        # Check if there is a valid pred path between the matched pred node
+                        # and the fp_pred node
+                        # Node on the pred graph that is matched to the fn node
+                        source = fp_pred
+                        # Node on the pred graph that is matched to the gt daughter successor
+                        target = matched_data.get_gt_pred_match(daughter_succs[0])
+                        if nx.has_path(g_pred.graph, source, target):
+                            correct_daughters += 1
+                            break
+                    # Grab the next successor
+                    daughter_succs = list(g_gt.graph.successors(daughter_succs[0]))
 
-                # At this point daughters and parents match so division is correct
+            # If both daughters are correct, then this is a correct shifted division
+            if correct_daughters == 2:
                 correct = True
 
-        if correct and not skip_div:
+        if correct:
             # set the current frame buffer as the minimum correct frame
             g_gt.graph.nodes[fn_node]["min_buffer_correct"] = n_frames
             g_pred.graph.nodes[fp_node]["min_buffer_correct"] = n_frames
-        elif correct and skip_div:
-            # set the current frame buffer as the minimum correct frame
-            g_gt.graph.nodes[fn_node]["min_buffer_correct_skip"] = n_frames
-            g_pred.graph.nodes[fp_node]["min_buffer_correct_skip"] = n_frames
 
 
 def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
