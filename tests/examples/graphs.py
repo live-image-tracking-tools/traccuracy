@@ -685,3 +685,16 @@ def div_parent_daughter_gap():
 
     mapping = [(1, 8), (2, 9), (6, 13), (7, 14)]
     return Matched(gt, pred, mapping, {})
+
+
+def div_shifted_one_side_skip():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    pred.remove_node(11)
+    pred.add_edge(9, 13)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (7, 14), (6, 13)]
+    return Matched(gt, pred, mapping, {})

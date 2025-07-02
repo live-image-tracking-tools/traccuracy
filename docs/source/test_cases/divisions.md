@@ -119,10 +119,14 @@ plot_matched([ex_graphs.wrong_children(t) for t in [0, 1]], "Incorrect Children"
 ```
 
 ```{code-cell} ipython3
-plot_matched([ex_graphs.div_parent_gap(), ex_graphs.div_daughter_gap(), ex_graphs.div_daughter_dual_gap(), ex_graphs.div_parent_daughter_gap()], "Gap closing divisions")
+plot_matched([ex_graphs.div_daughter_gap(), ex_graphs.div_daughter_dual_gap()], "Skip edge divisions")
 ```
 
 ## Shifted Division Cases
+
+```{code-cell} ipython3
+plot_matched([ex_graphs.div_parent_gap(), ex_graphs.div_parent_daughter_gap(), ex_graphs.div_shifted_one_side_skip()], "Skip edge shifted divisions")
+```
 
 ```{code-cell} ipython3
 plot_matched([ex_graphs.div_1early_end(), ex_graphs.div_1early_mid()], "1 Frame Early")
