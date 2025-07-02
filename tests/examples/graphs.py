@@ -251,6 +251,31 @@ def gap_close_offset():
     )
 
 
+def all_basic_errors():
+    gt = basic_graph(node_ids=range(1, 11)).graph
+    pred = basic_graph(node_ids=range(11, 21)).graph
+
+    # Create skip edges in gt
+    gt.remove_node(4)
+    gt.add_edge(3, 5)
+    gt.remove_node(8)
+    gt.add_edge(7, 9)
+
+    # Create pred skip edges
+    pred.remove_node(14)
+    pred.add_edge(13, 15)
+    pred.remove_node(17)
+    pred.add_edge(16, 18)
+
+    mapping = [(1, 12), (2, 13), (5, 16), (7, 18), (9, 20)]
+    return Matched(
+        TrackingGraph(gt, location_keys=("y")),
+        TrackingGraph(pred, location_keys=("y")),
+        mapping,
+        {},
+    )
+
+
 def get_division_graphs():
     """
     G1
