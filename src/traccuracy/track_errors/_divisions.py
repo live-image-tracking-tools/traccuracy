@@ -109,6 +109,10 @@ def _classify_divisions(
 def _get_pred_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hashable:
     """For a given graph and node, traverses back by predecessor until delta_frames
 
+    Warning: if skip edges are present in the path, this function will traverse the
+    number of edges specified by delta_frames, but will traverse more frames
+    than specified by delta_frames
+
     Args:
         G (TrackingGraph): TrackingGraph to search on
         node (hashable): Key of starting node
@@ -137,6 +141,10 @@ def _get_succ_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     """For a given node, find the successors after delta frames
 
     If a division event is discovered, returns None
+
+    Warning: if skip edges are present in the path, this function will traverse the
+    number of edges specified by delta_frames, but will traverse more frames
+    than specified by delta_frames
 
     Args:
         G (TrackingGraph): TrackingGraph to search on
