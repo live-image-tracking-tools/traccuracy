@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 class BasicMetrics(Metric):
     """Generates basic statistics describing node and edge errors
 
+    If `relax_skips_gt` or `relax_skips_pred` is True, skip edges will be
+    allowed. The total number of skip TPs/FNs/FPs will be reported and these
+    counts will be incorporated in the calculation of precision/recall/F1.
+
     These metrics are written assuming that the ground truth annotations
     are dense. If that is not the case, interpret the numbers carefully.
     Consider eliminating metrics that use the number of false positives.
