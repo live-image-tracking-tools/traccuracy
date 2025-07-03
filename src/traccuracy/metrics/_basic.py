@@ -60,12 +60,8 @@ class BasicMetrics(Metric):
             tp, tp_skip, fp, fp_skip, fn, fn_skip = self._count_errors_with_skips(matched)
 
         # Compute totals
-        if not relaxed:
-            gt_total = tp + fn
-            pred_total = tp + fp
-        else:
-            gt_total = tp + tp_skip + fn + fn_skip
-            pred_total = tp + tp_skip + fp + fp_skip
+        gt_total = len(matched.gt_graph.edges)
+        pred_total = len(matched.pred_graph.edges)
 
         if gt_total == 0:
             warnings.warn(
