@@ -165,3 +165,10 @@ plot_matched(
     "Gap closing cases",
 )
 ```
+
+```{code-cell} ipython3
+plot_matched(
+    [ex_graphs.all_basic_errors()],
+    "All basic errors",
+)
+```
