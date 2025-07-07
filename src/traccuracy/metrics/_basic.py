@@ -60,8 +60,12 @@ class BasicMetrics(Metric):
             tp, tp_skip, fp, fp_skip, fn, fn_skip = self._count_errors_with_skips(matched)
 
         # Compute totals
-        gt_total = len(matched.gt_graph.edges)
-        pred_total = len(matched.pred_graph.edges)
+        if feature_type == "node":
+            gt_total = len(matched.gt_graph.nodes)
+            pred_total = len(matched.pred_graph.nodes)
+        elif feature_type == "edge":
+            gt_total = len(matched.gt_graph.edges)
+            pred_total = len(matched.pred_graph.edges)
 
         if gt_total == 0:
             warnings.warn(
@@ -129,7 +133,10 @@ class BasicMetrics(Metric):
                 fn += 1
 
         for attrs in matched.pred_graph.graph.edges.values():
-            if EdgeFlag.SKIP_FALSE_POS in attrs:
+            if EdgeFlag.SKIP_TRUE_POS in attrs:
+                # We already counted the tp in gt edges
+                pass
+            elif EdgeFlag.SKIP_FALSE_POS in attrs:
                 fp_skip += 1
             elif EdgeFlag.FALSE_POS in attrs:
                 fp += 1

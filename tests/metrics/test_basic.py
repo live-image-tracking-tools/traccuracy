@@ -74,10 +74,10 @@ class TestBasicMetrics:
         node_fn = 3
         node_fp = 3
         edge_tp = 1
-        edge_tp_skip = 2
+        edge_tp_skip = 3
         edge_fn = 2
         edge_fn_skip = 1
-        edge_fp = 2
+        edge_fp = 2  # Currently getting 5
         edge_fp_skip = 1
         total_gt_edges = 7
         total_pred_edges = 7
