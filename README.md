@@ -57,5 +57,5 @@ pipelines, [documented here](https://traccuracy.readthedocs.io/en/latest/cli.htm
 **Track**
 : A single cell and all of its progeny. In graph terms, a connected component including divisions.
 
-**Gap-Closing**
-: Also known as *frame-skipping*, these are edges that connect non-consecutive frames to signify a cell being occluded or missing for some frames, before the track continues.
+**Skip Edges**
+: Also known as *gap closing*, these are edges that connect non-consecutive frames to signify a cell being occluded or missing for some frames, before the track continues.
