@@ -202,17 +202,17 @@ plot_matched(
 )
 ```
 
-### Gap-Closing Edges
-Gap-closing edges will be annotated as False Positive on the predicted graph
+### Skip Edges
+Under default behavior, skip edges will be annotated as False Positive on the predicted graph
 and False Negative on the ground truth graph unless both graphs contain an
-identical gap-closing edge. Similarly, gap-closing edges on the predicted
+identical skip edge. Similarly, skip edges on the predicted
 graph that do not exist in the ground truth graph will be annotated as False
 Positive, with corresponding False Negative annotations on the ground truth.
 
-- Ex 1: The gap-closing edges are identical, they will be marked TP.
-- Ex 2: The GT gap-closing edge is not present in the prediction. It is
+- Ex 1: The skip edges are identical, they will be marked TP.
+- Ex 2: The GT skip edge is not present in the prediction. It is
   annotated as FN. Predicted edges are FP.
-- Ex 3: The predicted gap-closing edge is not present in the GT. It is
+- Ex 3: The predicted skip edge is not present in the GT. It is
  annotated as FP. GT edges are FN.
 
 ```{code-cell} ipython3
@@ -229,5 +229,26 @@ plot_matched(
     ],
     "",
     ["Ex. 1", "Ex. 2", "Ex. 3"],
+)
+```
+
+Skip edges can be handled more permissively by setting `relax_skips_gt=True` and/or `relax_skips_pred=True`. In this scenario, an edge `u -> v` can be matched to an edge `x -> y -> z` if the the endpoint nodes are matched and the intermediate node (`y`) is not matched.
+
+By relaxing skip edges on one or both of the graphs, the following cases can become correct. The skip edge itself will be annotated as a skip true positive (STP). Any matching edges on the opposite graph will also be annotated as STPs.
+
+```{code-cell} ipython3
+plot_matched(
+    [
+        ex_graphs.gap_close_gt_gap(),
+        ex_graphs.gap_close_pred_gap(),
+        ex_graphs.div_parent_gap()
+    ],
+    [
+        {(1, 3): "STP", (5, 6): "STP", (6, 7): "STP"},
+        {(2, 3): "STP", (3, 4): "STP", (6, 8): "STP"},
+        {(9, 11): "STP", (9, 12): "STP", (2, 3): "STP", (3, 4): "STP", (3, 5): "STP"}
+    ],
+    "",
+    ["relax_skips_gt=True", "relax_skips_pred=True", "relax_skips_gt=True"],
 )
 ```
