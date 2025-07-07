@@ -118,7 +118,7 @@ def get_corrected_division_graphs_with_delta(
             corrected_gt_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
         elif (
             relax_skip_edges
-            and corrected_gt_graph.graph.nodes[node].get("min_buffer_correct_skip", np.nan)
+            and corrected_gt_graph.graph.nodes[node].get("min_buffer_skip_correct", np.nan)
             <= frame_buffer
         ):
             corrected_gt_graph.graph.nodes[node].pop(NodeFlag.FN_DIV)
@@ -129,7 +129,7 @@ def get_corrected_division_graphs_with_delta(
             corrected_pred_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
         elif (
             relax_skip_edges
-            and corrected_pred_graph.graph.nodes[node].get("min_buffer_correct_skip", np.nan)
+            and corrected_pred_graph.graph.nodes[node].get("min_buffer_skip_correct", np.nan)
             <= frame_buffer
         ):
             corrected_pred_graph.graph.nodes[node].pop(NodeFlag.FP_DIV)

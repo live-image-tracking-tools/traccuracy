@@ -165,10 +165,7 @@ def _get_succ_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
 
 
 def _correct_shifted_divisions(
-    matched_data: Matched,
-    n_frames: int = 1,
-    relax_skips_gt: bool = False,
-    relax_skips_pred: bool = False,
+    matched_data: Matched, n_frames: int = 1, relaxed: bool = False
 ) -> None:
     """Allows for divisions to occur within a frame buffer and still be correct
 
@@ -184,11 +181,8 @@ def _correct_shifted_divisions(
         matched_data (traccuracy.matchers.Matched): Matched data object
             containing gt and pred graphs with their associated mapping
         n_frames (int): Number of frames to include in the frame buffer
-        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
-            graph have an equivalent multi-edge path in predicted graph
-        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
-            graph have an equivalent multi-edge path in ground truth graph
-
+        relaxed (bool): If True, the metric will check if skips in the ground truth
+            or predicted graph have an equivalent multi-edge path in predicted graph
     """
     g_gt = matched_data.gt_graph
     g_pred = matched_data.pred_graph
@@ -205,10 +199,31 @@ def _correct_shifted_divisions(
         t_fp = fp_node_info[g_pred.frame_key]
         t_fn = fn_node_info[g_gt.frame_key]
 
+        if relaxed:
+            gt_skip = any(
+                EdgeFlag.SKIP_TRUE_POS in g_gt.graph.edges[(fn_node, succ)]
+                or EdgeFlag.SKIP_FALSE_NEG in g_gt.graph.edges[(fn_node, succ)]
+                for succ in g_gt.graph.successors(fn_node)
+            )
+            pred_skip = any(
+                EdgeFlag.SKIP_TRUE_POS in g_pred.graph.edges[(fp_node, succ)]
+                or EdgeFlag.SKIP_FALSE_POS in g_pred.graph.edges[(fp_node, succ)]
+                for succ in g_pred.graph.successors(fp_node)
+            )
+            skip_div = gt_skip or pred_skip
+        else:
+            skip_div = False
+
         # Move on if this division has already been corrected by a smaller buffer value
         if (
             fp_node_info.get("min_buffer_correct", np.nan) is not np.nan
             or fn_node_info.get("min_buffer_correct", np.nan) is not np.nan
+        ) or (
+            skip_div
+            and (
+                fp_node_info.get("min_buffer_skip_correct", np.nan) is not np.nan
+                or fn_node_info.get("min_buffer_skip_correct", np.nan) is not np.nan
+            )
         ):
             continue
 
@@ -310,13 +325,21 @@ def _correct_shifted_divisions(
             if correct_daughters == 2:
                 correct = True
 
-        if correct:
+        if correct and not skip_div:
             # set the current frame buffer as the minimum correct frame
             g_gt.graph.nodes[fn_node]["min_buffer_correct"] = n_frames
             g_pred.graph.nodes[fp_node]["min_buffer_correct"] = n_frames
+        elif correct and skip_div:
+            g_gt.graph.nodes[fn_node]["min_buffer_skip_correct"] = n_frames
+            g_pred.graph.nodes[fp_node]["min_buffer_skip_correct"] = n_frames
 
 
-def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -> Matched:
+def evaluate_division_events(
+    matched_data: Matched,
+    max_frame_buffer: int = 0,
+    relax_skips_gt: bool = False,
+    relax_skips_pred: bool = False,
+) -> Matched:
     """Classify division errors and correct shifted divisions according to frame_buffer
 
     Note: A copy of matched_data will be created for each frame_buffer other than 0.
@@ -328,15 +351,21 @@ def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -
         max_frame_buffer (int, optional): Maximum value of frame buffer to use in correcting
             shifted divisions. Divisions will be evaluated for all integer values of frame
             buffer between 0 and max_frame_buffer
+        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+            graph have an equivalent multi-edge path in predicted graph
+        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+            graph have an equivalent multi-edge path in ground truth graph
 
     Returns:
         matched_data (traccuracy.matchers.Matched): Matched data object with annotated FP, FN and TP
-        divisions, with a `min_buffer_correct` attribute indicating the minimum frame
-        buffer value that corrects this division, if applicable.
+            divisions, with a `min_buffer_correct` attribute indicating the minimum frame
+            buffer value that corrects this division, if applicable.
     """
 
     # Baseline division classification
-    _classify_divisions(matched_data)
+    _classify_divisions(
+        matched_data, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
+    )
     gt_graph = matched_data.gt_graph
     pred_graph = matched_data.pred_graph
 
@@ -349,6 +378,8 @@ def evaluate_division_events(matched_data: Matched, max_frame_buffer: int = 0) -
 
     # Annotate divisions that would be corrected by frame buffer
     for delta in range(1, max_frame_buffer + 1):
-        _correct_shifted_divisions(matched_data, n_frames=delta)
+        _correct_shifted_divisions(
+            matched_data, n_frames=delta, relaxed=(relax_skips_gt or relax_skips_pred)
+        )
 
     return matched_data
