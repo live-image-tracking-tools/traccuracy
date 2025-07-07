@@ -177,6 +177,6 @@ plot_matched(
 )
 ```
 
-## Gap-Closing Edges
+## Skip Edges
 
-Gap-closing edges must be identical in the ground truth and predicted graphs in order for no errors to be annotated. Otherwise, the appropriate error is annotated as described above.
+Skip edges must be identical in the ground truth and predicted graphs in order for no errors to be annotated. Otherwise, the appropriate error is annotated as described above.
