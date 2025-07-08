@@ -111,13 +111,14 @@ def plot_matched(examples, annotations, suptitle, titles):
 ```
 
 ## Nodes
+(basic-node-tp)=
 ### True Positive
 A true positive node is defined as a predicted node that matches to only one
 ground truth node. Additionally, the corresponding ground truth node cannot be
 matched to more than one predicted node. True positives are annotated on both
 the ground truth and the division graph.
 
-
+(basic-node-fp)=
 ### False Positive
 A false positive node is a node on the predicted graph does not match to a
 node on the ground truth graph. False positives are annotated on the predicted
@@ -127,6 +128,7 @@ graph.
 plot_matched([ex_graphs.fp_edge_matched(1)], [{7: "FP", 8: "FP"}], "", [""])
 ```
 
+(basic-node-fn)=
 ### False Negative
 A false negative node is a node on the ground truth graph that is not matched
 to a predicted node. False negatives are annotated on the ground truth graph.
@@ -137,13 +139,14 @@ plot_matched([ex_graphs.fn_node_matched(2)], [{3: "FN"}], "", [""])
 
 
 ## Edges
+(basic-edge-tp)=
 ### True Positive
 An edge in the ground truth is a true positive edge if both source and target
 node are true positives and the corresponding edge is present in the
 prediction. True positive edges are annotated on both the ground truth and the
 predicted graph.
 
-
+(basic-edge-fp)=
 ### False Positive
 False positive edges occur in and are annotated on the predicted graph. A
 false positive edge can occur in several different scenarios when the edge
@@ -182,6 +185,7 @@ plot_matched(
 )
 ```
 
+(basic-edge-fn)=
 ### False Negative
 A false negative edge can occur in the ground truth graph when:
 
@@ -202,14 +206,15 @@ plot_matched(
 )
 ```
 
+(basic-skip-edge)=
 ### Skip Edges
-Under default behavior, skip edges will be annotated as False Positive on the predicted graph
+Under default behavior, {term}`skip edges <Skip Edges>` will be annotated as False Positive on the predicted graph
 and False Negative on the ground truth graph unless both graphs contain an
-identical skip edge. Similarly, skip edges on the predicted
+identical skip edge. Similarly, {term}`skip edges <Skip Edges>` on the predicted
 graph that do not exist in the ground truth graph will be annotated as False
 Positive, with corresponding False Negative annotations on the ground truth.
 
-- Ex 1: The skip edges are identical, they will be marked TP.
+- Ex 1: The {term}`skip edges <Skip Edges>` are identical, they will be marked TP.
 - Ex 2: The GT skip edge is not present in the prediction. It is
   annotated as FN. Predicted edges are FP.
 - Ex 3: The predicted skip edge is not present in the GT. It is
@@ -232,9 +237,9 @@ plot_matched(
 )
 ```
 
-Skip edges can be handled more permissively by setting `relax_skips_gt=True` and/or `relax_skips_pred=True`. In this scenario, an edge `u -> v` can be matched to an edge `x -> y -> z` if the the endpoint nodes are matched and the intermediate node (`y`) is not matched.
+{term}`Skip edges <Skip Edges>` can be handled more permissively by setting `relax_skips_gt=True` and/or `relax_skips_pred=True`. In this scenario, an edge `u -> v` can be matched to an edge `x -> y -> z` if the the endpoint nodes are matched and the intermediate node (`y`) is not matched.
 
-By relaxing skip edges on one or both of the graphs, the following cases can become correct. The skip edge itself will be annotated as a skip true positive (STP). Any matching edges on the opposite graph will also be annotated as STPs.
+By relaxing {term}`skip edges <Skip Edges>` on one or both of the graphs, the following cases can become correct. The skip edge itself will be annotated as a skip true positive (STP). Any matching edges on the opposite graph will also be annotated as STPs.
 
 ```{code-cell} ipython3
 plot_matched(
@@ -249,6 +254,6 @@ plot_matched(
         {(9, 11): "STP", (9, 12): "STP", (2, 3): "STP", (3, 4): "STP", (3, 5): "STP"}
     ],
     "",
-    ["relax_skips_gt=True", "relax_skips_pred=True", "relax_skips_gt=True"],
+    ["relax_skips_gt=True", "relax_skips_pred=True", "relax_skips_pred=True"],
 )
 ```
