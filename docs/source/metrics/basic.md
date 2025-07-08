@@ -6,6 +6,25 @@ Basic performance metrics are computed based on the error classifications descri
 These metrics are written assuming that the ground truth annotations are dense. If that is not the case, interpret the numbers carefully. Consider eliminating metrics that use the number of false positives (including Precision and F1 Score).
 :::
 
+These metrics can be computed as follows:
+```python
+from traccuracy.matchers import PointMatcher
+from traccuracy.metrics import BasicMetrics
+
+# Data loaded using a function from traccuracy.loaders
+gt_data: TrackingGraph
+pred_data: TrackingGraph
+
+results, matched = run_metrics(
+    gt_data=gt_data,
+    pred_data=pred_data,
+    matcher=PointMatcher(), # Choose a matcher that produces a one-to-one mapping
+    metrics=[BasicMetrics()]
+)
+```
+
+The `results` object contains a dictionary `results.results` that stores all value associated with the metric.
+
 The following counts are returned:
 
 - Total ground truth
