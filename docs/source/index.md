@@ -4,6 +4,13 @@
 ```{toctree}
 :maxdepth: 2
 :hidden: true
+
+glossary
+```
+
+```{toctree}
+:maxdepth: 2
+:hidden: true
 :caption: Matchers
 
 matchers/matchers
@@ -17,7 +24,6 @@ matchers/matchers
 track_errors/basic
 track_errors/divisions
 track_errors/ctc
-track_errors/skip-edges
 ```
 
 ```{toctree}
