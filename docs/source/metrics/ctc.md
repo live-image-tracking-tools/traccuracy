@@ -43,11 +43,9 @@ and annotates node errors.
 Each type of node error is weighted based on how difficult it would be for a human to correct
 the error by hand. The original Cell Tracking Challenge weights are used for all error types:
 
-- Non-Split nodes are weighted 5
-- False Negative nodes are weighted 10
-- False Positive nodes are weighted 1
-
-See Track Errors for the definition of each error type.
+- [Non-Split nodes](ctc-node-ns) are weighted 5
+- [False Negative nodes](ctc-node-fn) are weighted 10
+- [False Positive nodes](ctc-node-fp) are weighted 1
 
 To compute the DET score for a dataset, the weighted sum of all node errors in the solution ($AOGM-D$)
 is normalized to a 0-1 value using a maximum potential error. The maximum potential error
@@ -75,11 +73,9 @@ and annotates edge errors.
 Each type of edge error is weighted based on how difficult it would be for a human to correct
 the error by hand. The original Cell Tracking Challenge weights are used for all error types:
 
-- Wrong-Semantic edges are weighted 1
-- False Negative edges are weighted 1.5
-- False Positive edges are weighted 1
-
-See Track Errors for the definition of each error type.
+- [Wrong-Semantic edges](ctc-edge-ws) are weighted 1
+- [False Negative edges](ctc-edge-fn) are weighted 1.5
+- [False Positive edges](ctc-edge-fp) are weighted 1
 
 To compute the LNK score for a dataset, the weighted sum of all edge errors in the solution ($AOGM-A$)
 is normalized to a 0-1 value using a maximum potential error. The maximum potential error
@@ -105,11 +101,9 @@ The TRA measure assesses the solution's detection *and* tracking performance and
 includes both the node errors specified in DET (with identical weights) and the edge errors
 computed by the general AOGM metric. Edge error weights are as follows:
 
-- Wrong-Semantic edges are weighted 1
-- False Negative edges are weighed 1.5
-- False Positive edges are weighted 1
-
-See Track Errors for the definition of each error type.
+- [Wrong-Semantic edges](ctc-edge-ws) are weighted 1
+- [False Negative edges](ctc-edge-fn) are weighed 1.5
+- [False Positive edges](ctc-edge-fp) are weighted 1
 
 To compute the TRA score, the weighted sum of all node and edge errors in the solution ($AOGM$)
 is normalized to a 0-1 value using a maximum potential error. The maximum potential error ($AOGM_{0}$) is again
