@@ -146,6 +146,7 @@ aogm = ctc_results.results["AOGM"]
 
 The CTC has also introduced a set of metrics that captures biologically inspired metrics. 
 
+(ctc-bc)=
 ### Branching Correctness (BC)
 
 BC is defined as the F1 score for division detection within a given frame tolerance. Division metrics in `traccuracy` require a one-to-one matching, which the `CTCMatcher` can return, but is not guaranteed. Alternatively, other matchers are available as described in <project:../matchers/matchers.md>.

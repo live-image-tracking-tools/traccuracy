@@ -36,7 +36,7 @@ The following counts are returned:
 - [False positive edges](basic-edge-fp)
 - [False negative edges](basic-edge-fn)
 
-If `relax_skip_gt` or `relax_skip_pred` are set to True, the following additional counts are return and included in the calculation of summary statistics listed below. For a complete description of how skip edges are handled, see [here](basic-skip-edge)
+If `relax_skip_gt` or `relax_skip_pred` are set to True, the following additional counts are return and included in the calculation of summary statistics listed below. For a complete description of how skip edges are handled, see [here](basic-skip-edge).
 
 - Skip true positives
 - Skip false positives
