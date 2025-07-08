@@ -88,6 +88,9 @@ autoapi_ignore = ["*/cli.py"]
 # -- Myst NB -----------------------------------------------------------------
 nb_execution_raise_on_error = True
 
+# Uncomment below to cache notebooks when running frequent local builds
+# nb_execution_mode = "cache"
+
 myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
