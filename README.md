@@ -85,5 +85,9 @@ results, matched = run_metrics(
 
 If you use `traccuracy` in your own work, please let us know so that we can feature it here!
 
-- [Gallusser, B., & Weigert, M. (2024). Trackastra: Transformer-based cell tracking for live-cell microscopy. In European Conference on Computer Vision (pp. 467-484).](https://doi.org/10.1007/978-3-031-73116-7_27)
+- [Archit, A. et al. (2025). Segment anything for microscopy. Nature Methods.](https://doi.org/10.1038/s41592-024-02580-4)
 - [Evans et al. (2025). Icebergs, jigsaw puzzles and genealogy: Automated multi-generational iceberg tracking and lineage reconstruction. Preprint in EGUsphere.](https://doi.org/10.5194/egusphere-2025-2886)
+- [Seiffarth, J., & Nöh, K. (2025). PyUAT: Open-source Python framework for efficient and scalable cell tracking. arXiv preprint.](https://arxiv.org/pdf/2503.21914)
+- [Bragantini, J. et al. (2024). Ultrack: pushing the limits of cell tracking across biological scales. bioRxiv.](https://doi.org/10.1101/2024.09.02.610652)
+- [Gallusser, B., & Weigert, M. (2024). Trackastra: Transformer-based cell tracking for live-cell microscopy. In European Conference on Computer Vision.](https://doi.org/10.1007/978-3-031-73116-7_27)
+- [Toma, T. T., Wang, Y., Gahlmann, A., & Acton, S. T. (2024). Deep Temporal Sequence Classification and Mathematical Modeling for Cell Tracking in Dense 3D Microscopy Videos of Bacterial Biofilms. arXiv preprint.](https://doi.org/10.48550/arXiv.2406.19574)
