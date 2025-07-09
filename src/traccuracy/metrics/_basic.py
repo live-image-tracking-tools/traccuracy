@@ -4,13 +4,13 @@ import warnings
 from typing import TYPE_CHECKING
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._basic import classify_basic_errors
 
 from ._base import Metric
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 class BasicMetrics(Metric):

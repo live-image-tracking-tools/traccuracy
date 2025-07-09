@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from traccuracy._tracking_graph import TrackingGraph
-    from traccuracy.matchers._base import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 def get_equivalent_skip_edge(

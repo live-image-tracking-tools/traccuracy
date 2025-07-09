@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable
 
     from traccuracy import TrackingGraph
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from tests.test_utils import get_division_graphs
 from traccuracy import NodeFlag, TrackingGraph
-from traccuracy.matchers import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._divisions import (
     _classify_divisions,
     _correct_shifted_divisions,

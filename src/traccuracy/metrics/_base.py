@@ -10,7 +10,7 @@ import numpy as np
 if TYPE_CHECKING:
     from typing import Any
 
-    from traccuracy.matchers._base import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 MATCHING_TYPES = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"]

@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 
 from ._base import Metric
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 class AOGMMetrics(Metric):
