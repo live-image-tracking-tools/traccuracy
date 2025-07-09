@@ -84,7 +84,8 @@ class Metric(ABC):
                 graph have an equivalent multi-edge path in ground truth graph
 
         Returns:
-            Results: Object containing metric results and associated pipeline metadata
+            traccuracy.metrics._results.Results: Object containing metric results
+                and associated pipeline metadata
         """
         if override_matcher:
             warnings.warn(
