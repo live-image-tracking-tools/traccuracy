@@ -316,7 +316,9 @@ class TestGapCloseEdge:
         # so they remain SKIP_FN and SKIP_FP
         _classify_edges(matched, relax_skips_gt=True, relax_skips_pred=True)
         assert EdgeFlag.SKIP_FALSE_NEG in matched.gt_graph.edges[(1, 3)]
+        assert EdgeFlag.FALSE_NEG in matched.gt_graph.edges[(1, 3)]
         assert EdgeFlag.SKIP_FALSE_POS in matched.pred_graph.edges[(6, 8)]
+        assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[(6, 8)]
 
     def test_gap_close_division_edges(self):
         matched = ex_graphs.div_parent_gap()
