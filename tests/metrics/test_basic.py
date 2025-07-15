@@ -74,10 +74,10 @@ class TestBasicMetrics:
         node_fn = 3
         node_fp = 3
         edge_tp = 1
-        edge_tp_skip = 3
+        edge_tp_gt_skip = edge_tp_pred_skip = 3
         edge_fn = 2
         edge_fn_skip = 1
-        edge_fp = 2  # Currently getting 5
+        edge_fp = 2
         edge_fp_skip = 1
         total_gt_edges = 7
         total_pred_edges = 7
@@ -93,6 +93,7 @@ class TestBasicMetrics:
         assert resdict["True Positive Edges"] == edge_tp
         assert resdict["False Positive Edges"] == edge_fp
         assert resdict["False Negative Edges"] == edge_fn
-        assert resdict["Skip True Positive Edges"] == edge_tp_skip
+        assert resdict["Skip GT True Positive Edges"] == edge_tp_gt_skip
+        assert resdict["Skip Pred True Positive Edges"] == edge_tp_pred_skip
         assert resdict["Skip False Positive Edges"] == edge_fp_skip
         assert resdict["Skip False Negative Edges"] == edge_fn_skip

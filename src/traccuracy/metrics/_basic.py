@@ -16,8 +16,9 @@ if TYPE_CHECKING:
 class BasicMetrics(Metric):
     """Generates basic statistics describing node and edge errors
 
-    If `relax_skips_gt` or `relax_skips_pred` is True, skip edges will be
-    allowed. The total number of skip TPs/FNs/FPs will be reported and these
+    If `relax_skips_gt` or `relax_skips_pred` is True,  we can match
+    skip edges in the prediction to a series of edges in the gt, or vice versa.
+    The total number of skip TPs/FNs/FPs will be reported and these
     counts will be incorporated in the calculation of precision/recall/F1.
 
     These metrics are written assuming that the ground truth annotations
@@ -57,7 +58,9 @@ class BasicMetrics(Metric):
             fp = len(matched.pred_graph.get_edges_with_flag(EdgeFlag.FALSE_POS))
             fn = len(matched.gt_graph.get_edges_with_flag(EdgeFlag.FALSE_NEG))
         elif feature_type == "edge" and relaxed:
-            tp, tp_skip, fp, fp_skip, fn, fn_skip = self._count_errors_with_skips(matched)
+            tp, tp_gt_skip, tp_pred_skip, fp, fp_skip, fn, fn_skip = self._count_errors_with_skips(
+                matched
+            )
 
         # Compute totals
         if feature_type == "node":
@@ -84,8 +87,8 @@ class BasicMetrics(Metric):
             recall = self._get_recall(tp, gt_total)
             f1 = self._get_f1(precision, recall)
         else:
-            precision = self._get_precision(tp + tp_skip, pred_total)
-            recall = self._get_recall(tp + tp_skip, gt_total)
+            precision = self._get_precision(tp + tp_pred_skip, pred_total)
+            recall = self._get_recall(tp + tp_gt_skip, gt_total)
             f1 = self._get_f1(precision, recall)
 
         feature_type = feature_type.capitalize()
@@ -104,27 +107,30 @@ class BasicMetrics(Metric):
         if relaxed:
             stats = {
                 **stats,
-                f"Skip True Positive {feature_type}s": tp_skip,
+                f"Skip GT True Positive {feature_type}s": tp_gt_skip,
+                f"Skip Pred True Positive {feature_type}s": tp_pred_skip,
                 f"Skip False Positive {feature_type}s": fp_skip,
                 f"Skip False Negative {feature_type}s": fn_skip,
             }
 
         return stats
 
-    def _count_errors_with_skips(self, matched: Matched) -> tuple[int, int, int, int, int, int]:
+    def _count_errors_with_skips(
+        self, matched: Matched
+    ) -> tuple[int, int, int, int, int, int, int]:
         """Go through each edge in the graph to count error flags
 
         If there is a skip flag it takes precedence and only the skip flag is counted,
-        not any other basic error that is on the same age.
+        not any other basic error that is on the same edge.
         """
-        tp, tp_skip = 0, 0
+        tp, tp_gt_skip, tp_pred_skip = 0, 0, 0
         fp, fp_skip = 0, 0
         fn, fn_skip = 0, 0
 
         # Count on gt graph first which will be source of tp counts
         for attrs in matched.gt_graph.graph.edges.values():
             if EdgeFlag.SKIP_TRUE_POS in attrs:
-                tp_skip += 1
+                tp_gt_skip += 1
             elif EdgeFlag.SKIP_FALSE_NEG in attrs:
                 fn_skip += 1
             elif EdgeFlag.TRUE_POS in attrs:
@@ -134,11 +140,10 @@ class BasicMetrics(Metric):
 
         for attrs in matched.pred_graph.graph.edges.values():
             if EdgeFlag.SKIP_TRUE_POS in attrs:
-                # We already counted the tp in gt edges
-                pass
+                tp_pred_skip += 1
             elif EdgeFlag.SKIP_FALSE_POS in attrs:
                 fp_skip += 1
             elif EdgeFlag.FALSE_POS in attrs:
                 fp += 1
 
-        return tp, tp_skip, fp, fp_skip, fn, fn_skip
+        return tp, tp_gt_skip, tp_pred_skip, fp, fp_skip, fn, fn_skip
