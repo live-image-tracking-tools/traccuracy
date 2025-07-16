@@ -183,9 +183,9 @@ plot_matched(
 
 In default division evaluation, skip edges must be identical in the ground truth and predicted graphs to be considered a true positive.
 
-If the parent node with outgoing skip edges is mismatched to the parent node in the ground truth graph, this will be a False Positive/False Negative division pair, even if the daughter nodes are correctly identified.
+If the parent node with outgoing skip edges is not matched to the parent node in the ground truth graph, this will be a False Positive/False Negative division pair, even if the daughter nodes are correctly identified.
 
-If the parent node with outgoing skip edges is correctly matched to the parent node in the ground truth graph, this will be a Wrong Child division.
+If the parent node with outgoing skip edges is correctly matched to the parent node in the ground truth graph, but the children are not matched because there is a skip edge, unless you relax skip edges, this will be a Wrong Child division.
 
 ```{code-cell} ipython3
 plot_matched(
