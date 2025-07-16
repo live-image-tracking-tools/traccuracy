@@ -218,7 +218,7 @@ jobs:
         uses: peter-evans/commit-comment@v3
         with:
           body: |
-            ![coverage plot](https://github.com/Janelia-Trackathon-2023/traccuracy/blob/test-case-coverage-report/${{ steps.hash.outputs.commit }}.png?raw=True)
+            ![coverage plot](https://github.com/live-image-tracking-tools/traccuracy/blob/test-case-coverage-report/${{ steps.hash.outputs.commit }}.png?raw=True)
 
 
   deploy:
