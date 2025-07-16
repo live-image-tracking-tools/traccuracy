@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class AOGMMetrics(Metric):
+    """Computes the Acyclic Oriented Graph Measure (AOGM), along with the error counts."""
+
     def __init__(
         self,
         vertex_ns_weight: float = 1,
@@ -74,6 +76,8 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
+    """Computes the original Cell Tracking Challenging metrics: TRA, DET, LNK."""
+
     def __init__(self) -> None:
         vertex_weight_ns = 5
         vertex_weight_fn = 10
