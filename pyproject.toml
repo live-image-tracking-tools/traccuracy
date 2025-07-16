@@ -112,7 +112,7 @@ test-case-report = "python scripts/test_case_report.py test-case-report && rm ma
 
 [tool.pixi.feature.docs.tasks]
 kernel-config = { cmd = "python -m ipykernel install --user --name=\"traccuracy-docs\""}
-docs = { cmd = "sphinx-build docs/source docs/_build", depends-on = ["kernel-config"]}
+docs = { cmd = "sphinx-build docs/source docs/_build -D nb_execution_mode=cache", depends-on = ["kernel-config"]}
 
 [project.urls]
 homepage = "https://github.com/live-image-tracking-tools/traccuracy"

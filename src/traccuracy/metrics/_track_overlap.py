@@ -17,14 +17,14 @@ from collections import defaultdict
 from itertools import product
 from typing import TYPE_CHECKING, Any
 
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 
 from ._base import Metric
 
 if TYPE_CHECKING:
     import networkx as nx
 
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 class TrackOverlapMetrics(Metric):
