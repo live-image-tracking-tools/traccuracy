@@ -88,7 +88,7 @@ def _get_pred_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     """For a given graph and node, traverses back by predecessor until delta_frames
 
     Args:
-        G (TrackingGraph): TrackingGraph to search on
+        g (TrackingGraph): TrackingGraph to search on
         node (hashable): Key of starting node
         delta_frames (int): Frame of the predecessor target node
 
@@ -117,7 +117,7 @@ def _get_succ_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     If a division event is discovered, returns None
 
     Args:
-        G (TrackingGraph): TrackingGraph to search on
+        g (TrackingGraph): TrackingGraph to search on
         node (hashable): Key of starting node
         delta_frames (int): Frame of the successor target node
 

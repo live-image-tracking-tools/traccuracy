@@ -86,7 +86,7 @@ class DivisionMetrics(Metric):
         """Runs `_evaluate_division_events` and calculates summary metrics for each frame buffer
 
         Args:
-            matched_data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
+            data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
                 Must meet the `needs_one_to_one` criteria
             relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
                 graph have an equivalent multi-edge path in predicted graph

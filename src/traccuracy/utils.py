@@ -38,8 +38,8 @@ def get_equivalent_skip_edge(
             skip nodes to other nodes
         skip_src (Hashable): ID of source node of skip edge
         skip_dst (Hashable): ID of destination node of skip edge
-        other_src (Hashable): matched node of skip_src
-        other_dst (Hashable): matched node of skip_dst
+        matched_src (Hashable): matched node of skip_src
+        matched_dst (Hashable): matched node of skip_dst
 
     Returns:
         list[Hashable]: path from matched_src to matched_dst, or empty list if no such path.

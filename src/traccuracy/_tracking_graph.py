@@ -177,7 +177,7 @@ class TrackingGraph:
                 pixel value of the node in the segmentation. Defaults to
                 'segmentation_id'. Pass `None` if there is not a label
                 attribute on the graph.
-            location_key (str | tuple, optional): The key or list of keys on each node
+            location_keys (str | tuple, optional): The key or list of keys on each node
                 in graph that contains the spatial location of the node, in the order
                 needed to index the segmentation, if applicable. Every
                 node must have a value stored at each of these provided keys.
