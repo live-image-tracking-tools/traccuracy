@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 
 
 class AOGMMetrics(Metric):
-    """AOGM metric is a generalized graph measure that allows users to define their own
+    """Computes the Acyclic Oriented Graph Measure (AOGM), along with the error counts
+
+    The AOGM metric is a generalized graph measure that allows users to define their own
     error weights for each type of node and edge error. The AOGM is simply the
     weighted sum of all errors.
 
@@ -100,7 +102,7 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
-    """CTCMetrics computes three core metrics used by the Cell Tracking Challenge.
+    """Computes the original Cell Tracking Challenging metrics: TRA, DET, LNK.
     These metrics are based on the more general AOGM metric.
 
     - DET: Assesses detection performance
