@@ -111,3 +111,23 @@ class TestDivisionMetrics:
         assert np.isnan(m._get_mbc(gt_div_count=0, tp_division_count=0, fp_division_count=0))
         assert m._get_mbc(gt_div_count=10, tp_division_count=0, fp_division_count=10) == 0
         assert m._get_mbc(gt_div_count=10, tp_division_count=10, fp_division_count=0) == 1
+
+    def test_skip_div(self):
+        # Test case where division is only correct with skip tp
+        matched = ex_graphs.div_daughter_gap()
+        m = DivisionMetrics()
+
+        res = m.compute(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert res.results["Frame Buffer 0"]["True Positive Skip Divisions"] == 1
+        assert res.results["Frame Buffer 0"]["True Positive Divisions"] == 0
+
+    def test_skip_div_with_shift(self):
+        # Test case where division is only correct with skip tp and shift
+        matched = ex_graphs.div_parent_gap()
+        m = DivisionMetrics(max_frame_buffer=1)
+
+        res = m.compute(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert res.results["Frame Buffer 0"]["True Positive Skip Divisions"] == 0
+        assert res.results["Frame Buffer 0"]["True Positive Divisions"] == 0
+        assert res.results["Frame Buffer 1"]["True Positive Skip Divisions"] == 1
+        assert res.results["Frame Buffer 1"]["True Positive Divisions"] == 0
