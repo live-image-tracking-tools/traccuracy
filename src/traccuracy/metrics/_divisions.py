@@ -42,7 +42,7 @@ import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._base import Matched
-from traccuracy.track_errors.divisions import _evaluate_division_events
+from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
 
@@ -54,15 +54,16 @@ logger = logging.getLogger(__name__)
 
 
 class DivisionMetrics(Metric):
-    """Classify division events and provide the following summary metrics
+    """Computes division summary metrics with an optional frame tolerance.
 
+    Computes the following metrics:
     - Division Recall
     - Division Precision
     - Division F1 Score (also Branching Correctness)
-    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by Ulicna, K.,
-        Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
-        using a Bayesian single cell tracking approach. Frontiers in Computer Science
-        3, 734559 (2021).
+    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by *Ulicna, K.,
+    Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
+    using a Bayesian single cell tracking approach. Frontiers in Computer Science
+    3, 734559 (2021).*
 
     These metrics are written assuming that the ground truth annotations
     are dense. If that is not the case, interpret the numbers carefully.
@@ -80,17 +81,23 @@ class DivisionMetrics(Metric):
 
         self.frame_buffer = max_frame_buffer
 
-    def _compute(self, data: Matched) -> dict[str, dict[str, float]]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, dict[str, float]]:
         """Runs `_evaluate_division_events` and calculates summary metrics for each frame buffer
 
         Args:
             matched_data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
                 Must meet the `needs_one_to_one` criteria
+            relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+                graph have an equivalent multi-edge path in predicted graph
+            relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+                graph have an equivalent multi-edge path in ground truth graph
 
         Returns:
             dict: Returns a nested dictionary with one dictionary per frame buffer value
         """
-        _evaluate_division_events(
+        evaluate_division_events(
             data,
             max_frame_buffer=self.frame_buffer,
         )

@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 
 
 class AOGMMetrics(Metric):
-    """AOGM metric is a generalized graph measure that allows users to define their own
+    """Computes the Acyclic Oriented Graph Measure (AOGM), along with the error counts
+
+    The AOGM metric is a generalized graph measure that allows users to define their own
     error weights for each type of node and edge error. The AOGM is simply the
     weighted sum of all errors.
 
@@ -56,7 +58,16 @@ class AOGMMetrics(Metric):
             "ws": edge_ws_weight,
         }
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         evaluate_ctc_events(data)
 
         vertex_error_counts: dict[str, float] = {
@@ -91,7 +102,7 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
-    """CTCMetrics computes three core metrics used by the Cell Tracking Challenge.
+    """Computes the original Cell Tracking Challenging metrics: TRA, DET, LNK.
     These metrics are based on the more general AOGM metric.
 
     - DET: Assesses detection performance
@@ -120,7 +131,16 @@ class CTCMetrics(AOGMMetrics):
             edge_ws_weight=edge_weight_ws,
         )
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         errors = super()._compute(data)
         gt_graph = data.gt_graph.graph
         n_nodes = gt_graph.number_of_nodes()
