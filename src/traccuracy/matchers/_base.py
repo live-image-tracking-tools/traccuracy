@@ -81,10 +81,12 @@ class Matcher(ABC):
 
 
 class Matched:
-    """Matched data class which stores TrackingGraph objects for gt and pred
-    and the computed mapping
+    """Data class storing gt graph, pred graph, computed mapping, and matcher info.
 
-    Each TrackingGraph will be a new copy of the original object
+    The computed mapping type (e.g. one-to-one) is computed in the matched object.
+
+    :ivar gt_pred_map: A dictionary from gt node to list of matched pred nodes
+    :ivar pred_gt_map: A dictionary from pred node to list of matched gt nodes
 
     Args:
         gt_graph (traccuracy.TrackingGraph): Tracking graph object for the gt
