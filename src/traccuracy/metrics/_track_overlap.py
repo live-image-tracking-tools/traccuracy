@@ -50,7 +50,7 @@ class TrackOverlapMetrics(Metric):
 
     def _compute(
         self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
-    ) -> dict[str, float]:
+    ) -> dict[str, float | np.floating[Any]]:
         if relax_skips_gt or relax_skips_pred:
             raise NotImplementedError(
                 "Cannot currently compute track overlap metrics with relaxed skips."
