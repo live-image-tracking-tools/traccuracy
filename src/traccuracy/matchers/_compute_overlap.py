@@ -70,8 +70,8 @@ def get_labels_with_overlap(
 
         output.append(
             (
-                int(gt_box_labels[i]),
-                int(res_box_labels[j]),
+                int(current_gt_box_label),
+                int(current_res_box_label),
                 float(area_inter / denom),
             )
         )
