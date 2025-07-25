@@ -66,7 +66,13 @@ def get_labels_with_overlap(
         else:
             raise ValueError(f"Unknown overlap type: {overlap}")
 
-        output.append((gt_box_labels[i], res_box_labels[j], area_inter / denom))
+        output.append(
+            (
+                int(gt_box_labels[i]),
+                int(res_box_labels[j]),
+                float(area_inter / denom),
+            )
+        )
     return output
 
 

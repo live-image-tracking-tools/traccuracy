@@ -1,9 +1,9 @@
 import warnings
 
-import numpy as np
 import networkx as nx
-
+import numpy as np
 from sklearn.neighbors import VALID_METRICS
+
 from traccuracy.matchers._base import Matched
 from traccuracy.metrics._base import Metric
 
@@ -28,7 +28,7 @@ def _tracklets_graph(
                 if edge not in seen:
                     graph.add_edge(*edge)
                     seen.add(edge)
-    
+
     return graph
 
 
@@ -47,15 +47,10 @@ def _assign_trajectories(
         list[np.ndarray]: The assigned trajectories.
     """
     # by default, each tracklet is only assigned to itself
-    tracklet_assignments = [
-        np.asarray([n], dtype=int)
-        for n in tracklets_graph.nodes
-    ]
+    tracklet_assignments = [np.asarray([n], dtype=int) for n in tracklets_graph.nodes]
 
     for tracklet in tracklets_graph.nodes:
-        trajectory_tracklets = list(
-            nx.bfs_tree(tracklets_graph, tracklet).nodes
-        ) + list(
+        trajectory_tracklets = list(nx.bfs_tree(tracklets_graph, tracklet).nodes) + list(
             nx.bfs_tree(tracklets_graph, tracklet, reverse=True).nodes
         )
         tracklet_assignments[tracklet] = np.asarray(trajectory_tracklets)
@@ -72,6 +67,7 @@ class CHOTAMetric(Metric):
     https://github.com/CellTrackingChallenge/py-ctcmetrics/blob/main/ctc_metrics/metrics/hota/chota.py
 
     """
+
     def __init__(self) -> None:
         # many-to-many matches are an edge case, but they are allowed
         super().__init__(valid_matches=VALID_METRICS)
@@ -112,8 +108,10 @@ class CHOTAMetric(Metric):
         for i, tracklet in enumerate(gt_tracklets):
             for node in tracklet.nodes:
                 gt_track_ids[node] = i
-            
-        pred_tracklets_graph = _tracklets_graph(matched.pred_graph.graph, pred_tracklets, pred_track_ids)
+
+        pred_tracklets_graph = _tracklets_graph(
+            matched.pred_graph.graph, pred_tracklets, pred_track_ids
+        )
         gt_tracklets_graph = _tracklets_graph(matched.gt_graph.graph, gt_tracklets, gt_track_ids)
 
         pred_tracklet_assignments = _assign_trajectories(pred_tracklets_graph)
@@ -128,7 +126,8 @@ class CHOTAMetric(Metric):
         fn = max(fn, 0)
 
         tracks_overlap = np.zeros(
-            (len(pred_tracklets), len(gt_tracklets)), dtype=int,
+            (len(pred_tracklets), len(gt_tracklets)),
+            dtype=int,
         )
 
         pred_tracklet_mask = np.zeros_like(tracks_overlap, dtype=bool)
@@ -154,7 +153,7 @@ class CHOTAMetric(Metric):
 
                 A_sigma = tracks_overlap[i, j] * tpa / (tpa + fpa + fna)
                 total_A_sigma += A_sigma
-        
+
         union = fp + fn + len(matched.mapping)
 
         return {
