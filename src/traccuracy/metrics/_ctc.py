@@ -15,6 +15,8 @@ from traccuracy.track_errors._ctc import evaluate_ctc_events
 from ._base import Metric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from traccuracy.matchers import Matched
 
 
