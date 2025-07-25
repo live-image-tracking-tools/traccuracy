@@ -69,7 +69,7 @@ def get_labels_with_overlap(
             raise ValueError(f"Unknown overlap type: {overlap}")
 
         output.append((current_gt_box_label, current_res_box_label, area_inter / denom))
-    return output
+    return output  # type: ignore
 
 
 def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
