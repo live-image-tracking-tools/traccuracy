@@ -6,6 +6,8 @@ Licensed under The MIT License [see LICENSE for details]
 Copyright (c) 2015 Microsoft
 """
 
+from typing import Any
+
 import numpy as np
 from skimage.measure import regionprops
 
@@ -21,7 +23,7 @@ def get_labels_with_overlap(
     gt_frame: np.ndarray,
     res_frame: np.ndarray,
     overlap: str = "iou",
-) -> list[tuple[int, int, float]]:
+) -> list[tuple[Any, Any, float]]:
     """Get all labels IDs in gt_frame and res_frame whose bounding boxes overlap,
     and a metric of pixel overlap (either ``iou`` or ``iogt``).
 
