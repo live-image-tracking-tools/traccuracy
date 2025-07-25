@@ -17,6 +17,8 @@ from collections import defaultdict
 from itertools import product
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+
 from traccuracy.matchers._base import Matched
 
 from ._base import Metric
@@ -48,7 +50,7 @@ class TrackOverlapMetrics(Metric):
 
     def _compute(
         self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
-    ) -> dict[str, float]:
+    ) -> dict[str, float | np.floating[Any]]:
         if relax_skips_gt or relax_skips_pred:
             raise NotImplementedError(
                 "Cannot currently compute track overlap metrics with relaxed skips."
@@ -62,13 +64,14 @@ class TrackOverlapMetrics(Metric):
         )
 
         # calculate track purity and target effectiveness
-        track_purity = _calc_overlap_score(pred_tracklets, gt_tracklets, matched.pred_gt_map)
-        target_effectiveness = _calc_overlap_score(
+        track_purity, _ = _calc_overlap_score(pred_tracklets, gt_tracklets, matched.pred_gt_map)
+        target_effectiveness, track_fractions = _calc_overlap_score(
             gt_tracklets, pred_tracklets, matched.gt_pred_map
         )
         return {
             "track_purity": track_purity,
             "target_effectiveness": target_effectiveness,
+            "track_fractions": track_fractions,
         }
 
 
@@ -76,9 +79,13 @@ def _calc_overlap_score(
     reference_tracklets: list[nx.DiGraph],
     overlap_tracklets: list[nx.DiGraph],
     overlap_reference_mapping: dict[Any, list[Any]],
-) -> float:
-    """Calculate weighted sum of the length of the longest overlap tracklet
-    for each reference tracklet.
+) -> tuple[float | np.floating[Any], float | np.floating[Any]]:
+    """Get weighted/unweighted fraction of reference_tracklets overlapped by overlap_tracklets.
+
+    The weighted average is calculated as the total number of maximally
+    overlapping edges divided by the total number of edges in the reference tracklets.
+    The unweighted average is calculated as the mean of the fraction of maximally
+    overlapping edges for each reference tracklet.
 
     Args:
         reference_tracklets (List[TrackingGraph]): The reference tracklets
@@ -86,9 +93,13 @@ def _calc_overlap_score(
         overlap_reference_mapping (Dict[Any, List[Any]]): Mapping as a dict
             from the overlap tracklet nodes to the reference tracklet nodes
 
+    Returns:
+        tuple[float | np.floating[Any], float | np.floating[Any]]: A tuple containing the
+            weighted and unweighted averages of the overlap fractions.
     """
     max_overlap = 0
     total_count = 0
+    track_fractions = []
     overlap_edge_to_tid = {
         edge: i for i in range(len(overlap_tracklets)) for edge in overlap_tracklets[i].edges()
     }
@@ -104,5 +115,10 @@ def _calc_overlap_score(
                 if (src, tgt) in overlap_edge_to_tid:
                     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
         total_count += tracklet_length
-        max_overlap += max(overlapping_id_to_count.values(), default=0)
-    return max_overlap / total_count if total_count > 0 else -1
+        tracklet_overlap = max(overlapping_id_to_count.values(), default=0)
+        max_overlap += tracklet_overlap
+        if tracklet_length:
+            track_fractions.append(tracklet_overlap / tracklet_length)
+    weighted_average = max_overlap / total_count if total_count > 0 else np.nan
+    unweighted_average = np.mean(track_fractions) if track_fractions else np.nan
+    return weighted_average, unweighted_average
