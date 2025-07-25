@@ -52,7 +52,7 @@ def get_labels_with_overlap(
     # Find the bboxes that have overlap at all (ind_ corresponds to box number - starting at 0)
     ind_gt, ind_res = np.nonzero(overlaps)
 
-    output = []
+    output = []  # type: ignore
     for i, j in zip(ind_gt, ind_res, strict=True):
         sslice = _union_slice(gt_props[i].slice, res_props[j].slice)
         current_gt_box_label: int = gt_box_labels[i]
@@ -69,7 +69,7 @@ def get_labels_with_overlap(
             raise ValueError(f"Unknown overlap type: {overlap}")
 
         output.append((current_gt_box_label, current_res_box_label, area_inter / denom))
-    return output  # type: ignore[return]
+    return output
 
 
 def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
