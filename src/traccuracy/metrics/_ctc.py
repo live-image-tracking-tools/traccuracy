@@ -15,8 +15,6 @@ from traccuracy.track_errors._ctc import evaluate_ctc_events
 from ._base import Metric
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
-
     from traccuracy.matchers import Matched
 
 
@@ -273,39 +271,6 @@ class CellCycleAccuracy(Metric):
     def __init__(self) -> None:
         valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
         super().__init__(valid_matching_types)
-
-    def _get_subgraph_lengths(self, subgraph: TrackingGraph, divs: list[Hashable]) -> list[int]:
-        """For a given subgraph, computes the lengths of complete cell cycles by walking the
-        graph from one division to the next
-
-        Args:
-            subgraph (TrackingGraph): a TrackingGraph containing a single subgraph of
-                connected components
-            divs (list[Hashable]): a list of dividing nodes in the subgraph
-
-        Returns:
-            list[int]: a list of the lengths of complete cell cycles in the subgraph
-        """
-        lengths = []
-
-        # Collect list of direct daughters
-        daughters = []
-        for div in divs:
-            daughters.extend(list(subgraph.graph.successors(div)))
-
-        for node in daughters:
-            # Start length at 1 because we're already looking at the daughter
-            length = 1
-            succs = list(subgraph.graph.successors(node))
-            while len(succs) == 1:
-                length += 1
-                succs = list(subgraph.graph.successors(succs[0]))
-
-            # Must end in another division to be valid cycle
-            if len(succs) == 2:
-                lengths.append(length)
-
-        return lengths
 
     def _compute(self, data: Matched) -> dict[str, float]:
         gt_lengths = _get_lengths(data.gt_graph)
