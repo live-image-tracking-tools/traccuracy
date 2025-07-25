@@ -21,7 +21,7 @@ def get_labels_with_overlap(
     gt_frame: np.ndarray,
     res_frame: np.ndarray,
     overlap: str = "iou",
-) -> list[tuple[int, int, float]]:  # type: ignore[return]
+) -> list[tuple[int, int, float]]:
     """Get all labels IDs in gt_frame and res_frame whose bounding boxes overlap,
     and a metric of pixel overlap (either ``iou`` or ``iogt``).
 
@@ -69,7 +69,7 @@ def get_labels_with_overlap(
             raise ValueError(f"Unknown overlap type: {overlap}")
 
         output.append((current_gt_box_label, current_res_box_label, area_inter / denom))
-    return output
+    return output  # type: ignore[return]
 
 
 def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
