@@ -144,6 +144,9 @@ include = ['traccuracy*']
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+ignore = [
+    "UP045", # Replacing Optional with bar syntax
+]
 
 [tool.ruff.lint]
 # https://beta.ruff.rs/docs/rules/
@@ -175,10 +178,6 @@ extend-ignore = [
     "D401", # First line should be in imperative mood
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
-]
-unfixable = [
-    "UP007", # Replacing Optional with bar syntax
-    "RUF100", # Unnecessary # noqa comment removal
 ]
 
 [tool.ruff.lint.pydocstyle]
