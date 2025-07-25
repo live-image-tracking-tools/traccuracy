@@ -321,7 +321,9 @@ class CellCycleAccuracy(Metric):
         valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
         super().__init__(valid_matching_types)
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
         gt_lengths = _get_lengths(data.gt_graph)
         pred_lengths = _get_lengths(data.pred_graph)
 
