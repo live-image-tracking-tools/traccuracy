@@ -176,6 +176,10 @@ extend-ignore = [
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
 ]
+unfixable = [
+    "UP007", # Replacing Optional with bar syntax
+    "RUF100", # Unnecessary # noqa comment removal
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
