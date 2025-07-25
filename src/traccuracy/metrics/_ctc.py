@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import networkx as nx
 import numpy as np
 from scipy.sparse import coo_array
-from skan.csr import PathGraph, Skeleton, summarize
+from skan.csr import PathGraph, summarize
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.matchers._base import Matched
@@ -343,12 +343,8 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
     weighted_sparse_graph = coo_array((frame_span, (i, j)), shape=sparse_graph.shape).tocsr()
 
     csr_graph = weighted_sparse_graph + weighted_sparse_graph.T
-    csr_graph.indptr = csr_graph.indptr.astype(np.int32)
-    csr_graph.indices = csr_graph.indices.astype(np.int32)
-    skan_graph = PathGraph.from_graph(node_coordinates=coords_array, graph=csr_graph)
-
-    s = Skeleton.from_path_graph(skan_graph)
-    summary = summarize(s, separator="_")
+    skan_graph = PathGraph.from_graph(adj=csr_graph, node_coordinates=coords_array)
+    summary = summarize(skan_graph, separator="_")
     # branch_type 2 is junction to junction i.e. division to division
     division_to_division = summary[summary.branch_type == 2]
     cycle_lengths = division_to_division.branch_distance.values.astype(np.uint32)

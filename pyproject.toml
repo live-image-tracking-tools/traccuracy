@@ -42,7 +42,7 @@ dependencies = [
     "numba",
     "pyarrow",
     "scipy",
-    "skan",
+    "skan>=0.13",
 ]
 
 # extras
