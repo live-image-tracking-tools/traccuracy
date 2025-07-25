@@ -5,6 +5,24 @@ from skimage.draw import disk
 from skimage.measure import regionprops
 
 
+class SegmentationData:
+    """Data class containing segmentation mask along with bbox and label information."""
+
+    segmentation: np.ndarray
+    boxes: np.ndarray
+    labels: np.ndarray
+
+    def __init__(self, segmentation: np.ndarray):
+        self.segmentation = segmentation
+        props = regionprops(segmentation)
+        if not props:
+            self.boxes = np.array([])
+            self.labels = np.array([])
+        else:
+            self.boxes = np.array([prop.bbox for prop in props])
+            self.labels = np.array([prop.label for prop in props])
+
+
 def make_one_cell_2d(
     label: int = 1,
     arr_shape: tuple[int, int] = (32, 32),
@@ -120,81 +138,87 @@ def make_split_cell_3d(labels=(1, 2), arr_shape=(32, 32, 32), center=(16, 16, 16
 
 
 ### CANONICAL 2D SEGMENTATION EXAMPLES ###
-def good_segmentation_2d() -> tuple[np.ndarray, np.ndarray]:
+def good_segmentation_2d() -> tuple[SegmentationData, SegmentationData]:
     """A pretty good (but not perfect) pair of segmentations in 2d.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The segmentations are circles of the same size with
             a slight offset in x and y.
     """
     gt = make_one_cell_2d(label=1, center=(15, 15), radius=9)
     pred = make_one_cell_2d(label=2, center=(17, 17), radius=9)
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def false_positive_segmentation_2d() -> tuple[np.ndarray, np.ndarray]:
+def false_positive_segmentation_2d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt is empty and the prediction has a
     single cell.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The gt is empty and the prediction has a single cell.
     """
     gt = np.zeros((32, 32), dtype="int32")
     pred = make_one_cell_2d(label=1, center=(17, 17), radius=9)
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def false_negative_segmentation_2d() -> tuple[np.ndarray, np.ndarray]:
+def false_negative_segmentation_2d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has a single cell and the
     prediction is empty.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The pred is empty and the gt has a single cell.
     """
     gt = make_one_cell_2d(label=1, center=(15, 15), radius=9)
     pred = np.zeros((32, 32), dtype="int32")
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def oversegmentation_2d() -> tuple[np.ndarray, np.ndarray]:
+def oversegmentation_2d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has a single cell and the prediction
     splits that into two cells.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations.
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations.
         The gt has a single circle labeled and the pred splits that circle
         into two labels.
     """
     gt = make_one_cell_2d(label=1, center=(16, 16), radius=9)
     pred = make_split_cell_2d(labels=(2, 3), center=(16, 16), radius=9)
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def undersegmentation_2d() -> tuple[np.ndarray, np.ndarray]:
+def undersegmentation_2d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has two cells and the prediction
     merges them into one circular cell.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations.
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations.
         The pred has a single merged circle labeled and the gt has two labels,
         each half of the circle.
     """
     gt = make_split_cell_2d(labels=(1, 2), center=(16, 16), radius=9)
     pred = make_one_cell_2d(label=3, center=(16, 16), radius=9)
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def no_overlap_2d() -> tuple[np.ndarray, np.ndarray]:
+def no_overlap_2d() -> tuple[SegmentationData, SegmentationData]:
     """Two cells with no overlap in 2d."""
     gt = make_one_cell_2d(label=1, center=(5, 5), radius=7)
     pred = make_one_cell_2d(label=2, center=(17, 17), radius=7)
-    return gt, pred
+
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def multicell_2d() -> tuple[np.ndarray, np.ndarray]:
+def multicell_2d() -> tuple[SegmentationData, SegmentationData]:
     """Two cells in each image, one that overlaps and one that doesn't"""
     arr_shape = (32, 32)
     radius = 5
@@ -215,85 +239,85 @@ def multicell_2d() -> tuple[np.ndarray, np.ndarray]:
     rr, cc = disk((25, 7), radius, shape=arr_shape)
     pred[rr, cc] = 4
 
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
 ### CANONICAL 3D SEGMENTATION EXAMPLES ###
-def good_segmentation_3d() -> tuple[np.ndarray, np.ndarray]:
+def good_segmentation_3d() -> tuple[SegmentationData, SegmentationData]:
     """A pretty good (but not perfect) pair of segmentations in 3d.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The segmentations are circles of the same size with
             a slight offset in x and y.
     """
     gt = make_one_cell_3d(label=1, center=(15, 15, 15), radius=9)
     pred = make_one_cell_3d(label=2, center=(17, 17, 17), radius=9)
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def false_positive_segmentation_3d() -> tuple[np.ndarray, np.ndarray]:
+def false_positive_segmentation_3d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt is empty and the prediction has a
     single cell.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The gt is empty and the prediction has a single cell.
     """
     gt = np.zeros((32, 32, 32), dtype="int32")
     pred = make_one_cell_3d(label=1, center=(17, 17, 17), radius=9)
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def false_negative_segmentation_3d() -> tuple[np.ndarray, np.ndarray]:
+def false_negative_segmentation_3d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has a single cell and the
     prediction is empty.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations of
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations of
             a single cell. The pred is empty and the gt has a single cell.
     """
     gt = make_one_cell_3d(label=1, center=(15, 15, 15), radius=9)
-    pred = np.zeros((32, 32), dtype="int32")
-    return gt, pred
+    pred = np.zeros((32, 32, 32), dtype="int32")
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def oversegmentation_3d() -> tuple[np.ndarray, np.ndarray]:
+def oversegmentation_3d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has a single cell and the prediction
     splits that into two cells.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations.
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations.
         The gt has a single circle labeled and the pred splits that circle
         into two labels.
     """
     gt = make_one_cell_3d(label=1, center=(16, 16, 16), radius=9)
     pred = make_split_cell_3d(labels=(2, 3), center=(16, 16, 16), radius=9)
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def undersegmentation_3d() -> tuple[np.ndarray, np.ndarray]:
+def undersegmentation_3d() -> tuple[SegmentationData, SegmentationData]:
     """A pair of segmentations where the gt has two cells and the prediction
     merges them into one circular cell.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A pair of (gt, pred) segmentations.
+        tuple[SegmentationData, SegmentationData]: A pair of (gt, pred) segmentations.
         The pred has a single merged circle labeled and the gt has two labels,
         each half of the circle.
     """
     gt = make_split_cell_3d(labels=(1, 2), center=(16, 16, 16), radius=9)
     pred = make_one_cell_3d(label=3, center=(16, 16, 16), radius=9)
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def no_overlap_3d() -> tuple[np.ndarray, np.ndarray]:
+def no_overlap_3d() -> tuple[SegmentationData, SegmentationData]:
     """3D segmentations with no overlap"""
     gt = make_one_cell_3d(label=1, center=(5, 5, 5), radius=5)
     pred = make_one_cell_3d(label=2, center=(17, 17, 17), radius=6)
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
-def multicell_3d() -> tuple[np.ndarray, np.ndarray]:
+def multicell_3d() -> tuple[SegmentationData, SegmentationData]:
     """Two cells in each image, one that overlaps and one that doesn't"""
     arr_shape = (32, 32, 32)
     radius = 5
@@ -314,7 +338,7 @@ def multicell_3d() -> tuple[np.ndarray, np.ndarray]:
     mask = sphere((25, 7, 7), radius, shape=arr_shape)
     pred[mask] = 4
 
-    return gt, pred
+    return (SegmentationData(gt), SegmentationData(pred))
 
 
 def nodes_from_segmentation(
@@ -356,7 +380,7 @@ def nodes_from_segmentation(
             node_id = regionprop.label
         elif _id == "label_time":
             node_id = f"{regionprop.label}_{frame}"
-        attrs = {frame_key: frame, label_key: regionprop.label}
+        attrs = {frame_key: frame, label_key: regionprop.label, "bbox": regionprop.bbox}
         centroid = regionprop.centroid
         assert len(pos_keys) == len(centroid), (
             f"Number of position keys {pos_keys} does not match number of "

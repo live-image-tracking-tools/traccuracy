@@ -106,7 +106,7 @@ getdata = "python scripts/download_test_data.py"
 
 [tool.pixi.feature.test.tasks]
 test = "pytest"
-benchmark = { cmd = "pytest -s tests/bench.py", depends-on = ["getdata"] }
+benchmark = { cmd = "pytest tests/bench.py", depends-on = ["getdata"] }
 
 [tool.pixi.feature.covreport.tasks]
 test-case-report = "python scripts/test_case_report.py test-case-report && rm matchers*.json track_errors*.json"

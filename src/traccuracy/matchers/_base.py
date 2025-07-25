@@ -101,7 +101,7 @@ class Matched:
         self,
         gt_graph: TrackingGraph,
         pred_graph: TrackingGraph,
-        mapping: list[tuple[Any, Any]],
+        mapping: list[tuple[int, int]],
         matcher_info: dict,
     ):
         self.gt_graph = gt_graph

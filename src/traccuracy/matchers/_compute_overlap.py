@@ -7,7 +7,6 @@ Copyright (c) 2015 Microsoft
 """
 
 import numpy as np
-from skimage.measure import regionprops
 
 
 def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
@@ -20,10 +19,7 @@ def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
 def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
     """returns the slice tuple for a given bounding box"""
     ndim = len(bbox) // 2
-    return tuple(
-        slice(bbox[i], bbox[i + ndim])
-        for i in range(ndim)
-    )
+    return tuple(slice(bbox[i], bbox[i + ndim]) for i in range(ndim))
 
 
 def get_labels_with_overlap(
@@ -60,7 +56,9 @@ def get_labels_with_overlap(
     if gt_frame.ndim == 3:
         overlaps = compute_overlap_3D(gt_boxes.astype(np.float64), res_boxes.astype(np.float64))
     else:
-        overlaps = compute_overlap(gt_boxes.astype(np.float64), res_boxes.astype(np.float64))  # has the form [gt_bbox, res_bbox]
+        overlaps = compute_overlap(
+            gt_boxes.astype(np.float64), res_boxes.astype(np.float64)
+        )  # has the form [gt_bbox, res_bbox]
 
     # Find the bboxes that have overlap at all (ind_ corresponds to box number - starting at 0)
     ind_gt, ind_res = np.nonzero(overlaps)
@@ -83,7 +81,7 @@ def get_labels_with_overlap(
             (
                 int(gt_labels[i]),
                 int(res_labels[j]),
-                float(area_inter / denom),
+                float(area_inter / denom if denom > 0 else 0),
             )
         )
     return output

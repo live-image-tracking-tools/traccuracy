@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 from tqdm import tqdm
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-
-    import numpy as np
 
     from traccuracy._tracking_graph import TrackingGraph
 
@@ -90,8 +89,12 @@ class CTCMatcher(Matcher):
 
             gt_boxes = np.asarray([gt.graph.nodes[node]["bbox"] for node in gt_frame_nodes])
             pred_boxes = np.asarray([pred.graph.nodes[node]["bbox"] for node in pred_frame_nodes])
-            gt_labels = np.asarray([gt.graph.nodes[node]["segmentation_id"] for node in gt_frame_nodes])
-            pred_labels = np.asarray([pred.graph.nodes[node]["segmentation_id"] for node in pred_frame_nodes])
+            gt_labels = np.asarray(
+                [gt.graph.nodes[node]["segmentation_id"] for node in gt_frame_nodes]
+            )
+            pred_labels = np.asarray(
+                [pred.graph.nodes[node]["segmentation_id"] for node in pred_frame_nodes]
+            )
 
             # frame_map = match_frame_majority(gt_frame, pred_frame)
             overlaps = get_labels_with_overlap(
@@ -101,12 +104,12 @@ class CTCMatcher(Matcher):
                 res_boxes=pred_boxes,
                 gt_labels=gt_labels,
                 res_labels=pred_labels,
-                overlap="iogt"
+                overlap="iogt",
             )
 
             # Switch from segmentation ids to node ids
             for gt_label, pred_label, iogt in overlaps:
                 if iogt > 0.5:
-                    mapping.append((gt_label_to_id[gt_label], pred_label_to_id[pred_label], iogt))
+                    mapping.append((gt_label_to_id[gt_label], pred_label_to_id[pred_label]))
 
         return mapping

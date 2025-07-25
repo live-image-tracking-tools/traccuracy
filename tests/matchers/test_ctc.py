@@ -5,9 +5,35 @@ import numpy as np
 import pytest
 
 import tests.examples.segs as ex_segs
+from examples.segs import SegmentationData
 from tests.test_utils import get_annotated_movie
 from traccuracy._tracking_graph import TrackingGraph
+from traccuracy.matchers._compute_overlap import get_labels_with_overlap
 from traccuracy.matchers._ctc import CTCMatcher
+
+
+def _match_frame_majority(
+    gt_data: SegmentationData, pred_data: SegmentationData
+) -> list[tuple[int, int]]:
+    """Helper function to test CTC-style matching logic"""
+
+    overlaps = get_labels_with_overlap(
+        gt_data.segmentation,
+        pred_data.segmentation,
+        gt_boxes=gt_data.boxes,
+        res_boxes=pred_data.boxes,
+        gt_labels=gt_data.labels,
+        res_labels=pred_data.labels,
+        overlap="iogt",
+    )
+
+    mapping = []
+    for gt_label, pred_label, iogt in overlaps:
+        # CTC metrics only match comp IDs to a single GT ID if there is majority overlap
+        if iogt > 0.5:
+            mapping.append((gt_label, pred_label))
+
+    return mapping
 
 
 class TestCTCMatcher:
@@ -24,7 +50,9 @@ class TestCTCMatcher:
     def test_end_to_end(self):
         n_labels = 3
         n_frames = 3
-        movie = get_annotated_movie(labels_per_frame=n_labels, frames=n_frames, mov_type="repeated")
+        movie = get_annotated_movie(
+            img_size=256, labels_per_frame=n_labels, frames=n_frames, mov_type="repeated"
+        )
 
         # We can assume each object is present and connected across each frame
         g = nx.DiGraph()
@@ -35,7 +63,13 @@ class TestCTCMatcher:
         attrs = {}
         for t in range(n_frames):
             for i in range(1, n_labels + 1):
-                attrs[f"{i}_{t}"] = {"t": t, "y": 0, "x": 0, "segmentation_id": i}
+                attrs[f"{i}_{t}"] = {
+                    "t": t,
+                    "y": 0,
+                    "x": 0,
+                    "segmentation_id": i,
+                    "bbox": np.array([0, 0, 256, 256]),
+                }
         nx.set_node_attributes(g, attrs)
 
         matched = self.matcher.compute_mapping(
@@ -51,82 +85,88 @@ class TestCTCMatcher:
             assert pair[0] == pair[1]
 
 
-# class TestStandards:
-#     """Test match_frame_majority against standard test cases"""
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [ex_segs.good_segmentation_2d(), ex_segs.good_segmentation_3d()],
-#         ids=["2D", "3D"],
-#     )
-#     def test_good_seg(self, data):
-#         ex_match = [(1, 2)]
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [
-#             ex_segs.false_positive_segmentation_2d(),
-#             ex_segs.false_positive_segmentation_3d(),
-#         ],
-#         ids=["2D", "3D"],
-#     )
-#     def test_false_pos_seg(self, data):
-#         ex_match = []
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [
-#             ex_segs.false_negative_segmentation_2d(),
-#             ex_segs.false_negative_segmentation_3d(),
-#         ],
-#         ids=["2D", "3D"],
-#     )
-#     def test_false_neg_seg(self, data):
-#         ex_match = []
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [ex_segs.oversegmentation_2d(), ex_segs.oversegmentation_3d()],
-#         ids=["2D", "3D"],
-#     )
-#     def test_split(self, data):
-#         ex_match = [(1, 2)]
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [ex_segs.undersegmentation_2d(), ex_segs.undersegmentation_3d()],
-#         ids=["2D", "3D"],
-#     )
-#     def test_merge(self, data):
-#         ex_match = [(1, 3), (2, 3)]
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [ex_segs.no_overlap_2d(), ex_segs.no_overlap_3d()],
-#         ids=["2D", "3D"],
-#     )
-#     def test_no_overlap(self, data):
-#         ex_match = []
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
-#     @pytest.mark.parametrize(
-#         "data",
-#         [ex_segs.multicell_2d(), ex_segs.multicell_3d()],
-#         ids=["2D", "3D"],
-#     )
-#     def test_multicell(self, data):
-#         ex_match = [(1, 3)]
-#         comp_match = match_frame_majority(*data)
-#         assert Counter(ex_match) == Counter(comp_match)
-# 
+class TestStandards:
+    """Test match_frame_majority against standard test cases"""
+
+    @pytest.mark.parametrize(
+        "data",
+        [ex_segs.good_segmentation_2d(), ex_segs.good_segmentation_3d()],
+        ids=["2D", "3D"],
+    )
+    def test_good_seg(self, data):
+        ex_match = [(1, 2)]
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            ex_segs.false_positive_segmentation_2d(),
+            ex_segs.false_positive_segmentation_3d(),
+        ],
+        ids=["2D", "3D"],
+    )
+    def test_false_pos_seg(self, data):
+        ex_match = []
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            ex_segs.false_negative_segmentation_2d(),
+            ex_segs.false_negative_segmentation_3d(),
+        ],
+        ids=["2D", "3D"],
+    )
+    def test_false_neg_seg(self, data):
+        ex_match = []
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [ex_segs.oversegmentation_2d(), ex_segs.oversegmentation_3d()],
+        ids=["2D", "3D"],
+    )
+    def test_split(self, data):
+        ex_match = [(1, 2)]
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [ex_segs.undersegmentation_2d(), ex_segs.undersegmentation_3d()],
+        ids=["2D", "3D"],
+    )
+    def test_merge(self, data):
+        ex_match = [(1, 3), (2, 3)]
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [ex_segs.no_overlap_2d(), ex_segs.no_overlap_3d()],
+        ids=["2D", "3D"],
+    )
+    def test_no_overlap(self, data):
+        ex_match = []
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
+
+    @pytest.mark.parametrize(
+        "data",
+        [ex_segs.multicell_2d(), ex_segs.multicell_3d()],
+        ids=["2D", "3D"],
+    )
+    def test_multicell(self, data):
+        ex_match = [(1, 3)]
+        gt_data, pred_data = data
+        comp_match = _match_frame_majority(gt_data, pred_data)
+        assert Counter(ex_match) == Counter(comp_match)
