@@ -354,7 +354,7 @@ class TestStandardEdge:
         matched = self.prep_matched(ex_graphs.empty_gt())
         for attrs in matched.pred_graph.edges.values():
             # Edges on FP nodes are not additionally penalized as FP edge
-            # https://github.com/Janelia-Trackathon-2023/traccuracy/pull/176#issuecomment-2552537116
+            # https://github.com/live-image-tracking-tools/traccuracy/pull/176#issuecomment-2552537116
             assert EdgeFlag.CTC_FALSE_POS not in attrs
             assert EdgeFlag.INTERTRACK_EDGE not in attrs
             assert EdgeFlag.WRONG_SEMANTIC not in attrs
@@ -477,7 +477,7 @@ class TestStandardEdge:
 
     def test_node_two_to_one_end(self):
         """See comment thread for discussion of edge errors with NS nodes
-        https://github.com/Janelia-Trackathon-2023/traccuracy/pull/176#issuecomment-2552537116
+        https://github.com/live-image-tracking-tools/traccuracy/pull/176#issuecomment-2552537116
         """
         matched = self.prep_matched(ex_graphs.node_two_to_one(0))
 

@@ -5,6 +5,10 @@ as described on the Challenge [website](http://celltrackingchallenge.net/evaluat
 as well as the more general Acyclic Oriented Graph Measure (AOGM) metric, as described in [this
 paper](https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0144959&type=printable).
 
+:::{warning}
+These metrics are written assuming that the ground truth annotations are dense. If that is not the case, interpret the numbers carefully. Consider eliminating metrics that use the number of false positives.
+:::
+
 These metrics can be computed as follows:
 ```python
 from traccuracy.loaders import load_ctc_data
