@@ -17,9 +17,22 @@ def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
     return tuple(slice(start, stop) for start, stop in zip(starts, stops, strict=True))
 
 
+def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
+    """returns the slice tuple for a given bounding box"""
+    ndim = len(bbox) // 2
+    return tuple(
+        slice(bbox[i], bbox[i + ndim])
+        for i in range(ndim)
+    )
+
+
 def get_labels_with_overlap(
     gt_frame: np.ndarray,
     res_frame: np.ndarray,
+    gt_boxes: np.ndarray,
+    res_boxes: np.ndarray,
+    gt_labels: np.ndarray,
+    res_labels: np.ndarray,
     overlap: str = "iou",
 ) -> list[tuple[int, int, float]]:
     """Get all labels IDs in gt_frame and res_frame whose bounding boxes overlap,
@@ -28,35 +41,35 @@ def get_labels_with_overlap(
     Args:
         gt_frame (np.ndarray): ground truth segmentation for a single frame
         res_frame (np.ndarray): result segmentation for a given frame
+        gt_bboxes (np.ndarray): ground truth bounding boxes for a single frame
+        res_bboxes (np.ndarray): result bounding boxes for a given frame
+        gt_labels (np.ndarray): ground truth labels for a single frame
+        res_labels (np.ndarray): result labels for a given frame
         overlap (str, optional): Choose between intersection-over-ground-truth (``iogt``)
             or intersection-over-union (``iou``). Defaults to ``iou``.
 
     Returns: list[tuple[int, int, float]] A list of tuples of overlapping labels and their
         overlap values. Each tuple contains (gt_label, res_label, overlap_value).
     """
-    gt_props = regionprops(gt_frame)
-    gt_boxes = np.array([np.array(gt_prop.bbox) for gt_prop in gt_props]).astype(np.float64)
-    gt_box_labels = np.asarray([int(gt_prop.label) for gt_prop in gt_props], dtype=np.uint16)
-
-    res_props = regionprops(res_frame)
-    res_boxes = np.array([np.array(res_prop.bbox) for res_prop in res_props]).astype(np.float64)
-    res_box_labels = np.asarray([int(res_prop.label) for res_prop in res_props], dtype=np.uint16)
-    if len(gt_props) == 0 or len(res_props) == 0:
+    if len(gt_labels) == 0 or len(res_labels) == 0:
         return []
 
+    gt_slices = [_bbox_to_slice(bbox) for bbox in gt_boxes]
+    res_slices = [_bbox_to_slice(bbox) for bbox in res_boxes]
+
     if gt_frame.ndim == 3:
-        overlaps = compute_overlap_3D(gt_boxes, res_boxes)
+        overlaps = compute_overlap_3D(gt_boxes.astype(np.float64), res_boxes.astype(np.float64))
     else:
-        overlaps = compute_overlap(gt_boxes, res_boxes)  # has the form [gt_bbox, res_bbox]
+        overlaps = compute_overlap(gt_boxes.astype(np.float64), res_boxes.astype(np.float64))  # has the form [gt_bbox, res_bbox]
 
     # Find the bboxes that have overlap at all (ind_ corresponds to box number - starting at 0)
     ind_gt, ind_res = np.nonzero(overlaps)
 
     output = []
     for i, j in zip(ind_gt, ind_res, strict=True):
-        sslice = _union_slice(gt_props[i].slice, res_props[j].slice)
-        gt_mask = gt_frame[sslice] == gt_box_labels[i]
-        res_mask = res_frame[sslice] == res_box_labels[j]
+        sslice = _union_slice(gt_slices[i], res_slices[j])
+        gt_mask = gt_frame[sslice] == gt_labels[i]
+        res_mask = res_frame[sslice] == res_labels[j]
         area_inter = np.count_nonzero(np.logical_and(gt_mask, res_mask))
 
         if overlap == "iou":
@@ -66,7 +79,13 @@ def get_labels_with_overlap(
         else:
             raise ValueError(f"Unknown overlap type: {overlap}")
 
-        output.append((gt_box_labels[i], res_box_labels[j], area_inter / denom))
+        output.append(
+            (
+                int(gt_labels[i]),
+                int(res_labels[j]),
+                float(area_inter / denom),
+            )
+        )
     return output
 
 

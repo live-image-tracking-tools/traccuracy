@@ -57,7 +57,7 @@ def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The dataframe of track data for one time step (specified by idx)
     """
-    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid"))
+    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid", "bbox"))
     props["t"] = np.full(props["label"].shape, idx)
     return pd.DataFrame(props)
 
