@@ -55,8 +55,10 @@ def get_labels_with_overlap(
     output = []
     for i, j in zip(ind_gt, ind_res, strict=True):
         sslice = _union_slice(gt_props[i].slice, res_props[j].slice)
-        gt_mask = gt_frame[sslice] == gt_box_labels[i]
-        res_mask = res_frame[sslice] == res_box_labels[j]
+        current_gt_box_label: int = gt_box_labels[i]
+        current_res_box_label: int = res_box_labels[j]
+        gt_mask = gt_frame[sslice] == current_gt_box_label
+        res_mask = res_frame[sslice] == current_res_box_label
         area_inter = np.count_nonzero(np.logical_and(gt_mask, res_mask))
 
         if overlap == "iou":
@@ -66,7 +68,13 @@ def get_labels_with_overlap(
         else:
             raise ValueError(f"Unknown overlap type: {overlap}")
 
-        output.append((gt_box_labels[i], res_box_labels[j], area_inter / denom))
+        output.append(
+            (
+                int(current_gt_box_label),
+                int(current_res_box_label),
+                float(area_inter / denom),
+            )
+        )
     return output
 
 
