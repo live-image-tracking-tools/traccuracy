@@ -21,7 +21,7 @@ def get_labels_with_overlap(
     gt_frame: np.ndarray,
     res_frame: np.ndarray,
     overlap: str = "iou",
-) -> list[tuple[int, int, float]]:
+) -> list[tuple[int, int, float]]:  # type: ignore[return]
     """Get all labels IDs in gt_frame and res_frame whose bounding boxes overlap,
     and a metric of pixel overlap (either ``iou`` or ``iogt``).
 
