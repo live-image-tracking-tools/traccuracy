@@ -12,7 +12,7 @@ from traccuracy.loaders import load_ctc_data
 from traccuracy.matchers import CTCMatcher
 from traccuracy.matchers._base import Matched
 from traccuracy.metrics import CTCMetrics
-from traccuracy.metrics._ctc import CellCycleAccuracy
+from traccuracy.metrics._ctc import CellCycleAccuracy, _get_cumsum, _get_lengths
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -215,19 +215,19 @@ class TestCellCycleAccuracy:
         G.add_nodes_from(nodes)
         G.add_edges_from(edges)
 
-        return TrackingGraph(G)
+        return TrackingGraph(G, location_keys=("x", "y", "z"))
 
     def test_get_subgraph_lengths(self):
         track_graph = self.get_multidiv_graph()
-        lengths = self.cca._get_subgraph_lengths(track_graph, track_graph.get_divisions())
+        lengths = _get_lengths(track_graph)
         exp_lengths = [3]
         assert exp_lengths == lengths
 
     def test_get_cumsum(self):
         lengths = [1, 3, 5, 5]
-        cumsum = self.cca._get_cumsum(lengths, bins=np.arange(6))
+        cumsum = _get_cumsum(lengths, n_bins=6)
         # exp_hist = [0, 1, 0, 1, 2]
-        exp_cumsum = np.array([0, 1, 1, 2, 4]) / 4
+        exp_cumsum = np.array([0, 1, 1, 2, 2, 4]) / 4
         assert (cumsum == exp_cumsum).all()
 
     def test_compute(self):
