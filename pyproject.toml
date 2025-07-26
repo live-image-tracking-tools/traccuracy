@@ -41,6 +41,8 @@ dependencies = [
     # numba technically optional, will still work without it
     "numba",
     "pyarrow",
+    "scipy",
+    "skan>=0.13",
 ]
 
 # extras
