@@ -121,6 +121,10 @@ class TestDivisionMetrics:
         assert res.results["Frame Buffer 0"]["True Positive Skip Divisions"] == 1
         assert res.results["Frame Buffer 0"]["True Positive Divisions"] == 0
 
+        # ensure skip TPs are included in metric compute
+        assert res.results["Frame Buffer 0"]["Division Precision"] == 1
+        assert res.results["Frame Buffer 0"]["Division Recall"] == 1
+
     def test_skip_div_with_shift(self):
         # Test case where division is only correct with skip tp and shift
         matched = ex_graphs.div_parent_gap()
@@ -131,3 +135,7 @@ class TestDivisionMetrics:
         assert res.results["Frame Buffer 0"]["True Positive Divisions"] == 0
         assert res.results["Frame Buffer 1"]["True Positive Skip Divisions"] == 1
         assert res.results["Frame Buffer 1"]["True Positive Divisions"] == 0
+
+        # ensure skip TPs are included in metric compute
+        assert res.results["Frame Buffer 1"]["Division Precision"] == 1
+        assert res.results["Frame Buffer 1"]["Division Recall"] == 1
