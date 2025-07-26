@@ -189,7 +189,7 @@ def _correct_shifted_divisions(
             containing gt and pred graphs with their associated mapping
         n_frames (int): Number of frames to include in the frame buffer
         relaxed (bool): If True, the metric will check if skips in the ground truth
-            or predicted graph have an equivalent multi-edge path in predicted graph
+            or predicted graph have an equivalent multi-edge path in the other graph
     """
     g_gt = matched_data.gt_graph
     g_pred = matched_data.pred_graph

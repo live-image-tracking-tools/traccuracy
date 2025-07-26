@@ -185,7 +185,7 @@ In default division evaluation, skip edges must be identical in the ground truth
 
 If the parent node with outgoing skip edges is not matched to the parent node in the ground truth graph, this will be a False Positive/False Negative division pair, even if the daughter nodes are correctly identified.
 
-If the parent node with outgoing skip edges is correctly matched to the parent node in the ground truth graph, but the children are not matched because there is a skip edge, unless you relax skip edges, this will be a Wrong Child division.
+If the parent node with outgoing skip edges is correctly matched to the parent node in the ground truth graph, but the children are not matched because there is a skip edge, this will be a Wrong Child division, unless you relax skip edges.
 
 ```{code-cell} ipython3
 plot_matched(
@@ -196,7 +196,7 @@ plot_matched(
 )
 ```
 
-Alternatively, if the `relax_skips_gt` or `relax_skips_pred` parameters are set to True, skip edges will be allowed on the ground truth and prediction respectively. In this case, a division can include a skip edge and still be considered correct. For a standard division (no frame shift), the parent nodes must directly match, but the daughters can be covered by a skip edge.
+Alternatively, if the `relax_skips_gt` or `relax_skips_pred` parameters are set to `True`, skip edges will be allowed on the ground truth and prediction respectively. In this case, a division can include a skip edge and still be considered correct. For a standard division (no frame shift), the parent nodes must directly match, but the daughters can be covered by a skip edge.
 
 The following examples are correct without a frame buffer:
 
