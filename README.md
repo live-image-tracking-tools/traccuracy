@@ -26,7 +26,7 @@ A `TrackingGraph` is a spatiotemporal graph backed by a `networkx.DiGraph`
 Nodes represent a single cell in a given time point, and are annotated with a time and a location.
 Edges point forward in time from a node representing a cell in time point `t` to the same cell or its daughter in frame `t+1` (or beyond, to represent skip edges). Additional terminology is documented in the [glossary](https://traccuracy.readthedocs.io/en/latest/glossary.html)
 To load `TrackingGraph`s from a custom format, you will likely need to implement a loader: see
-documentation [here](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/loaders/index.html#module-traccuracy.loaders) for more information.
+documentation [here](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/loaders/index.html#module-traccuracy.loaders) for more information. Alternatively you can initialize a `TrackingGraph` with a `networkx.DiGraph` and `ArrayLike` objects of segmentation masks if needed. 
 
 Matchers take a ground truth and a predicted `TrackingGraph` with optional segmentation masks and match the nodes and edges to allow evaluation to occur. A list of matchers is available [here](https://traccuracy.readthedocs.io/en/latest/matchers/matchers.html).
 
@@ -80,6 +80,8 @@ results, matched = run_metrics(
 - [Track Overlap Metrics](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html) defined by [Bise et al. 2011](https://doi.org/10.1109/ISBI.2011.5872571), [Chen 2021](https://doi.org/10.48550/arXiv.2102.10377), and [Fukai et al. 2022](https://doi.org/10.1093/bioinformatics/btac799). 
     - [Track Purity](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#track-purity)
     - [Track Effectiveness](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#target-effectiveness)
+    - [Track Fractions](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#track-fractions)
+    - [Complete Tracks](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#complete-tracks)
 
 ## Featured Works
 

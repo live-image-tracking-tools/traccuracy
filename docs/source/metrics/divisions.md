@@ -13,6 +13,7 @@ from traccuracy.matchers import PointMatcher
 from traccuracy.metrics import DivisionMetrics
 
 # Load data using a function of your choice from traccuracy.loaders
+# Or initialize a TrackingGraph with a nx.DiGraph and optional segmentation arrays
 gt_data: TrackingGraph
 pred_data: TrackingGraph
 
