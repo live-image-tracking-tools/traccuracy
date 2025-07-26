@@ -228,21 +228,22 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
 def load_ctc_data(
     data_dir: str, track_path: str | None = None, name: str | None = None, run_checks: bool = True
 ) -> TrackingGraph:
-    """Read the CTC segmentations and track file and create TrackingData.
+    """Read the CTC segmentations and track file and create a TrackingGraph.
 
     Args:
         data_dir (str): Path to directory containing CTC tiffs.
         track_path (optional, str): Path to CTC track file. If not passed,
             finds `*_track.txt` in data_dir.
         name (optional, str): Name of data to store in TrackingGraph
-        run_checks (optional, bool): If set to `True` (default), runs checks on the data to ensure
-            valid CTC format.
+        run_checks (optional, bool): If set to `True` (default), runs checks on the data
+            to ensure valid CTC format.
 
     Returns:
-        traccuracy.TrackingGraph: Object containing segmentations and graph.
+        traccuracy.TrackingGraph: TrackingGraph object containing segmentations and graph.
 
     Raises:
         ValueError:
+            If the tracks file is not found.
             If `run_checks` is True, whenever any of the CTC format checks are violated.
             If `run_checks` is False, whenever any other Exception occurs while creating the graph.
     """

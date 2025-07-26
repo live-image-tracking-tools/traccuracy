@@ -9,7 +9,7 @@ from traccuracy._tracking_graph import TrackingGraph
 
 def load_point_data(
     path: str | None = None,
-    df: Optional[pd.DataFrame] = None,  # noqa: UP007, bar syntax breaks docs build
+    df: Optional[pd.DataFrame] = None,
     parent_column: str = "parent",
     id_column: str = "node_id",
     pos_columns: tuple[str, ...] = ("z", "y", "x"),

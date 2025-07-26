@@ -20,6 +20,7 @@ from traccuracy.metrics import (
     DivisionMetrics,
     TrackOverlapMetrics,
 )
+from traccuracy.metrics._ctc import CellCycleAccuracy
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 TIMEOUT = 300
@@ -295,5 +296,20 @@ def test_overlap_metrics(benchmark, iou_matched, request):
 
     def run_compute():
         return TrackOverlapMetrics().compute(matched)
+
+    benchmark.pedantic(run_compute, rounds=1, iterations=1)
+
+
+@pytest.mark.timeout(TIMEOUT)
+@pytest.mark.parametrize(
+    "iou_matched",
+    ["iou_matched_2d", "iou_matched_3d"],
+    ids=["2d", "3d"],
+)
+def test_cca_metric(benchmark, iou_matched, request):
+    matched = request.getfixturevalue(iou_matched)
+
+    def run_compute():
+        return CellCycleAccuracy().compute(matched)
 
     benchmark.pedantic(run_compute, rounds=1, iterations=1)

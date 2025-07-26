@@ -54,15 +54,16 @@ logger = logging.getLogger(__name__)
 
 
 class DivisionMetrics(Metric):
-    """Classify division events and provide the following summary metrics
+    """Computes division summary metrics with an optional frame tolerance.
 
+    Computes the following metrics:
     - Division Recall
     - Division Precision
     - Division F1 Score (also Branching Correctness)
-    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by Ulicna, K.,
-        Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
-        using a Bayesian single cell tracking approach. Frontiers in Computer Science
-        3, 734559 (2021).
+    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by *Ulicna, K.,
+    Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
+    using a Bayesian single cell tracking approach. Frontiers in Computer Science
+    3, 734559 (2021).*
 
     These metrics are written assuming that the ground truth annotations
     are dense. If that is not the case, interpret the numbers carefully.
