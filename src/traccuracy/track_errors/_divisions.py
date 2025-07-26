@@ -42,7 +42,14 @@ def _classify_divisions(
     g_gt = matched_data.gt_graph
     g_pred = matched_data.pred_graph
 
-    if g_gt.division_annotations and g_pred.division_annotations:
+    if (
+        g_pred.division_annotations
+        and g_gt.division_annotations
+        # if we're not requiring relaxation OR it's already been computed,
+        # we can skip division classification
+        and (not relax_skips_gt or g_gt.division_skip_gt_relaxed)
+        and (not relax_skips_pred or g_pred.division_skip_pred_relaxed)
+    ):
         logger.info("Division annotations already present. Skipping graph annotation.")
         return
 
