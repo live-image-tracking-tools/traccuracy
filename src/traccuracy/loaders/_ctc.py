@@ -1,6 +1,7 @@
 import glob
 import logging
 import os
+from collections import defaultdict
 from warnings import warn
 
 import networkx as nx
@@ -102,30 +103,42 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     """Create a Graph from DataFrame of CTC info with node attributes.
 
     Args:
-        data (pd.DataFrame): DataFrame of CTC-style info
+        df (pd.DataFrame): DataFrame of CTC-style info
         detections (pd.DataFrame): Dataframe from _get_node_attributes with position
             and segmentation label for each cell detection
 
     Returns:
         networkx.DiGraph: Graph representation of the CTC data.
     """
-    # Assign node ids in the detections dataframe
-    detections["node_id"] = detections.index + 1
-
     edges = []
 
+    # indexed by cell_id and t to the node id itself
+    all_ids = defaultdict(dict)
+    single_nodes = set()
+    tid_start_end = dict()
+
     # Add each continuous cell lineage as a set of edges to df
+    current_id = 1
     for _, row in df.iterrows():
-        # Get subset of nodes/detections that belong to this lineage
-        sdf = detections[detections["segmentation_id"] == row["Cell_ID"]]
-        # Sort by time so that we can use the node ids directly as edges
-        sdf = sdf.sort_values(by="t")
+        tpoints = np.arange(row["Start"], row["End"] + 1)
+
+        cellids = {}
+        for t in tpoints:
+            cellids[t] = current_id
+            current_id += 1
+
+        tid_start_end[row["Cell_ID"]] = (cellids[tpoints[0]], cellids[tpoints[-1]])
+
+        if len(cellids) == 1:
+            single_nodes.add(cellids[tpoints[0]])
+
+        all_ids[row["Cell_ID"]] = cellids
 
         edges.append(
             pd.DataFrame(
                 {
-                    "source": sdf["node_id"][0:-1].tolist(),
-                    "target": sdf["node_id"][1:].tolist(),
+                    "source": [cellids[i] for i in tpoints[:-1]],
+                    "target": [cellids[i] for i in tpoints[1:]],
                 }
             )
         )
@@ -134,36 +147,32 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     for _, row in df[df["Parent_ID"] != 0].iterrows():
         # Get the parent's details
         parent_row = df[df["Cell_ID"] == row["Parent_ID"]].iloc[0]
-        parent_seg_id = parent_row["Cell_ID"]
-        parent_t = parent_row["End"]
-        # Get parent id
-        source = detections[
-            (detections["segmentation_id"] == parent_seg_id) & (detections["t"] == parent_t)
-        ]["node_id"].iloc[0]
+        parent_cell_id = parent_row["Cell_ID"]
+        current_start_id, current_end_id = tid_start_end[row["Cell_ID"]]
+        parent_start_id, parent_end_id = tid_start_end[parent_cell_id]
 
-        # Get the daughter id
-        daughter_seg_id = row["Cell_ID"]
-        daughter_t = row["Start"]
-        target = detections[
-            (detections["segmentation_id"] == daughter_seg_id) & (detections["t"] == daughter_t)
-        ]["node_id"].iloc[0]
+        edges.append(pd.DataFrame({"source": [parent_end_id], "target": [current_start_id]}))
 
-        edges.append(pd.DataFrame({"source": [source], "target": [target]}))
-
-    detections = detections.set_index("node_id")
-
-    nodes = []
+    attributes = {}
     for row_tp in detections.itertuples():
         # Pandas thinks the itertuple return type can be essentially anything
         row_dict = row_tp._asdict()  # type: ignore
-        i = row_dict["Index"]
         del row_dict["Index"]
-        nodes.append((i, row_dict))
+        # find the node ID for this detection in our dictionary
+        cell_id = row_dict["segmentation_id"]
+        t = row_dict["t"]
+        node_id = all_ids[cell_id][t]
+        attributes[node_id] = row_dict
 
     # Create graph
     edge_df = pd.concat(edges)
     G = nx.from_pandas_edgelist(edge_df, source="source", target="target", create_using=nx.DiGraph)
-    G.add_nodes_from(nodes)
+
+    # Add all isolates to graph
+    for cell_id in single_nodes:
+        G.add_node(cell_id)
+
+    nx.set_node_attributes(G, attributes)
 
     return G
 
