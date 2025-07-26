@@ -217,11 +217,60 @@ class TestCellCycleAccuracy:
 
         return TrackingGraph(G, location_keys=("x", "y", "z"))
 
+    def get_multidiv_skip(self):
+        track_graph = self.get_multidiv_graph()
+        graph = track_graph.graph
+        graph.remove_node(2)
+        graph.add_edge(1, 4)
+        return TrackingGraph(graph, location_keys=track_graph.location_keys)
+
+    def get_singleton_node(self):
+        G = nx.DiGraph()
+        node_attrs = {"x": 0, "y": 0, "z": 0, "t": 0}
+        G.add_nodes_from([(0, node_attrs)])
+        return TrackingGraph(G, location_keys=["x", "y", "z"])
+
+    def get_singleton_with_other_edge(self):
+        G = nx.DiGraph()
+        node_attrs = {"x": 0, "y": 0, "z": 0, "t": 0}
+        G.add_nodes_from([(i, node_attrs) for i in range(3)])
+        G.add_edge(1, 2)
+        return TrackingGraph(G, location_keys=["x", "y", "z"])
+
     def test_get_subgraph_lengths(self):
         track_graph = self.get_multidiv_graph()
         lengths = _get_lengths(track_graph)
         exp_lengths = [3]
         assert exp_lengths == lengths
+
+        # Test with a skip edge in the path
+        track_graph = self.get_multidiv_skip()
+        lengths = _get_lengths(track_graph)
+        assert exp_lengths == lengths
+
+        # Test graph without divisions
+        track_graph = ex_graphs.basic_graph()
+        lengths = _get_lengths(track_graph)
+        # without two divisions no length
+        assert len(lengths) == 0
+
+        # Test graph with only one divisions
+        track_graph = ex_graphs.basic_division_t0()
+        lengths = _get_lengths(track_graph)
+        # without two divisions no length
+        assert len(lengths) == 0
+
+        # Test singleton node with other unconnected edge
+        track_graph = self.get_singleton_node()
+        lengths = _get_lengths(track_graph)
+        # without two divisions no length
+        assert len(lengths) == 0
+
+        # Test singleton node
+        track_graph = self.get_singleton_node()
+        lengths = _get_lengths(track_graph)
+        # without two divisions no length
+        assert len(lengths) == 0
 
     def test_get_cumsum(self):
         lengths = [1, 3, 5, 5]
