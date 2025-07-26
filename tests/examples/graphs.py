@@ -18,10 +18,10 @@ def test_fn_node(i):
 """
 
 
-def basic_graph(node_ids=(1, 2, 3), y_offset=0, frame_key="t", location_keys=("y")):
+def basic_graph(node_ids=(1, 2, 3), y_offset=0, t_offset=0, frame_key="t", location_keys=("y")):
     nodes = []
     for t, node in enumerate(node_ids):
-        nodes.append((node, {frame_key: t, location_keys[0]: 0 + y_offset}))
+        nodes.append((node, {frame_key: t + t_offset, location_keys[0]: 0 + y_offset}))
 
     edges = []
     for i in range(len(node_ids) - 1):
@@ -243,6 +243,31 @@ def gap_close_offset():
     pred.add_edge(6, 8)
 
     mapping = [(1, 5), (4, 8)]
+    return Matched(
+        TrackingGraph(gt, location_keys=("y")),
+        TrackingGraph(pred, location_keys=("y")),
+        mapping,
+        {},
+    )
+
+
+def all_basic_errors():
+    gt = basic_graph(node_ids=range(1, 11), t_offset=1).graph
+    pred = basic_graph(node_ids=range(11, 21), y_offset=0.75).graph
+
+    # Create skip edges in gt
+    gt.remove_node(4)
+    gt.add_edge(3, 5)
+    gt.remove_node(8)
+    gt.add_edge(7, 9)
+
+    # Create pred skip edges
+    pred.remove_node(14)
+    pred.add_edge(13, 15)
+    pred.remove_node(17)
+    pred.add_edge(16, 18)
+
+    mapping = [(1, 12), (2, 13), (5, 16), (7, 18), (9, 20)]
     return Matched(
         TrackingGraph(gt, location_keys=("y")),
         TrackingGraph(pred, location_keys=("y")),
@@ -621,6 +646,7 @@ def div_shift_bad_match_daughter():
     return Matched(gt, pred, mapping, {})
 
 
+# division gaps
 def div_parent_gap():
     gt = longer_division(2)
     start_id = max(gt.nodes) + 1
@@ -647,4 +673,53 @@ def div_daughter_gap():
     pred = TrackingGraph(pred, location_keys=("y"))
 
     mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_daughter_dual_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove both immediate daughter node from prediction
+    pred.remove_node(11)
+    pred.add_edge(10, 13)
+    pred.remove_node(12)
+    pred.add_edge(10, 14)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (3, 10), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_parent_daughter_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove both immediate daughter node from prediction
+    pred.remove_node(11)
+    pred.remove_node(12)
+
+    # Remove initial parent node
+    pred.remove_node(10)
+    pred.add_edge(9, 13)
+    pred.add_edge(9, 14)
+
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_shifted_one_side_skip():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    pred.remove_node(11)
+    pred.add_edge(9, 13)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (7, 14), (6, 13)]
     return Matched(gt, pred, mapping, {})
