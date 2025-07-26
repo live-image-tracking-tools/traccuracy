@@ -16,7 +16,14 @@ if TYPE_CHECKING:
 
 
 def _match_nodes(
-    gt: np.ndarray, res: np.ndarray, threshold: float = 0.5, one_to_one: bool = False
+    gt: np.ndarray,
+    res: np.ndarray,
+    gt_boxes: np.ndarray,
+    res_boxes: np.ndarray,
+    gt_labels: np.ndarray,
+    res_labels: np.ndarray,
+    threshold: float = 0.5,
+    one_to_one: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Identify overlapping objects according to IoU and a threshold for minimum overlap.
 
@@ -40,7 +47,15 @@ def _match_nodes(
     # casting to int to avoid issue #152 (result is float with numpy<2, dtype=uint64)
     iou = np.zeros((int(np.max(gt) + 1), int(np.max(res) + 1)))
 
-    ious = get_labels_with_overlap(gt, res, overlap="iou")
+    ious = get_labels_with_overlap(
+        gt,
+        res,
+        gt_boxes=gt_boxes,
+        res_boxes=res_boxes,
+        gt_labels=gt_labels,
+        res_labels=res_labels,
+        overlap="iou",
+    )
 
     for gt_label, res_label, iou_val in ious:
         if iou_val >= threshold:
@@ -183,9 +198,21 @@ def match_iou(
     pred_time_to_seg_id_map = _construct_time_to_seg_id_map(pred)
 
     for i, t in tqdm(enumerate(frame_range), desc="Matching frames", total=total):
+        gt_nodes = gt.nodes_by_frame[t]
+        pred_nodes = pred.nodes_by_frame[t]
+
+        gt_boxes = np.array([gt.graph.nodes[node]["bbox"] for node in gt_nodes])
+        pred_boxes = np.array([pred.graph.nodes[node]["bbox"] for node in pred_nodes])
+        gt_labels = np.array([gt.graph.nodes[node]["segmentation_id"] for node in gt_nodes])
+        pred_labels = np.array([pred.graph.nodes[node]["segmentation_id"] for node in pred_nodes])
+
         matches = _match_nodes(
             gt.segmentation[i],
             pred.segmentation[i],
+            gt_boxes=gt_boxes,
+            res_boxes=pred_boxes,
+            gt_labels=gt_labels,
+            res_labels=pred_labels,
             threshold=threshold,
             one_to_one=one_to_one,
         )

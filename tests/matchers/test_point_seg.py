@@ -31,8 +31,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_good_seg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -48,8 +48,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_false_pos(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -66,8 +66,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_false_neg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -84,8 +84,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_overseg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -101,8 +101,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_underseg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -118,8 +118,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_no_overlap(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -135,8 +135,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_no_multicell(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)

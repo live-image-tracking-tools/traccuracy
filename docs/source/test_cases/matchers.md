@@ -60,6 +60,8 @@ def plot_one(seg, axis, colors):
         )
 
 def plot_pair(gt, pred, title):
+    gt = gt.segmentation
+    pred = pred.segmentation
     max_label = np.max([gt, pred])
     colors = ["black", "red", "blue", "green", "purple"]
     fig, ax = plt.subplots(1, 2, figsize=(6, 4))

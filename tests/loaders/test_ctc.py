@@ -130,7 +130,7 @@ def test_load_tiffs_float_data(tmp_path):
 def test_3d_data(tmpdir):
     nframes = 3
     gt, _ = multicell_3d()
-    seg_array = np.repeat(gt[np.newaxis], repeats=nframes, axis=0)
+    seg_array = np.repeat(gt.segmentation[np.newaxis], repeats=nframes, axis=0)
     for frame in range(nframes):
         tifffile.imwrite(tmpdir / f"mask00{frame}.tif", seg_array[frame])
 
