@@ -1,4 +1,5 @@
 docs/dest
+docs/.jupyter_cache
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
