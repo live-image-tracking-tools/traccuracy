@@ -159,8 +159,8 @@ class DivisionMetrics(Metric):
                 if NodeFlag.TP_DIV_SKIP in attrs:
                     # Already counted on gt graph
                     pass
-                elif NodeFlag.FN_DIV in attrs:
-                    fn_division_count += 1
+                elif NodeFlag.FP_DIV in attrs:
+                    fp_division_count += 1
                 elif NodeFlag.WC_DIV in attrs:
                     # Already counted on gt
                     pass
@@ -212,10 +212,10 @@ class DivisionMetrics(Metric):
             new_skip_tp_div_count += skip_tp_division_count
 
             total_tp_div = new_tp_div_count + new_skip_tp_div_count
-            recall = self._get_recall(new_tp_div_count, gt_div_count)
-            precision = self._get_precision(new_tp_div_count, pred_div_count)
+            recall = self._get_recall(total_tp_div, gt_div_count)
+            precision = self._get_precision(total_tp_div, pred_div_count)
             f1 = self._get_f1(recall, precision)
-            mbc = self._get_mbc(gt_div_count, tp_division_count, new_fp_div_count)
+            mbc = self._get_mbc(gt_div_count, tp_division_count, total_tp_div)
 
             res_dict[f"Frame Buffer {fb}"] = {
                 "Division Recall": recall,
