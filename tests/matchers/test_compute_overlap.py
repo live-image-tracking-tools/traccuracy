@@ -28,6 +28,14 @@ def test_get_labels_with_overlap(overlap):
     assert res == tuple(range(1, n_labels + 1))
     assert iou == (1.0,) * n_labels
 
+    # testing without providing bounding boxes and labels
+    with pytest.warns(UserWarning, match="using 'regionprops' to get them"):
+        other_ious = get_labels_with_overlap(image1, image1)
+        other_gt, other_res, other_iou = tuple(zip(*other_ious, strict=False))
+        assert other_gt == gt
+        assert other_res == res
+        assert other_iou == iou
+
     # Get properties for image2
     props2 = regionprops(image2)
     res_boxes = np.array([prop.bbox for prop in props2])

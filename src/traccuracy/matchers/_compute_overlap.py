@@ -6,7 +6,10 @@ Licensed under The MIT License [see LICENSE for details]
 Copyright (c) 2015 Microsoft
 """
 
+import warnings
+
 import numpy as np
+from skimage.measure import regionprops
 
 
 def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
@@ -25,10 +28,10 @@ def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
 def get_labels_with_overlap(
     gt_frame: np.ndarray,
     res_frame: np.ndarray,
-    gt_boxes: np.ndarray,
-    res_boxes: np.ndarray,
-    gt_labels: np.ndarray,
-    res_labels: np.ndarray,
+    gt_boxes: np.ndarray | None = None,
+    res_boxes: np.ndarray | None = None,
+    gt_labels: np.ndarray | None = None,
+    res_labels: np.ndarray | None = None,
     overlap: str = "iou",
 ) -> list[tuple[int, int, float]]:
     """Get all labels IDs in gt_frame and res_frame whose bounding boxes overlap,
@@ -47,6 +50,33 @@ def get_labels_with_overlap(
     Returns: list[tuple[int, int, float]] A list of tuples of overlapping labels and their
         overlap values. Each tuple contains (gt_label, res_label, overlap_value).
     """
+
+    if gt_boxes is None or gt_labels is None:
+        warnings.warn(
+            "'gt_boxes' and/or 'gt_labels' are not provided, using 'regionprops' to get them",
+            stacklevel=2,
+        )
+        gt_boxes_list = []
+        gt_labels_list = []
+        for prop in regionprops(gt_frame):
+            gt_boxes_list.append(prop.bbox)
+            gt_labels_list.append(prop.label)
+        gt_boxes = np.asarray(gt_boxes_list)
+        gt_labels = np.asarray(gt_labels_list)
+
+    if res_boxes is None or res_labels is None:
+        warnings.warn(
+            "'res_boxes' and/or 'res_labels' are not provided, using 'regionprops' to get them",
+            stacklevel=2,
+        )
+        res_boxes_list = []
+        res_labels_list = []
+        for prop in regionprops(res_frame):
+            res_boxes_list.append(prop.bbox)
+            res_labels_list.append(prop.label)
+        res_boxes = np.asarray(res_boxes_list)
+        res_labels = np.asarray(res_labels_list)
+
     if len(gt_labels) == 0 or len(res_labels) == 0:
         return []
 
