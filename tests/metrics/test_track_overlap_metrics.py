@@ -6,7 +6,7 @@ import pytest
 
 from tests.examples import graphs as ex_graphs
 from traccuracy import TrackingGraph
-from traccuracy.matchers import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._track_overlap import TrackOverlapMetrics
 
 

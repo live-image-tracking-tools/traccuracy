@@ -7,7 +7,7 @@ from traccuracy.matchers._base import Matcher
 from traccuracy.metrics._base import Metric
 
 if TYPE_CHECKING:
-    from traccuracy.matchers._base import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 def run_metrics(
@@ -25,8 +25,9 @@ def run_metrics(
     Args:
         gt_data (traccuracy.TrackingGraph): ground truth graph and optionally segmentation
         pred_data (traccuracy.TrackingGraph): predicted graph and optionally segmentation
-        matcher (Matcher): instantiated matcher object
-        metrics (List[Metric]): list of instantiated metrics objects to compute
+        matcher (traccuracy.matchers._base.Matcher): instantiated matcher object
+        metrics (List[traccuracy.metrics._base.Metric]): list of instantiated metrics objects
+            to compute
 
     Returns:
         List[Dict]: List of dictionaries with one dictionary per Metric object

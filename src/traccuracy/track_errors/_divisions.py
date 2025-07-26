@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from traccuracy import TrackingGraph
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def _get_pred_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     than specified by delta_frames
 
     Args:
-        G (TrackingGraph): TrackingGraph to search on
+        g (TrackingGraph): TrackingGraph to search on
         node (hashable): Key of starting node
         delta_frames (int): Frame of the predecessor target node
 
@@ -154,7 +154,7 @@ def _get_succ_by_t(g: TrackingGraph, node: Hashable, delta_frames: int) -> Hasha
     than specified by delta_frames
 
     Args:
-        G (TrackingGraph): TrackingGraph to search on
+        g (TrackingGraph): TrackingGraph to search on
         node (hashable): Key of starting node
         delta_frames (int): Frame of the successor target node
 

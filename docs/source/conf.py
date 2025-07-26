@@ -46,9 +46,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.githubpages",
     "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode",
     "IPython.sphinxext.ipython_console_highlighting",  # code highlighting in notebooks
     "autoapi.extension",  # autobuild api docs
+    "sphinx.ext.viewcode",
     "nbsphinx",  # add notebooks to docs
     "nbsphinx_link",  # add notebooks to docs
     "sphinx_click",  # auto document cli
@@ -82,8 +82,23 @@ autoapi_options = [
     "undoc-members",
     "show-module-summary",
     "imported-members",
+    "inherited-members",
 ]
 autoapi_ignore = ["*/cli.py"]
+
+
+def skip_str_enum_inheritance(app, what, name, obj, skip, options):
+    """For NodeFlag and EdgeFlag we do not want to document inherited members from str and Enum"""
+    if not obj.inherited:
+        return None
+
+    if "Flag" in name:
+        return True
+
+
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_str_enum_inheritance)
+
 
 # -- Myst NB -----------------------------------------------------------------
 nb_execution_raise_on_error = True

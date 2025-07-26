@@ -8,7 +8,7 @@ from tqdm import tqdm
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ from ._base import Metric
 if TYPE_CHECKING:
     import networkx as nx
 
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 class TrackOverlapMetrics(Metric):

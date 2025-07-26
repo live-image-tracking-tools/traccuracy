@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 app = typer.Typer()
 
 
-def load_all_ctc(
+def _load_all_ctc(
     gt_dir: str,
     pred_dir: str,
     gt_track_path: str | None = None,
@@ -54,7 +54,7 @@ def run_ctc(
     from traccuracy.matchers import CTCMatcher
     from traccuracy.metrics import CTCMetrics
 
-    gt_data, pred_data = load_all_ctc(gt_dir, pred_dir, gt_track_path, pred_track_path)
+    gt_data, pred_data = _load_all_ctc(gt_dir, pred_dir, gt_track_path, pred_track_path)
     result, matched = run_metrics(gt_data, pred_data, CTCMatcher(), [CTCMetrics()])
     with open(out_path, "w") as fp:
         json.dump(result, fp)
@@ -65,5 +65,5 @@ def run_ctc(
 typer_click_object = typer.main.get_command(app)
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     app()

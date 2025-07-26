@@ -164,7 +164,7 @@ plot_matched(
         ex_graphs.gap_close_matched_gap(),
         ex_graphs.gap_close_offset(),
     ],
-    "Gap closing cases",
+    "Skip edge cases",
 )
 ```
 

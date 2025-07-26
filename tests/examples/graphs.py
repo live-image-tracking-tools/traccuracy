@@ -1,7 +1,7 @@
 import networkx as nx
 
 from traccuracy._tracking_graph import TrackingGraph
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 
 """A set of fixtures covering basic graph matching cases over 3 time frames
 Covers edge cases, good matchings, fn nodes, fp nodes, two to one matchings in each

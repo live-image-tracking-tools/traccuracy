@@ -11,7 +11,7 @@ DATASETS = [
 ]
 
 
-def download_gt_data(url, root_dir):
+def _download_gt_data(url, root_dir):
     data_dir = os.path.join(root_dir, "downloads")
 
     if not os.path.exists(data_dir):
@@ -28,9 +28,9 @@ def download_gt_data(url, root_dir):
             zip_ref.extractall(data_dir)
 
 
-def main():
+def main():  # noqa: D103
     for url in DATASETS:
-        download_gt_data(url, ROOT_DIR)
+        _download_gt_data(url, ROOT_DIR)
 
 
 if __name__ == "__main__":

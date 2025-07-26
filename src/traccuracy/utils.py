@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from traccuracy._tracking_graph import TrackingGraph
-    from traccuracy.matchers._base import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 def get_equivalent_skip_edge(
@@ -38,8 +38,8 @@ def get_equivalent_skip_edge(
             skip nodes to other nodes
         skip_src (Hashable): ID of source node of skip edge
         skip_dst (Hashable): ID of destination node of skip edge
-        other_src (Hashable): matched node of skip_src
-        other_dst (Hashable): matched node of skip_dst
+        matched_src (Hashable): matched node of skip_src
+        matched_dst (Hashable): matched node of skip_dst
 
     Returns:
         list[Hashable]: path from matched_src to matched_dst, or empty list if no such path.
@@ -98,7 +98,7 @@ def get_corrected_division_graphs_with_delta(
         matched (traccuracy.matchers._base.Matched): Matched object for set of GT and Pred data.
             Must be annotated with division events.
         frame_buffer (int): Maximum frame buffer to use for division correction
-        relax_skips_gt (bool): If True, will allow divisions that incorporate skip edges from
+        relax_skip_edges (bool): If True, will allow divisions that incorporate skip edges from
             parent to daughter
 
     Returns:

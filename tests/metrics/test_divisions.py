@@ -9,7 +9,8 @@ import tests.examples.graphs as ex_graphs
 from tests.test_utils import download_gt_data, get_division_graphs
 from traccuracy import TrackingGraph
 from traccuracy.loaders import load_ctc_data
-from traccuracy.matchers import IOUMatcher, Matched
+from traccuracy.matchers import IOUMatcher
+from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._divisions import DivisionMetrics
 
 ROOT_DIR = Path(__file__).resolve().parents[2]

@@ -41,14 +41,14 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
 
 if TYPE_CHECKING:
     from traccuracy import TrackingGraph
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class DivisionMetrics(Metric):
         """Runs `_evaluate_division_events` and calculates summary metrics for each frame buffer
 
         Args:
-            matched_data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
+            data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
                 Must meet the `needs_one_to_one` criteria
             relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
                 graph have an equivalent multi-edge path in predicted graph

@@ -26,10 +26,10 @@ While we specify ground truth and prediction, it is possible to
 write a matching function that matches two arbitrary tracking solutions.
 """
 
-from ._base import Matched
 from ._compute_overlap import get_labels_with_overlap
 from ._ctc import CTCMatcher
 from ._iou import IOUMatcher
+from ._matched import Matched
 from ._point import PointMatcher
 from ._point_seg import PointSegMatcher
 
