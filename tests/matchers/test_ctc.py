@@ -38,6 +38,9 @@ class TestCTCMatcher:
                 attrs[f"{i}_{t}"] = {"t": t, "y": 0, "x": 0, "segmentation_id": i}
         nx.set_node_attributes(g, attrs)
 
+        # Convert ids to ints
+        g = nx.convert_node_labels_to_integers(g, first_label=1)
+
         matched = self.matcher.compute_mapping(
             TrackingGraph(g, segmentation=movie),
             TrackingGraph(g, segmentation=movie),
