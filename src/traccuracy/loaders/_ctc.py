@@ -109,27 +109,23 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     Returns:
         networkx.DiGraph: Graph representation of the CTC data.
     """
-    edges = []
+    # Assign node ids in the detections dataframe
+    detections["node_id"] = detections.index + 1
 
-    all_ids = set()
-    single_nodes = set()
+    edges = []
 
     # Add each continuous cell lineage as a set of edges to df
     for _, row in df.iterrows():
-        tpoints = np.arange(row["Start"], row["End"] + 1)
-
-        cellids = ["{}_{}".format(row["Cell_ID"], t) for t in tpoints]
-
-        if len(cellids) == 1:
-            single_nodes.add(cellids[0])
-
-        all_ids.update(cellids)
+        # Get subset of nodes/detections that belong to this lineage
+        sdf = detections[detections["segmentation_id"] == row["Cell_ID"]]
+        # Sort by time so that we can use the node ids directly as edges
+        sdf = sdf.sort_values(by="t")
 
         edges.append(
             pd.DataFrame(
                 {
-                    "source": cellids[0:-1],
-                    "target": cellids[1:],
+                    "source": sdf["node_id"][0:-1].tolist(),
+                    "target": sdf["node_id"][1:].tolist(),
                 }
             )
         )
@@ -138,35 +134,36 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     for _, row in df[df["Parent_ID"] != 0].iterrows():
         # Get the parent's details
         parent_row = df[df["Cell_ID"] == row["Parent_ID"]].iloc[0]
-        source = "{}_{}".format(parent_row["Cell_ID"], parent_row["End"])
+        parent_seg_id = parent_row["Cell_ID"]
+        parent_t = parent_row["End"]
+        # Get parent id
+        source = detections[
+            (detections["segmentation_id"] == parent_seg_id) & (detections["t"] == parent_t)
+        ]["node_id"].iloc[0]
 
-        target = "{}_{}".format(row["Cell_ID"], row["Start"])
+        # Get the daughter id
+        daughter_seg_id = row["Cell_ID"]
+        daughter_t = row["Start"]
+        target = detections[
+            (detections["segmentation_id"] == daughter_seg_id) & (detections["t"] == daughter_t)
+        ]["node_id"].iloc[0]
 
         edges.append(pd.DataFrame({"source": [source], "target": [target]}))
 
-    # Store position attributes on nodes
-    detections["node_id"] = (
-        detections["segmentation_id"].astype("str") + "_" + detections["t"].astype("str")
-    )
     detections = detections.set_index("node_id")
 
-    attributes = {}
+    nodes = []
     for row_tp in detections.itertuples():
         # Pandas thinks the itertuple return type can be essentially anything
         row_dict = row_tp._asdict()  # type: ignore
         i = row_dict["Index"]
         del row_dict["Index"]
-        attributes[i] = row_dict
+        nodes.append((i, row_dict))
 
     # Create graph
     edge_df = pd.concat(edges)
     G = nx.from_pandas_edgelist(edge_df, source="source", target="target", create_using=nx.DiGraph)
-
-    # Add all isolates to graph
-    for cell_id in single_nodes:
-        G.add_node(cell_id)
-
-    nx.set_node_attributes(G, attributes)
+    G.add_nodes_from(nodes)
 
     return G
 
