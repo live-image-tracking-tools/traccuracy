@@ -342,7 +342,7 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
         np.ndarray[int]: an array of complete cell cycle lengths
     """
     # Can't create a sparse graph from disconnected nodes
-    if track_graph.graph.number_of_edges == 0:
+    if track_graph.graph.number_of_edges() == 0:
         return np.array([])
 
     coords_array = np.asarray(
