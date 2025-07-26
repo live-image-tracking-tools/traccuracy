@@ -111,7 +111,7 @@ def get_annotated_movie(img_size=256, labels_per_frame=3, frames=3, mov_type="se
     return y.astype("int32")
 
 
-def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
+def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, int_ids=True):
     movie = get_annotated_movie(labels_per_frame=n_labels, frames=n_frames, mov_type="repeated")
 
     # Extend to 3d if needed
@@ -131,7 +131,9 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
                 G.add_edge(f"{i}_{t - 1}", f"{i}_{t}")
 
     # Relabel nodes to get rid of string ids
-    G = nx.convert_node_labels_to_integers(G, first_label=1)
+    # Preserve the option for string ids because it makes a few tests impossible otherwise
+    if int_ids:
+        G = nx.convert_node_labels_to_integers(G, first_label=1)
 
     return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
 
@@ -139,44 +141,44 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
 def get_division_graphs():
     """
     G1
-                                2_4
-    1_0 -- 1_1 -- 1_2 -- 1_3 -<
-                                3_4
+                        5
+    1 -- 2 -- 3 -- 4 -<
+                        6
     G2
-                  5_2 -- 5_3 -- 5_4
-    4_0 -- 4_1 -<
-                  6_2 -- 6_3 -- 6_4
+              9 -- 10 -- 11
+    7 -- 8 -<
+              12 -- 13 -- 14
     """
 
     G1 = nx.DiGraph()
-    G1.add_edge("1_0", "1_1")
-    G1.add_edge("1_1", "1_2")
-    G1.add_edge("1_2", "1_3")
-    G1.add_edge("1_3", "2_4")
-    G1.add_edge("1_3", "3_4")
-
-    attrs = {}
-    for node in G1.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
-    nx.set_node_attributes(G1, attrs)
+    edges = [(1, 2), (2, 3), (3, 4), (4, 5), (4, 6)]
+    nodes = [
+        (1, {"t": 0, "x": 0, "y": 0}),
+        (2, {"t": 1, "x": 0, "y": 0}),
+        (3, {"t": 2, "x": 0, "y": 0}),
+        (4, {"t": 3, "x": 0, "y": 0}),
+        (5, {"t": 4, "x": 0, "y": 0}),
+        (6, {"t": 4, "x": 0, "y": 0}),
+    ]
+    G1.add_nodes_from(nodes)
+    G1.add_edges_from(edges)
 
     G2 = nx.DiGraph()
-    G2.add_edge("4_0", "4_1")
-    # Divide to generate 5 lineage
-    G2.add_edge("4_1", "5_2")
-    G2.add_edge("5_2", "5_3")
-    G2.add_edge("5_3", "5_4")
-    # Divide to generate 6 lineage
-    G2.add_edge("4_1", "6_2")
-    G2.add_edge("6_2", "6_3")
-    G2.add_edge("6_3", "6_4")
+    edges = [(7, 8), (8, 9), (9, 10), (10, 11), (8, 12), (12, 13), (13, 14)]
+    nodes = [
+        (7, {"t": 0, "x": 0, "y": 0}),
+        (8, {"t": 1, "x": 0, "y": 0}),
+        (9, {"t": 2, "x": 0, "y": 0}),
+        (10, {"t": 3, "x": 0, "y": 0}),
+        (11, {"t": 4, "x": 0, "y": 0}),
+        (12, {"t": 2, "x": 0, "y": 0}),
+        (13, {"t": 3, "x": 0, "y": 0}),
+        (14, {"t": 4, "x": 0, "y": 0}),
+    ]
+    G2.add_nodes_from(nodes)
+    G2.add_edges_from(edges)
 
-    attrs = {}
-    for node in G2.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
-    nx.set_node_attributes(G2, attrs)
-
-    mapped_g1 = ["1_0", "1_1", "2_4", "3_4"]
-    mapped_g2 = ["4_0", "4_1", "5_4", "6_4"]
+    mapped_g1 = [1, 2, 5, 6]
+    mapped_g2 = [7, 8, 11, 14]
 
     return G1, G2, mapped_g1, mapped_g2
