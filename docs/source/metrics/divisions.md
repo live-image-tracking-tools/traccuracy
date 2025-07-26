@@ -38,7 +38,7 @@ The following counts are returned for each size of frame buffer ranging from 0 t
 - [False Negative Divisions](div-fn)
 - [False Positive Divisions](div-fp)
 
-If `relax_skip_gt` or `relax_skip_pred` are set to True, the following additional counts are return and included in the calculation of summary statistics listed below. For a complete description of how skip edges are handled, see [here](div-skip-edge).
+If `relax_skips_gt` or `relax_skips_pred` are set to True, the following additional counts are returned and included in the calculation of summary statistics listed below. For a complete description of how skip edges are handled, see [here](div-skip-edge).
 
 - Skip True Positive Divisions
 

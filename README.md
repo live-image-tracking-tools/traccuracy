@@ -11,7 +11,7 @@
 
 `traccuracy` provides a suite of benchmarking functions that can be used to evaluate cell tracking solutions against ground truth annotations. The goal of this library is to provide a convenient way to run rigorous evaluation and to document and consolidate the wide variety of metrics used in the field.
 
-`traccuracy` can compute a comprehensive set of metrics for evaluating the cell linking and division performance, and can compute biologically meaningful metrics such as number of correctly reconstructed lineages over N frames and cell cycle length accuracy. As matching ground truth and predicted lineages is a crucial step for performing evaluation, `traccuracy` includes a number of algorithms for matching ground truth and predicted lineages, both with and without segmentation masks.
+`traccuracy` can compute a comprehensive set of metrics for evaluating cell linking and division performance, and can compute biologically meaningful metrics such as the number of correctly reconstructed lineages over N frames and cell cycle length accuracy. As matching ground truth and predicted lineages is a crucial step for performing evaluation, `traccuracy` includes a number of algorithms for matching ground truth and predicted lineages, both with and without segmentation masks.
 
 Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) or check out the [source code](https://github.com/live-image-tracking-tools/traccuracy).
 
@@ -22,15 +22,15 @@ Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) 
 The `traccuracy` library has three main components: loaders, matchers, and metrics.
 
 Loaders load tracking graphs from other formats, such as the CTC format, into a [TrackingGraph](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/index.html#traccuracy.TrackingGraph) object.
-A TrackingGraph is a spatiotemporal graph where the graph is a `networkx.DiGraph`
+A `TrackingGraph` is a spatiotemporal graph backed by a `networkx.DiGraph`
 Nodes represent a single cell in a given time point, and are annotated with a time and a location.
 Edges point forward in time from a node representing a cell in time point `t` to the same cell or its daughter in frame `t+1` (or beyond, to represent skip edges). Additional terminology is documented in the [glossary](https://traccuracy.readthedocs.io/en/latest/glossary.html)
-To load TrackingGraphs from a custom format, you will likely need to implement a loader: see
+To load `TrackingGraph`s from a custom format, you will likely need to implement a loader: see
 documentation [here](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/loaders/index.html#module-traccuracy.loaders) for more information.
 
-Matchers take a ground truth and a predicted TrackingGraph with optional segmentation masks and match the nodes and edges to allow evaluation to occur. A list of matchers is available [here](https://traccuracy.readthedocs.io/en/latest/matchers/matchers.html).
+Matchers take a ground truth and a predicted `TrackingGraph` with optional segmentation masks and match the nodes and edges to allow evaluation to occur. A list of matchers is available [here](https://traccuracy.readthedocs.io/en/latest/matchers/matchers.html).
 
-In order to compute metrics, `traccuracy` begins by annotating the matched graphs with error flags such as False Positive and False Negative. The annotated graph can be exported and used for visualization in other tools. Finally, metrics utilize the error annotations to report both error counts and summary statistics. 
+In order to compute metrics, `traccuracy` begins by annotating the matched graphs with error flags such as False Positive and False Negative. The annotated graph can be exported and used for visualization in other tools. Finally, metrics inspect the error annotations to report both error counts and summary statistics. 
 
 The `traccuracy` library has a flexible Python API, shown in [this](https://traccuracy.readthedocs.io/en/latest/examples/ctc.html) example notebook. Additionally there is a command line interface for running standard CTC metrics, [documented here](https://traccuracy.readthedocs.io/en/latest/cli.html).
 
