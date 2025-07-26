@@ -177,16 +177,15 @@ plot_matched(
 ```
 
 
-## Gap-Closing Edges
+## Skip Edges
 
-Gap-closing edges must be identical in the ground truth and predicted graphs to be considered a true positive.
+`traccuracy` considers an edge to be a skip edge if the source and target nodes are more than one frame apart.
 
-If the parent node with outgoing gap-closing edges is mismatched to the parent node in the ground truth graph, this will be a False Positive/False Negative division pair,
-even if the daughter nodes are correctly identified.
+In default division evaluation, skip edges must be identical in the ground truth and predicted graphs to be considered a true positive.
 
-If the parent node with outgoing gap-closing edges is correctly matched to the parent node in the ground truth graph, this will be a Wrong Child division.
+If the parent node with outgoing skip edges is not matched to the parent node in the ground truth graph, this will be a False Positive/False Negative division pair, even if the daughter nodes are correctly identified.
 
-The above is independent of the frame buffer parameter.
+If the parent node with outgoing skip edges is correctly matched to the parent node in the ground truth graph, but the children are not matched because there is a skip edge, this will be a Wrong Child division, unless you relax skip edges.
 
 ```{code-cell} ipython3
 plot_matched(
@@ -194,5 +193,29 @@ plot_matched(
     [{3: "FN", 9: "FP"}, {10: "WC"}],
     "",
     ["FP/FN Pair", "Wrong Child"]
+)
+```
+
+Alternatively, if the `relax_skips_gt` or `relax_skips_pred` parameters are set to `True`, skip edges will be allowed on the ground truth and prediction respectively. In this case, a division can include a skip edge and still be considered correct. For a standard division (no frame shift), the parent nodes must directly match, but the daughters can be covered by a skip edge.
+
+The following examples are correct without a frame buffer:
+
+```{code-cell} ipython3
+plot_matched(
+    [ex_graphs.div_daughter_gap(), ex_graphs.div_daughter_dual_gap()],
+    [{3: "TP", 10: "TP"}, {3: "TP", 10: "TP"}],
+    "",
+    ["", ""]
+)
+```
+
+The following examples need a frame buffer of 1 to be correct:
+
+```{code-cell} ipython3
+plot_matched(
+    [ex_graphs.div_parent_gap(), ex_graphs.div_parent_daughter_gap(), ex_graphs.div_shifted_one_side_skip()],
+    [{3: "TP", 9: "TP"}, {3: "TP", 9: "TP"}, {3: "TP", 9: "TP"}],
+    "",
+    ["", "", ""]
 )
 ```
