@@ -232,8 +232,8 @@ class TestCellCycleAccuracy:
 
     def get_singleton_with_other_edge(self):
         G = nx.DiGraph()
-        node_attrs = {"x": 0, "y": 0, "z": 0, "t": 0}
-        G.add_nodes_from([(i, node_attrs) for i in range(3)])
+        node_attrs = {"x": 0, "y": 0, "z": 0}
+        G.add_nodes_from([(i, {**node_attrs, "t": i}) for i in range(3)])
         G.add_edge(1, 2)
         return TrackingGraph(G, location_keys=["x", "y", "z"])
 
@@ -261,7 +261,7 @@ class TestCellCycleAccuracy:
         assert len(lengths) == 0
 
         # Test singleton node with other unconnected edge
-        track_graph = self.get_singleton_node()
+        track_graph = self.get_singleton_with_other_edge()
         lengths = _get_lengths(track_graph)
         # without two divisions no length
         assert len(lengths) == 0

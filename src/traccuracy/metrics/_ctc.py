@@ -318,6 +318,7 @@ class CellCycleAccuracy(Metric):
     """
 
     def __init__(self) -> None:
+        # CCA does not use matching and therefore any matching type is valid
         valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
         super().__init__(valid_matching_types)
 
@@ -340,6 +341,9 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
     Returns:
         np.ndarray[int]: an array of complete cell cycle lengths
     """
+    # Can't create a sparse graph from disconnected nodes
+    if track_graph.graph.number_of_edges == 0:
+        return np.array([])
 
     coords_array = np.asarray(
         [
