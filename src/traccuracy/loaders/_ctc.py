@@ -110,36 +110,38 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     Returns:
         networkx.DiGraph: Graph representation of the CTC data.
     """
-    edges = []
-
-    # indexed by cell_id and t to the node id itself
-    all_ids = defaultdict(dict)
+    # node IDs for each cell ID at each time t
+    # all_ids[cell_id][t] = node_id
+    all_ids: dict[int, dict[int, int]] = defaultdict(dict)
     single_nodes = set()
-    tid_start_end = dict()
+    cell_id_start_end = {}
+
+    edges: list[tuple[int, int]] = []
 
     # Add each continuous cell lineage as a set of edges to df
     current_id = 1
     for _, row in df.iterrows():
         tpoints = np.arange(row["Start"], row["End"] + 1)
 
-        cellids = {}
+        node_ids = {}
         for t in tpoints:
-            cellids[t] = current_id
+            node_ids[t] = current_id
             current_id += 1
 
-        tid_start_end[row["Cell_ID"]] = (cellids[tpoints[0]], cellids[tpoints[-1]])
+        cell_id_start_end[row["Cell_ID"]] = (node_ids[tpoints[0]], node_ids[tpoints[-1]])
 
-        if len(cellids) == 1:
-            single_nodes.add(cellids[tpoints[0]])
+        if len(node_ids) == 1:
+            single_nodes.add(node_ids[tpoints[0]])
 
-        all_ids[row["Cell_ID"]] = cellids
+        all_ids[row["Cell_ID"]] = node_ids
 
-        edges.append(
-            pd.DataFrame(
-                {
-                    "source": [cellids[i] for i in tpoints[:-1]],
-                    "target": [cellids[i] for i in tpoints[1:]],
-                }
+        edges.extend(
+            list(
+                zip(
+                    [node_ids[i] for i in tpoints[:-1]],
+                    [node_ids[i] for i in tpoints[1:]],
+                    strict=False,
+                )
             )
         )
 
@@ -148,10 +150,10 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
         # Get the parent's details
         parent_row = df[df["Cell_ID"] == row["Parent_ID"]].iloc[0]
         parent_cell_id = parent_row["Cell_ID"]
-        current_start_id, current_end_id = tid_start_end[row["Cell_ID"]]
-        parent_start_id, parent_end_id = tid_start_end[parent_cell_id]
+        current_start_id, _ = cell_id_start_end[row["Cell_ID"]]
+        _, parent_end_id = cell_id_start_end[parent_cell_id]
 
-        edges.append(pd.DataFrame({"source": [parent_end_id], "target": [current_start_id]}))
+        edges.append((parent_end_id, current_start_id))
 
     attributes = {}
     for row_tp in detections.itertuples():
@@ -165,13 +167,9 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
         attributes[node_id] = row_dict
 
     # Create graph
-    edge_df = pd.concat(edges)
-    G = nx.from_pandas_edgelist(edge_df, source="source", target="target", create_using=nx.DiGraph)
-
-    # Add all isolates to graph
-    for cell_id in single_nodes:
-        G.add_node(cell_id)
-
+    G = nx.DiGraph()  # type: ignore
+    G.add_edges_from(edges)
+    G.add_nodes_from(single_nodes)
     nx.set_node_attributes(G, attributes)
 
     return G
