@@ -1,7 +1,7 @@
 # Track Overlap Metrics
 
-The track overlap metrics include Track Purity (TP) and Target Effectiveness (TE), as defined in Bise et al., 2011[^1], Chen, 2021[^2], and Fukai et al., 2023[^3]. Track overlap metrics compute metrics for tracks as a whole, and have a single hyperparameter that controls the definition of "track". If `include_division_edges` is True, metrics are computed on connected components. If `include_division_edges` is False, metrics are computed considering each region between divisions as its own track. 
-The length of a track is the number of edges included in it, not the number of time frames it spans (this is different if considering connected components with divisions as tracks). Singleton nodes are not considered as valid tracks in these metrics.
+The track overlap metrics include Track Purity (TP) and Target Effectiveness (TE), as defined in Bise et al., 2011[^1], Chen, 2021[^2], and Fukai et al., 2023[^3]. Track overlap metrics are computed for tracks as a whole, but in the case of divisions, each region between divisions is considered its own track. There is a single hyperparameter, `include_division_edges`; if `True`, edges immediately following a division are included in the subsequent tracks, such that the parent node is duplicated. If `False`, the edges immediately following divisions are not included at all. 
+The length of a track is the number of edges included in it, not the number of time frames it spans (this is different if considering connected components with divisions as tracks). Singleton nodes are ignored in these metrics.
 
 :::{warning}
 If you have sparse ground truth annotations, target effectiveness and track fractions will still accurately represent your ability to reconstruct the ground truth. Track purity should not be interpreted as any predicted tracks not present in the ground truth will be fully penalized.
