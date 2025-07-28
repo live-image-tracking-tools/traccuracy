@@ -47,11 +47,6 @@ def graph_bbox_and_labels(
         gt_boxes = np.asarray([graph.nodes[node]["bbox"] for node in nodes])
         gt_labels = np.asarray([graph.nodes[node]["segmentation_id"] for node in nodes])
     except KeyError:
-        warnings.warn(
-            "'bbox' or 'segmentation_id' not found for some nodes, "
-            "recomputing them with regionprops",
-            stacklevel=2,
-        )
         gt_boxes, gt_labels = None, None
     return gt_boxes, gt_labels
 

@@ -428,7 +428,7 @@ def test_matching_from_in_memory():
 
     with pytest.warns(
         UserWarning,
-        match="'bbox' or 'segmentation_id' not found for some nodes, recomputing them",
+        match="'gt_boxes' and/or 'gt_labels' are not provided, using 'regionprops' to get them",
     ):
         matched = IOUMatcher().compute_mapping(gt_t_graph, gt_t_graph)
     assert len(matched.mapping) == len(gt_t_graph.nodes)
