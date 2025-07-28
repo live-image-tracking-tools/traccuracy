@@ -43,8 +43,8 @@ class TestStandardOverlapMetrics:
         [
             (0, True, 1, 0.5),
             (0, False, 1, 0.5),
-            (1, True, 0, 0),
-            (1, False, 0, 0),
+            (1, True, np.nan, 0),
+            (1, False, np.nan, 0),
             (2, True, 1, 0.5),
             (2, False, 1, 0.5),
         ],
@@ -54,7 +54,10 @@ class TestStandardOverlapMetrics:
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
 
-        assert results[self.tp] == tp
+        if tp is np.nan:
+            assert results[self.tp] is tp
+        else:
+            assert results[self.tp] == tp
         assert results[self.te] == te
 
     @pytest.mark.parametrize(
@@ -76,18 +79,17 @@ class TestStandardOverlapMetrics:
     @pytest.mark.parametrize(
         ("t", "incl_div_edges", "tp", "te"),
         [
-            (0, True, 0.75, 1),
-            (0, False, 0.75, 1),
-            (1, True, 0.75, 1),
-            (1, False, 0.75, 1),
-            (2, True, 0.75, 1),
-            (2, False, 0.75, 1),
+            (0, True, 1, 1),
+            (0, False, 1, 1),
+            (1, True, 1, 1),
+            (1, False, 1, 1),
+            (2, True, 1, 1),
+            (2, False, 1, 1),
         ],
     )
     def test_fp_node(self, t, incl_div_edges, tp, te):
         matched = ex_graphs.fp_node_matched(t)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
-        results = metric._compute(matched)
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
@@ -105,7 +107,6 @@ class TestStandardOverlapMetrics:
         matched = ex_graphs.fp_edge_matched(edge_er)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
-        results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
 
@@ -116,7 +117,6 @@ class TestStandardOverlapMetrics:
         matched = ex_graphs.crossover_edge()
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
-        results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
 
@@ -125,6 +125,160 @@ class TestStandardOverlapMetrics:
     # ex_graphs.edge_two_to_one
     # ex_graphs.node_one_to_two
     # ex_graphs.edge_one_to_two
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "tp", "te"), [(True, 1 / 3, 0.5), (False, 1 / 3, 0.5)]
+    )
+    def test_gap_close_gt_gap(self, incl_div_edges, tp, te):
+        matched = ex_graphs.gap_close_gt_gap()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "tp", "te"), [(True, 0.5, 1 / 3), (False, 0.5, 1 / 3)]
+    )
+    def test_gap_close_pred_gap(self, incl_div_edges, tp, te):
+        matched = ex_graphs.gap_close_pred_gap()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(("incl_div_edges", "tp", "te"), [(True, 1, 1), (False, 1, 1)])
+    def test_gap_close_matched_gap(self, incl_div_edges, tp, te):
+        matched = ex_graphs.gap_close_matched_gap()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(("incl_div_edges", "tp", "te"), [(True, 0, 0), (False, 0, 0)])
+    def test_gap_close_offset(self, incl_div_edges, tp, te):
+        matched = ex_graphs.gap_close_offset()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "tp", "te"), [(True, 1 / 7, 1 / 7), (False, 1 / 7, 1 / 7)]
+    )
+    def test_gap_all_basic_errors(self, incl_div_edges, tp, te):
+        matched = ex_graphs.all_basic_errors()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "t_div", "tp", "te"),
+        [
+            (True, 0, 3 / 4, 1),
+            (True, 1, 2 / 3, 0.5),
+            (False, 0, 1, 2 / 3),
+            (False, 1, 1, 0.5),
+        ],
+    )
+    def test_fp_div(self, incl_div_edges, tp, te, t_div):
+        matched = ex_graphs.fp_div(t_div)
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "t_div", "tp", "te"),
+        [
+            (True, 0, 1, 3 / 4),
+            (True, 1, 0.5, 2 / 3),
+            (False, 0, 2 / 3, 1),
+            (False, 1, 0.5, 1),
+        ],
+    )
+    def test_one_child(self, incl_div_edges, tp, te, t_div):
+        matched = ex_graphs.one_child(t_div)
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "t_div", "tp", "te"),
+        [
+            (True, 0, 1, 0.5),
+            (True, 1, 1, 1 / 3),
+            (False, 0, 1, 1),
+            (False, 1, 1, 1),
+        ],
+    )
+    def test_no_children(self, incl_div_edges, tp, te, t_div):
+        matched = ex_graphs.no_children(t_div)
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "t_div", "tp", "te"),
+        [
+            (True, 0, 3 / 4, 3 / 5),
+            (True, 1, 2 / 3, 2 / 3),
+            (False, 0, 1, 2 / 3),
+            (False, 1, 1, 1),
+        ],
+    )
+    def test_wrong_child(self, incl_div_edges, tp, te, t_div):
+        matched = ex_graphs.wrong_child(t_div)
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "t_div", "tp", "te"),
+        [
+            (True, 0, 0, 0),
+            (True, 1, 1 / 3, 1 / 3),
+            (False, 0, 0, 0),
+            (False, 1, 1, 1),
+        ],
+    )
+    def test_wrong_children(self, incl_div_edges, tp, te, t_div):
+        matched = ex_graphs.wrong_children(t_div)
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "tp", "te"),
+        [
+            (True, 4 / 5, 4 / 6),
+            (False, 3 / 3, 3 / 4),
+        ],
+    )
+    def test_div_daughter_gap(self, incl_div_edges, tp, te):
+        matched = ex_graphs.div_daughter_gap()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    # @pytest.mark.parametrize(
+    #     ("incl_div_edges", "tp", "te"),
+    #     [
+    #         (True,  2/4, 2/6),
+    #         (False, 2/2, 2/4),
+    #     ]
+    # )
+    # def test_div_daughter_dual_gap(self, incl_div_edges, tp, te):
+    #     matched = ex_graphs.div_daughter_dual_gap()
+    #     metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+    #     results = metric._compute(matched)
+    #     assert results[self.tp] == tp
+    #     assert results[self.te] == te
 
 
 def add_frame(tree):

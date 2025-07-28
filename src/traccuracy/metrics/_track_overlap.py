@@ -17,6 +17,8 @@ from collections import defaultdict
 from itertools import product
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+
 from traccuracy.matchers._base import Matched
 
 from ._base import Metric
@@ -105,4 +107,4 @@ def _calc_overlap_score(
                     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
         total_count += tracklet_length
         max_overlap += max(overlapping_id_to_count.values(), default=0)
-    return max_overlap / total_count if total_count > 0 else -1
+    return max_overlap / total_count if total_count > 0 else np.nan
