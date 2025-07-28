@@ -71,8 +71,8 @@ def get_labels_with_overlap(
     Args:
         gt_frame (np.ndarray): ground truth segmentation for a single frame
         res_frame (np.ndarray): result segmentation for a given frame
-        gt_bboxes (np.ndarray): ground truth bounding boxes for a single frame
-        res_bboxes (np.ndarray): result bounding boxes for a given frame
+        gt_boxes (np.ndarray): ground truth bounding boxes for a single frame
+        res_boxes (np.ndarray): result bounding boxes for a given frame
         gt_labels (np.ndarray): ground truth labels for a single frame
         res_labels (np.ndarray): result labels for a given frame
         overlap (str, optional): Choose between intersection-over-ground-truth (``iogt``)
