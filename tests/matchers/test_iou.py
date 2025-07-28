@@ -28,16 +28,16 @@ class TestStandards:
 
         # Low threshold
         gtcells, rescells = _match_nodes(*data, threshold=0.4)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # Low threshold one_to_one
         gtcells, rescells = _match_nodes(*data, threshold=0.4, one_to_one=True)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # High threshold -- no matches
         gtcells, rescells = _match_nodes(*data, threshold=0.9)
         ex_matches = []
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
     @pytest.mark.parametrize(
         "data",
@@ -51,7 +51,7 @@ class TestStandards:
         ex_matches = []
 
         gtcells, rescells = _match_nodes(*data)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
     @pytest.mark.parametrize(
         "data",
@@ -65,7 +65,7 @@ class TestStandards:
         ex_matches = []
 
         gtcells, rescells = _match_nodes(*data)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
     @pytest.mark.parametrize(
         "data",
@@ -76,16 +76,16 @@ class TestStandards:
         # Low threshold, both match
         ex_matches = [(1, 2), (1, 3)]
         gtcells, rescells = _match_nodes(*data, threshold=0.3)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # High threshold, no match
         ex_matches = []
         gtcells, rescells = _match_nodes(*data, threshold=0.7)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # Low threshold, one to one, only one matches
         gtcells, rescells = _match_nodes(*data, threshold=0.3, one_to_one=True)
-        comp_matches = list(zip(gtcells, rescells))
+        comp_matches = list(zip(gtcells, rescells, strict=False))
         assert ((1, 2) in comp_matches) != ((1, 3) in comp_matches)
 
     @pytest.mark.parametrize(
@@ -97,16 +97,16 @@ class TestStandards:
         # Low threshold, both match
         ex_matches = [(1, 3), (2, 3)]
         gtcells, rescells = _match_nodes(*data, threshold=0.3)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # High threshold, no match
         ex_matches = []
         gtcells, rescells = _match_nodes(*data, threshold=0.7)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # Low threshold, one to one, only one matches
         gtcells, rescells = _match_nodes(*data, threshold=0.3, one_to_one=True)
-        comp_matches = list(zip(gtcells, rescells))
+        comp_matches = list(zip(gtcells, rescells, strict=False))
         assert ((1, 3) in comp_matches) != ((2, 3) in comp_matches)
 
     @pytest.mark.parametrize(
@@ -115,7 +115,7 @@ class TestStandards:
     def test_multiple_objects(self, data):
         ex_matches = [(1, 3)]
         gtcells, rescells = _match_nodes(*data)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
     @pytest.mark.parametrize(
         "data", [ex_segs.no_overlap_2d(), ex_segs.no_overlap_3d()], ids=["2D", "3D"]
@@ -123,7 +123,7 @@ class TestStandards:
     def test_no_overlap(self, data):
         ex_matches = []
         gtcells, rescells = _match_nodes(*data)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
     def test_input_error(self):
         im = np.zeros((10, 10))
@@ -140,7 +140,7 @@ class TestStandards:
         """test when the segmentation ids are high numbers (the lower numbers should never appear)
         At one point dummy nodes introduced from padding the iou matrix were appearing in the final
         matching
-        See https://github.com/Janelia-Trackathon-2023/traccuracy/pull/173#discussion_r1882231345
+        See https://github.com/live-image-tracking-tools/traccuracy/pull/173#discussion_r1882231345
         """
         gt, pred = data[0], data[1]
         # Change id of segmentation to non sequntial high value
@@ -149,11 +149,11 @@ class TestStandards:
 
         ex_matches = []
         gtcells, rescells = _match_nodes(gt, pred)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
         # Check case with one to one threshold 0
         gtcells, rescells = _match_nodes(gt, pred)
-        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells)))
+        assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
 
 def test__construct_time_to_seg_id_map():
@@ -177,15 +177,27 @@ def test__construct_time_to_seg_id_map():
 class Test_match_iou:
     def test_bad_input(self):
         # Bad input
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="Input data must be a TrackingData object with a graph and segmentations",
+        ):
             match_iou("not tracking data", "not tracking data")
 
     def test_bad_shapes(self):
         # shapes don't match
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Segmentation shapes must match between gt and pred"):
             match_iou(
                 TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 10, 10), dtype=np.uint16)),
                 TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 10, 5), dtype=np.uint16)),
+            )
+
+    def test_no_segmentation(self):
+        with pytest.raises(
+            ValueError, match="TrackingGraph must contain a segmentation array for IoU matching"
+        ):
+            match_iou(
+                TrackingGraph(nx.DiGraph()),
+                TrackingGraph(nx.DiGraph()),
             )
 
     def test_end_to_end_2d(self):

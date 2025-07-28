@@ -15,11 +15,11 @@ from traccuracy._tracking_graph import TrackingGraph
 logger = logging.getLogger(__name__)
 
 
-def _load_tiffs(data_dir):
+def _load_tiffs(data_dir: str) -> np.ndarray:
     """Load a directory of individual frames into a stack.
 
     Args:
-        data_dir (Path): Path to directory of tiff files
+        data_dir (str): Path to directory of tiff files
 
     Raises:
         FileNotFoundError: No tif files found in data_dir
@@ -37,7 +37,7 @@ def _load_tiffs(data_dir):
 
     if dtype.kind not in ["i", "u"]:
         warn(f"Segmentation has {dtype}: casting to uint64", stacklevel=2)
-        dtype = np.uint64
+        dtype = np.dtype(np.uint64)
     stack = np.zeros(shape=shape, dtype=dtype)
     stack[0] = first_im.astype(dtype, copy=False)
 
@@ -47,7 +47,7 @@ def _load_tiffs(data_dir):
     return stack
 
 
-def _detections_from_image(stack, idx):
+def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     """Return the unique track label, centroid and time for each track vertex.
 
     Args:
@@ -62,7 +62,7 @@ def _detections_from_image(stack, idx):
     return pd.DataFrame(props)
 
 
-def _get_node_attributes(masks):
+def _get_node_attributes(masks: np.ndarray) -> pd.DataFrame:
     """Calculates x,y,z,t,label for each detection in a movie.
 
     Args:
@@ -72,26 +72,33 @@ def _get_node_attributes(masks):
         pd.DataFrame: Dataframe with one detection per row. Columns
             segmentation_id, x, y, z, t
     """
+    if len(masks.shape) == 4:
+        columns = {
+            "label": "segmentation_id",
+            "centroid-2": "x",
+            "centroid-1": "y",
+            "centroid-0": "z",
+        }
+    else:
+        columns = {
+            "label": "segmentation_id",
+            "centroid-1": "x",
+            "centroid-0": "y",
+        }
+
     data_df = pd.concat(
         [
             _detections_from_image(masks, idx)
             for idx in tqdm(range(masks.shape[0]), desc="Computing node attributes")
         ],
     ).reset_index(drop=True)
-    data_df = data_df.rename(
-        columns={
-            "label": "segmentation_id",
-            "centroid-2": "z",
-            "centroid-1": "y",
-            "centroid-0": "x",
-        }
-    )
+    data_df = data_df.rename(columns=columns)
     data_df["segmentation_id"] = data_df["segmentation_id"].astype(int)
     data_df["t"] = data_df["t"].astype(int)
     return data_df
 
 
-def ctc_to_graph(df, detections):
+def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     """Create a Graph from DataFrame of CTC info with node attributes.
 
     Args:
@@ -100,7 +107,7 @@ def ctc_to_graph(df, detections):
             and segmentation label for each cell detection
 
     Returns:
-        networkx.Graph: Graph representation of the CTC data.
+        networkx.DiGraph: Graph representation of the CTC data.
     """
     edges = []
 
@@ -144,15 +151,16 @@ def ctc_to_graph(df, detections):
     detections = detections.set_index("node_id")
 
     attributes = {}
-    for row in detections.itertuples():
-        row = row._asdict()
-        i = row["Index"]
-        del row["Index"]
-        attributes[i] = row
+    for row_tp in detections.itertuples():
+        # Pandas thinks the itertuple return type can be essentially anything
+        row_dict = row_tp._asdict()  # type: ignore
+        i = row_dict["Index"]
+        del row_dict["Index"]
+        attributes[i] = row_dict
 
     # Create graph
-    edges = pd.concat(edges)
-    G = nx.from_pandas_edgelist(edges, source="source", target="target", create_using=nx.DiGraph)
+    edge_df = pd.concat(edges)
+    G = nx.from_pandas_edgelist(edge_df, source="source", target="target", create_using=nx.DiGraph)
 
     # Add all isolates to graph
     for cell_id in single_nodes:
@@ -163,7 +171,7 @@ def ctc_to_graph(df, detections):
     return G
 
 
-def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray):
+def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray) -> None:
     """Sanity checks for valid CTC format.
 
     Hard checks (throws exception):
@@ -217,7 +225,9 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
             logger.warning(f"{n_components - n_labels} non-connected masks at t={t}.")
 
 
-def load_ctc_data(data_dir, track_path=None, name=None, run_checks=True):
+def load_ctc_data(
+    data_dir: str, track_path: str | None = None, name: str | None = None, run_checks: bool = True
+) -> TrackingGraph:
     """Read the CTC segmentations and track file and create TrackingData.
 
     Args:
@@ -266,4 +276,11 @@ def load_ctc_data(data_dir, track_path=None, name=None, run_checks=True):
             "Consider setting `run_checks=True` for detailed error message."
         ) from e
 
-    return TrackingGraph(G, segmentation=masks, name=name)
+    # Check dimensionality of segmentation data to set the location keys
+    loc_keys: tuple[str, ...]
+    if len(masks.shape) == 4:
+        loc_keys = ("z", "y", "x")
+    else:
+        loc_keys = ("y", "x")
+
+    return TrackingGraph(G, segmentation=masks, name=name, location_keys=loc_keys)

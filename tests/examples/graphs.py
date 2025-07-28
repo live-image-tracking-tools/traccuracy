@@ -18,32 +18,15 @@ def test_fn_node(i):
 """
 
 
-def basic_graph(node_ids=(1, 2, 3), y_offset=0, frame_key="t", location_keys=("y")):
-    nodes = [
-        (
-            node_ids[0],
-            {
-                frame_key: 0,
-                location_keys[0]: 0 + y_offset,
-            },
-        ),
-        (
-            node_ids[1],
-            {
-                frame_key: 1,
-                location_keys[0]: 0 + y_offset,
-            },
-        ),
-        (
-            node_ids[2],
-            {
-                frame_key: 2,
-                location_keys[0]: 0 + y_offset,
-            },
-        ),
-    ]
+def basic_graph(node_ids=(1, 2, 3), y_offset=0, t_offset=0, frame_key="t", location_keys=("y")):
+    nodes = []
+    for t, node in enumerate(node_ids):
+        nodes.append((node, {frame_key: t + t_offset, location_keys[0]: 0 + y_offset}))
 
-    edges = [(node_ids[0], node_ids[1]), (node_ids[1], node_ids[2])]
+    edges = []
+    for i in range(len(node_ids) - 1):
+        edges.append((node_ids[i], node_ids[i + 1]))
+
     graph = nx.DiGraph()
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
@@ -204,6 +187,93 @@ def edge_two_to_one(time):  # 0 or 1
     elif time == 1:
         mapping.extend([(5, 8), (6, 9)])
     return Matched(gt, pred, mapping, {})
+
+
+def gap_close_gt_gap():
+    gt = basic_graph(node_ids=(1, 2, 3, 4)).graph
+    pred = basic_graph(node_ids=(5, 6, 7, 8), y_offset=-1)
+
+    # Ablate node 2 from gt
+    gt.remove_node(2)
+    gt.add_edge(1, 3)
+    gt = TrackingGraph(gt, location_keys=("y"))
+
+    mapping = [(1, 5), (3, 7), (4, 8)]
+    return Matched(gt, pred, mapping, {})
+
+
+def gap_close_pred_gap():
+    gt = basic_graph(node_ids=(1, 2, 3, 4))
+    pred = basic_graph(node_ids=(5, 6, 7, 8), y_offset=-1).graph
+
+    # Remove pred node 7 to create gap
+    pred.remove_node(7)
+    pred.add_edge(6, 8)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 5), (2, 6), (4, 8)]
+    return Matched(gt, pred, mapping, {})
+
+
+def gap_close_matched_gap():
+    gt = basic_graph(node_ids=(1, 2, 3, 4)).graph
+    pred = basic_graph(node_ids=(5, 6, 7, 8), y_offset=-1).graph
+
+    gt.remove_node(2)
+    gt.add_edge(1, 3)
+    pred.remove_node(6)
+    pred.add_edge(5, 7)
+
+    mapping = [(1, 5), (3, 7), (4, 8)]
+    return Matched(
+        TrackingGraph(gt, location_keys=("y")),
+        TrackingGraph(pred, location_keys=("y")),
+        mapping,
+        {},
+    )
+
+
+def gap_close_offset():
+    gt = basic_graph(node_ids=(1, 2, 3, 4)).graph
+    pred = basic_graph(node_ids=(5, 6, 7, 8), y_offset=-1).graph
+
+    gt.remove_node(2)
+    gt.add_edge(1, 3)
+    pred.remove_node(7)
+    pred.add_edge(6, 8)
+
+    mapping = [(1, 5), (4, 8)]
+    return Matched(
+        TrackingGraph(gt, location_keys=("y")),
+        TrackingGraph(pred, location_keys=("y")),
+        mapping,
+        {},
+    )
+
+
+def all_basic_errors():
+    gt = basic_graph(node_ids=range(1, 11), t_offset=1).graph
+    pred = basic_graph(node_ids=range(11, 21), y_offset=0.75).graph
+
+    # Create skip edges in gt
+    gt.remove_node(4)
+    gt.add_edge(3, 5)
+    gt.remove_node(8)
+    gt.add_edge(7, 9)
+
+    # Create pred skip edges
+    pred.remove_node(14)
+    pred.add_edge(13, 15)
+    pred.remove_node(17)
+    pred.add_edge(16, 18)
+
+    mapping = [(1, 12), (2, 13), (5, 16), (7, 18), (9, 20)]
+    return Matched(
+        TrackingGraph(gt, location_keys=("y")),
+        TrackingGraph(pred, location_keys=("y")),
+        mapping,
+        {},
+    )
 
 
 def get_division_graphs():
@@ -374,7 +444,7 @@ def good_div(t_div):
     gt = basic_division(t_div)
     start_id = max(gt.graph.nodes) + 1
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
-    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     return Matched(gt, pred, mapping, {})
 
 
@@ -384,7 +454,7 @@ def fp_div(t_div):
     gt = basic_division(t_div)
     start_id = max(gt.graph.nodes) + 1
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
-    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     if t_div == 0:
         gt.graph.remove_edge(1, 2)
     elif t_div == 1:
@@ -398,7 +468,7 @@ def one_child(t_div):
     gt = basic_division(t_div)
     start_id = max(gt.graph.nodes) + 1
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
-    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     pred.graph.remove_edge(6, 7)
     return Matched(gt, pred, mapping, {})
 
@@ -409,7 +479,7 @@ def no_children(t_div):
     gt = basic_division(t_div)
     start_id = max(gt.graph.nodes) + 1
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
-    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     pred.graph.remove_edge(6, 7)
     pred.graph.remove_edge(6, 8)
     return Matched(gt, pred, mapping, {})
@@ -435,7 +505,7 @@ def wrong_child(t_div):
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
 
     # mapping of the two basic div graphs
-    mapping = list(zip(range(1, child_start_id + 1), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, child_start_id + 1), range(start_id, start_id * 2), strict=False))
     # remove mapping to one of the correct daughters and add to wrong daughter
     if t_div == 0:
         mapping.remove((3, 10))
@@ -456,7 +526,7 @@ def wrong_children(t_div):
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
 
     # mapping of the two basic div graphs
-    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2)))
+    mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     # remove mapping between daughters
     if t_div == 0:
         mapping.remove((3, 8))
@@ -573,4 +643,33 @@ def div_shift_bad_match_daughter():
     start_id = max(gt.nodes) + 1
     pred = longer_division(2, start_id=start_id, y_offset=0.75)
     mapping = [(2, 10), (7, 14), (8, 15)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_parent_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove parent node from prediction
+    pred.remove_node(10)
+    # Add gap closing edges to daughters
+    pred.add_edges_from([(9, 11), (9, 12)])
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (4, 11), (5, 12), (6, 13), (7, 14)]
+    return Matched(gt, pred, mapping, {})
+
+
+def div_daughter_gap():
+    gt = longer_division(2)
+    start_id = max(gt.nodes) + 1
+    pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Remove one daughter node from prediction
+    pred.remove_node(11)
+    pred.add_edge(10, 13)
+    pred = TrackingGraph(pred, location_keys=("y"))
+
+    mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (6, 13), (7, 14)]
     return Matched(gt, pred, mapping, {})

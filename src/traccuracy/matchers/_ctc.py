@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING
 from tqdm import tqdm
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    import numpy as np
+
     from traccuracy._tracking_graph import TrackingGraph
 
 from ._base import Matcher
@@ -27,7 +31,9 @@ class CTCMatcher(Matcher):
     # CTC can return many-to-one or one-to-one
     _matching_type = None
 
-    def _compute_mapping(self, gt_graph: TrackingGraph, pred_graph: TrackingGraph):
+    def _compute_mapping(
+        self, gt_graph: TrackingGraph, pred_graph: TrackingGraph
+    ) -> list[tuple[Hashable, Hashable]]:
         """Run ctc matching
 
         Args:
@@ -90,8 +96,10 @@ class CTCMatcher(Matcher):
         return mapping
 
 
-def match_frame_majority(gt_frame, pred_frame):
-    mapping = []
+def match_frame_majority(
+    gt_frame: np.ndarray, pred_frame: np.ndarray
+) -> list[tuple[Hashable, Hashable]]:
+    mapping: list[tuple[Hashable, Hashable]] = []
     overlaps = get_labels_with_overlap(gt_frame, pred_frame, overlap="iogt")
 
     for gt_label, pred_label, iogt in overlaps:

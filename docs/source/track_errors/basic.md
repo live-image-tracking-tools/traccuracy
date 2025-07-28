@@ -1,9 +1,13 @@
-# %% [markdown]
-# # Basic Errors
-#
-# This set of node and edge errors applies only to graphs with a one-to-one matching.
+---
+file_format: mystnb
+mystnb:
+    remove_code_source: True
+---
+# Basic Errors
 
-# %% nbsphinx="hidden"
+This set of node and edge errors applies only to graphs with a one-to-one matching.
+
+```{code-cell} ipython3
 import sys
 
 sys.path.append("../../../tests")
@@ -104,55 +108,54 @@ def plot_matched(examples, annotations, suptitle, titles):
     plt.tight_layout()
     fig.suptitle(suptitle, y=1.1)
     plt.show()
+```
+
+## Nodes
+### True Positive
+A true positive node is defined as a predicted node that matches to only one
+ground truth node. Additionally, the corresponding ground truth node cannot be
+matched to more than one predicted node. True positives are annotated on both
+the ground truth and the division graph.
 
 
-# %% [markdown]
-# ## Nodes
-# ### True Positive
-# A true positive node is defined as a predicted node that matches to only one
-# ground truth node. Additionally, the corresponding ground truth node cannot be
-# matched to more than one predicted node. True positives are annotated on both
-# the ground truth and the division graph.
+### False Positive
+A false positive node is a node on the predicted graph does not match to a
+node on the ground truth graph. False positives are annotated on the predicted
+graph.
 
-# %% [markdown]
-# ### False Positive
-# A false positive node is a node on the predicted graph does not match to a
-# node on the ground truth graph. False positives are annotated on the predicted
-# graph.
-
-# %%
+```{code-cell} ipython3
 plot_matched([ex_graphs.fp_edge_matched(1)], [{7: "FP", 8: "FP"}], "", [""])
+```
 
-# %% [markdown]
-# ### False Negative
-# A false negative node is a node on the ground truth graph that is not matched
-# to a predicted node. False negatives are annotated on the ground truth graph.
+### False Negative
+A false negative node is a node on the ground truth graph that is not matched
+to a predicted node. False negatives are annotated on the ground truth graph.
 
-# %%
+```{code-cell} ipython3
 plot_matched([ex_graphs.fn_node_matched(2)], [{3: "FN"}], "", [""])
+```
 
 
-# %% [markdown]
-# ## Edges
-# ### True Positive
-# An edge in the ground truth is a true positive edge if both source and target
-# node are true positives and the corresponding edge is present in the
-# prediction. True positive edges are annotated on both the ground truth and the
-# predicted graph.
-
-# %% [markdown]
-# ### False Positive
-# False positive edges occur in and are annotated on the predicted graph. A
-# false positive edge can occur in several different scenarios when the edge
-# fails to meet the criteria for a true positive.
-#
-# - Ex 1: Nodes 7 and 8 are not matched to any node in the GT.
-# - Ex 2: While Nodes 5 and 6 are matched to nodes in the GT, an edge does not
-#   exist between the corresponding GT nodes 2 and 3.
-# - Ex 3: Node 6 is not matched to a node in the GT.
+## Edges
+### True Positive
+An edge in the ground truth is a true positive edge if both source and target
+node are true positives and the corresponding edge is present in the
+prediction. True positive edges are annotated on both the ground truth and the
+predicted graph.
 
 
-# %% nbsphinx="hidden"
+### False Positive
+False positive edges occur in and are annotated on the predicted graph. A
+false positive edge can occur in several different scenarios when the edge
+fails to meet the criteria for a true positive.
+
+- Ex 1: Nodes 7 and 8 are not matched to any node in the GT.
+- Ex 2: While Nodes 5 and 6 are matched to nodes in the GT, an edge does not
+  exist between the corresponding GT nodes 2 and 3.
+- Ex 3: Node 6 is not matched to a node in the GT.
+
+
+```{code-cell} ipython3
 def fp_node_match():
     matched = ex_graphs.good_matched()
     matched.gt_graph.graph.remove_edge(2, 3)
@@ -164,9 +167,9 @@ def fp_node_not_matched():
     mapping = matched.mapping
     mapping.remove((3, 6))
     return Matched(matched.gt_graph, matched.pred_graph, mapping, {})
+```
 
-
-# %%
+```{code-cell} ipython3
 plot_matched(
     [
         ex_graphs.fp_edge_matched(1),
@@ -177,15 +180,16 @@ plot_matched(
     "",
     ["Ex. 1", "Ex. 2", "Ex. 3"],
 )
+```
 
-# %% [markdown]
-# ### False Negative
-# A false negative edge can occur in the ground truth graph when:
-#
-# - One or both of the nodes is not a true positive and matched to a node in the
-#   prediction
-# - The matched nodes in the prediction do not also have an edge between them
-# %%
+### False Negative
+A false negative edge can occur in the ground truth graph when:
+
+- One or both of the nodes is not a true positive and matched to a node in the
+  prediction
+- The matched nodes in the prediction do not also have an edge between them
+
+```{code-cell} ipython3
 plot_matched(
     [
         ex_graphs.fn_edge_matched(0),
@@ -196,3 +200,34 @@ plot_matched(
     "",
     ["", "", ""],
 )
+```
+
+### Gap-Closing Edges
+Gap-closing edges will be annotated as False Positive on the predicted graph
+and False Negative on the ground truth graph unless both graphs contain an
+identical gap-closing edge. Similarly, gap-closing edges on the predicted
+graph that do not exist in the ground truth graph will be annotated as False
+Positive, with corresponding False Negative annotations on the ground truth.
+
+- Ex 1: The gap-closing edges are identical, they will be marked TP.
+- Ex 2: The GT gap-closing edge is not present in the prediction. It is
+  annotated as FN. Predicted edges are FP.
+- Ex 3: The predicted gap-closing edge is not present in the GT. It is
+ annotated as FP. GT edges are FN.
+
+```{code-cell} ipython3
+plot_matched(
+    [
+        ex_graphs.gap_close_matched_gap(),
+        ex_graphs.gap_close_gt_gap(),
+        ex_graphs.gap_close_pred_gap(),
+    ],
+    [
+        {},
+        {(1, 3): "FN", (5, 6): "FP", (6, 7): "FP"},
+        {(2, 3): "FN", (3, 4): "FN", (6, 8): "FP"},
+    ],
+    "",
+    ["Ex. 1", "Ex. 2", "Ex. 3"],
+)
+```

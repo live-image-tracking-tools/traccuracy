@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -49,18 +49,19 @@ def _match_nodes(
     if one_to_one:
         pairs = _one_to_one_assignment(iou)
     else:
-        pairs = np.where(iou)
+        # np.where returns tuple[ndarray[Any, dtype[signedinteger[Any]]], ...]
+        # this is functionally equivalent to a normal tuple of arrays so we need
+        # to cast to match the return type of _one_to_one_assignment
+        pairs = cast("tuple[np.ndarray, np.ndarray]", np.where(iou))
 
-    # Catch the case where there are no overlaps
-    if len(pairs) < 2:
-        gtcells, rescells = [], []
-    else:
-        gtcells, rescells = pairs[0], pairs[1]
+    gtcells, rescells = pairs[0], pairs[1]
 
     return gtcells, rescells
 
 
-def _one_to_one_assignment(iou, unmapped_cost=4):
+def _one_to_one_assignment(
+    iou: np.ndarray, unmapped_cost: int = 4
+) -> tuple[np.ndarray, np.ndarray]:
     """Perform linear assignment on the iou matrix to create a one-to-one
     mapping
 
@@ -140,7 +141,9 @@ def _construct_time_to_seg_id_map(
     return time_to_seg_id_map
 
 
-def match_iou(gt, pred, threshold=0.6, one_to_one=False):
+def match_iou(
+    gt: TrackingGraph, pred: TrackingGraph, threshold: float = 0.6, one_to_one: bool = False
+) -> list[tuple[Hashable, Hashable]]:
     """Identifies pairs of cells between gt and pred that have iou > threshold
 
     This can return more than one match for any node
@@ -164,13 +167,16 @@ def match_iou(gt, pred, threshold=0.6, one_to_one=False):
     if not isinstance(gt, TrackingGraph) or not isinstance(pred, TrackingGraph):
         raise ValueError("Input data must be a TrackingData object with a graph and segmentations")
 
-    mapper = []
+    if gt.segmentation is None or pred.segmentation is None:
+        raise ValueError("TrackingGraph must contain a segmentation array for IoU matching")
 
     if gt.segmentation.shape != pred.segmentation.shape:
         raise ValueError("Segmentation shapes must match between gt and pred")
 
+    mapper = []
+
     # Get overlaps for each frame
-    frame_range = range(gt.start_frame, gt.end_frame)
+    frame_range = range(gt.segmentation.shape[0])
     total = len(list(frame_range))
 
     gt_time_to_seg_id_map = _construct_time_to_seg_id_map(gt)
@@ -184,7 +190,7 @@ def match_iou(gt, pred, threshold=0.6, one_to_one=False):
             one_to_one=one_to_one,
         )
         # Construct node id tuple for each match
-        for gt_seg_id, pred_seg_id in zip(*matches):
+        for gt_seg_id, pred_seg_id in zip(*matches, strict=True):
             # Find node id based on time and segmentation label
             gt_node = gt_time_to_seg_id_map[t][gt_seg_id]
             pred_node = pred_time_to_seg_id_map[t][pred_seg_id]
@@ -203,7 +209,7 @@ class IOUMatcher(Matcher):
             linear assignment on the thresholded iou array. Default False.
     """
 
-    def __init__(self, iou_threshold=0.6, one_to_one=False):
+    def __init__(self, iou_threshold: float = 0.6, one_to_one: bool = False):
         self.iou_threshold = iou_threshold
         self.one_to_one = one_to_one
 
@@ -211,7 +217,9 @@ class IOUMatcher(Matcher):
         if one_to_one or iou_threshold > 0.5:
             self._matching_type = "one-to-one"
 
-    def _compute_mapping(self, gt_graph: TrackingGraph, pred_graph: TrackingGraph):
+    def _compute_mapping(
+        self, gt_graph: TrackingGraph, pred_graph: TrackingGraph
+    ) -> list[tuple[Hashable, Hashable]]:
         """Computes IOU mapping for a set of grpahs
 
         Args:

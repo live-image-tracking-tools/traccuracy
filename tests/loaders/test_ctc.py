@@ -8,6 +8,7 @@ import pytest
 import tifffile
 from numpy.testing import assert_array_equal
 
+from tests.examples.segs import multicell_3d
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.loaders import _ctc, _load_tiffs
 
@@ -71,6 +72,23 @@ def test_ctc_single_nodes():
     TrackingGraph(G)
 
 
+def test_ctc_with_gap_closing():
+    data = [
+        {"Cell_ID": 1, "Start": 0, "End": 1, "Parent_ID": 0},
+        {"Cell_ID": 2, "Start": 0, "End": 1, "Parent_ID": 0},
+        # Connecting frame 1 to frame 3
+        {"Cell_ID": 3, "Start": 3, "End": 5, "Parent_ID": 1},
+        # Connecting frame 1 to frame 6
+        {"Cell_ID": 4, "Start": 6, "End": 8, "Parent_ID": 2},
+    ]
+    df = pd.DataFrame(data)
+    G = _ctc.ctc_to_graph(
+        df, pd.DataFrame({"segmentation_id": [], "x": [], "y": [], "z": [], "t": []})
+    )
+    assert G.has_edge("1_1", "3_3")
+    assert G.has_edge("2_1", "4_6")
+
+
 def test_load_data():
     test_dir = os.path.abspath(__file__)
     data_dir = os.path.abspath(
@@ -107,3 +125,20 @@ def test_load_tiffs_float_data(tmp_path):
     orig_seg = _load_tiffs(data_dir)
     assert casted_seg.dtype == np.uint64
     assert_array_equal(casted_seg.astype(orig_seg.dtype), orig_seg)
+
+
+def test_3d_data(tmpdir):
+    nframes = 3
+    gt, _ = multicell_3d()
+    seg_array = np.repeat(gt[np.newaxis], repeats=nframes, axis=0)
+    for frame in range(nframes):
+        tifffile.imwrite(tmpdir / f"mask00{frame}.tif", seg_array[frame])
+
+    # Save tracking data
+    df = pd.DataFrame({"Cell_ID": [1, 2], "Start": [0, 0], "End": [2, 2], "Parent_ID": [0, 0]})
+    df.to_csv(os.path.join(tmpdir, "res_track.txt"), header=None, sep=" ", index=False)
+
+    track_graph = _ctc.load_ctc_data(tmpdir)
+
+    # Check that when we get the location we get all 3 dims
+    assert len(track_graph.get_location("1_0")) == 3

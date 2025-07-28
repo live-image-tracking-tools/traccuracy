@@ -130,7 +130,7 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
             for i in range(1, n_labels + 1):
                 G.add_edge(f"{i}_{t - 1}", f"{i}_{t}")
 
-    return TrackingGraph(G, segmentation=movie)
+    return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
 
 
 def get_division_graphs():

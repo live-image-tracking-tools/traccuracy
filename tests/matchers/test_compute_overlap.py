@@ -14,7 +14,7 @@ def test_get_labels_with_overlap(overlap):
     empty_image = get_annotated_image(img_size=256, num_labels=0, sequential=True, seed=1)
 
     ious = get_labels_with_overlap(image1, image1, overlap)
-    gt, res, iou = tuple(zip(*ious))
+    gt, res, iou = tuple(zip(*ious, strict=False))
     assert gt == tuple(range(1, n_labels + 1))
     assert res == tuple(range(1, n_labels + 1))
     assert iou == (1.0,) * n_labels

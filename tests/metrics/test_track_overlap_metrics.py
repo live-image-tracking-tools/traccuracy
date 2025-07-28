@@ -1,13 +1,14 @@
 from copy import deepcopy
 
 import networkx as nx
+import numpy as np
 import pytest
 
+from tests.examples import graphs as ex_graphs
 from traccuracy import TrackingGraph
 from traccuracy.matchers import Matched
 from traccuracy.metrics._track_overlap import TrackOverlapMetrics
-import tests.examples.graphs as ex_graphs
-import numpy as np
+
 
 class TestStandardOverlapMetrics:
     tp = "track_purity"
@@ -38,11 +39,15 @@ class TestStandardOverlapMetrics:
         assert results[self.te] == 1
 
     @pytest.mark.parametrize(
-        ("t", "incl_div_edges", "tp", "te"), 
-        [(0, True, 1, 0.5), (0, False, 1, 0.5),
-         (1, True, 0, 0), (1, False, 0, 0),
-         (2, True, 1, 0.5), (2, False, 1, 0.5)
-        ]
+        ("t", "incl_div_edges", "tp", "te"),
+        [
+            (0, True, 1, 0.5),
+            (0, False, 1, 0.5),
+            (1, True, 0, 0),
+            (1, False, 0, 0),
+            (2, True, 1, 0.5),
+            (2, False, 1, 0.5),
+        ],
     )
     def test_fn_node(self, t, incl_div_edges, tp, te):
         matched = ex_graphs.fn_node_matched(t)
@@ -51,12 +56,15 @@ class TestStandardOverlapMetrics:
 
         assert results[self.tp] == tp
         assert results[self.te] == te
-    
+
     @pytest.mark.parametrize(
-        ("edge_er", "incl_div_edges", "tp", "te"), 
-        [(0, True, 1, 0.5), (0, False, 1, 0.5),
-         (1, True, 1, 0.5), (1, False, 1, 0.5),
-        ]
+        ("edge_er", "incl_div_edges", "tp", "te"),
+        [
+            (0, True, 1, 0.5),
+            (0, False, 1, 0.5),
+            (1, True, 1, 0.5),
+            (1, False, 1, 0.5),
+        ],
     )
     def test_fn_edge(self, edge_er, incl_div_edges, tp, te):
         matched = ex_graphs.fn_edge_matched(edge_er)
@@ -66,11 +74,15 @@ class TestStandardOverlapMetrics:
         assert results[self.te] == te
 
     @pytest.mark.parametrize(
-        ("t", "incl_div_edges", "tp", "te"), 
-        [(0, True, 0.75, 1), (0, False, 0.75, 1),
-         (1, True, 0.75, 1), (1, False, 0.75, 1),
-         (2, True, 0.75, 1), (2, False, 0.75, 1),
-        ]
+        ("t", "incl_div_edges", "tp", "te"),
+        [
+            (0, True, 0.75, 1),
+            (0, False, 0.75, 1),
+            (1, True, 0.75, 1),
+            (1, False, 0.75, 1),
+            (2, True, 0.75, 1),
+            (2, False, 0.75, 1),
+        ],
     )
     def test_fp_node(self, t, incl_div_edges, tp, te):
         matched = ex_graphs.fp_node_matched(t)
@@ -79,12 +91,15 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
-    
+
     @pytest.mark.parametrize(
-        ("edge_er", "incl_div_edges", "tp", "te"), 
-        [(0, True, 2/3, 1), (0, False, 2/3, 1),
-         (1, True, 2/3, 1), (1, False, 2/3, 1),
-        ]
+        ("edge_er", "incl_div_edges", "tp", "te"),
+        [
+            (0, True, 2 / 3, 1),
+            (0, False, 2 / 3, 1),
+            (1, True, 2 / 3, 1),
+            (1, False, 2 / 3, 1),
+        ],
     )
     def test_fp_edge(self, edge_er, incl_div_edges, tp, te):
         matched = ex_graphs.fp_edge_matched(edge_er)
@@ -93,10 +108,9 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
-    
+
     @pytest.mark.parametrize(
-        ("incl_div_edges", "tp", "te"), 
-        [(True, 0.5, 0.25), (False, 0.5, 0.25)]
+        ("incl_div_edges", "tp", "te"), [(True, 0.5, 0.25), (False, 0.5, 0.25)]
     )
     def test_crossover(self, incl_div_edges, tp, te):
         matched = ex_graphs.crossover_edge()
@@ -111,7 +125,6 @@ class TestStandardOverlapMetrics:
     # ex_graphs.edge_two_to_one
     # ex_graphs.node_one_to_two
     # ex_graphs.edge_one_to_two
-
 
 
 def add_frame(tree):
@@ -284,3 +297,67 @@ def test_track_overlap_metrics(data, inverse) -> None:
             "target_effectiveness": expected["track_purity"],
         }
     assert results == expected, f"{data['name']} failed without division edges"
+
+
+@pytest.mark.parametrize(
+    ["graph", "expected_purity", "expected_effectiveness"],
+    [
+        # purity: there are three edges in pred graph, and only one is in GT
+        # because GT edge 1 -> 3 means we expect pred edge 5 -> 7
+        # but pred holds 5 -> 6 -> 7
+        # effectiveness: there are two edges in GT graph, and only one is in pred
+        # because pred edges 5 -> 6 and 6 -> 7 means we expect GT edges
+        # 1 -> ? and ? -> 3, but GT holds 1 -> 3
+        (ex_graphs.gap_close_gt_gap, 1 / 3, 1 / 2),
+        # there are two edges in pred graph, and only one matches GT
+        # both cases are opposite to the previous test
+        (ex_graphs.gap_close_pred_gap, 1 / 2, 1 / 3),
+        # there are two edges in both graphs, but the gaps are offset.
+        # there are no overlapping edges
+        (ex_graphs.gap_close_offset, 0, 0),
+        # identical graphs, perfect overlap
+        (ex_graphs.gap_close_matched_gap, 1, 1),
+    ],
+)
+def test_track_overlap_gap_close(graph, expected_purity, expected_effectiveness):
+    matched = graph()
+    metric = TrackOverlapMetrics()
+    results = metric.compute(matched)
+
+    assert results.results["track_purity"] == expected_purity
+    assert results.results["target_effectiveness"] == expected_effectiveness
+
+
+@pytest.mark.parametrize(
+    ["graph", "include_div_edges", "expected_purity", "expected_effectiveness"],
+    [
+        # 6 edges in GT, 5 edges in pred
+        # 3 of the 5 pred edges are maximally overlapping a GT tracklet
+        # 3 of the 6 GT edges are maximally overlapping a pred tracklet
+        (ex_graphs.div_parent_gap, True, 3 / 5, 3 / 6),
+        # removed branch edges
+        # 3 of the 3 pred edges are maximally overlapping a GT tracklet
+        # 3 of the 4 GT edges are maximally overlapping a pred tracklet
+        (ex_graphs.div_parent_gap, False, 3 / 3, 3 / 4),
+        # 6 edges in GT, 5 edges in pred, one of them is a branch edge
+        # 4 of the edges in pred are maximally overlapping a GT tracklet
+        # (all edges of the two non-skip tracklets)
+        # 4 of the 6 GT edges are maximally overlapping a pred tracklet
+        # (the branch skip edge leads to 2 non-overlapped GT edges)
+        (ex_graphs.div_daughter_gap, True, 4 / 5, 4 / 6),
+        # removed branch edges, means we only have two tracklets in pred
+        # 3 pred edges are maximally overlapping a GT tracklet
+        # 3 GT edges are maximally overlapping a pred tracklet
+        # one tracklet of one edge fully unmatched
+        (ex_graphs.div_daughter_gap, False, 3 / 3, 3 / 4),
+    ],
+)
+def test_track_overlap_gap_close_divisions(
+    graph, include_div_edges, expected_purity, expected_effectiveness
+):
+    matched = graph()
+    metric = TrackOverlapMetrics(include_division_edges=include_div_edges)
+    results = metric.compute(matched)
+
+    assert results.results["track_purity"] == expected_purity
+    assert results.results["target_effectiveness"] == expected_effectiveness

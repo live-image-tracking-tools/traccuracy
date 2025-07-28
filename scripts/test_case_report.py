@@ -69,6 +69,14 @@ GROUPS = {
             "div_shift_bad_match_pred",
             "div_shift_bad_match_daughter",
         ],
+        "gap closing": [
+            "gap_close_gt_gap",
+            "gap_close_pred_gap",
+            "gap_close_matched_gap",
+            "gap_close_offset",
+            "div_parent_gap",
+            "div_daughter_gap",
+        ],
     },
     "matchers": {
         "2d": [
@@ -226,7 +234,7 @@ if __name__ == "__main__":
         len(param_sets),
         figsize=(len(param_sets) * max(maxcols) * 2, max(maxrows) / 4),
     )
-    for df, (name, _), ax in zip(dfs, param_sets, axes):
+    for df, (name, _), ax in zip(dfs, param_sets, axes, strict=False):
         plot_heatmap(df, name, ax, GROUPS[name])
 
     plt.tight_layout()

@@ -72,7 +72,7 @@ class Matcher(ABC):
         raise NotImplementedError
 
     @property
-    def info(self):
+    def info(self) -> dict[str, Any]:
         """Dictionary of Matcher name and any parameters"""
         info = {"name": self.__class__.__name__, **self.__dict__}
         if self._matching_type:
@@ -120,7 +120,7 @@ class Matched:
         self._matching_type = self.matcher_info.get("matching type")
 
     @property
-    def matching_type(self):
+    def matching_type(self) -> str:
         """Determines the matching type from gt to pred:
         one-to-one, one-to-many, many-to-one, many-to-many"""
         if self._matching_type is not None:
@@ -145,7 +145,7 @@ class Matched:
         self.matcher_info["matching type"] = self._matching_type
         return self._matching_type
 
-    def _get_match(self, node: Hashable, map: dict[Hashable, list]):
+    def _get_match(self, node: Hashable, map: dict[Hashable, list]) -> Hashable | None:
         if node in map:
             match = map[node]
             if len(match) > 1:
@@ -155,6 +155,7 @@ class Matched:
                     "or `Matched.get_pred_gt_matches`"
                 )
             return match[0]
+        return None
 
     def get_gt_pred_match(self, gt_node: Hashable) -> Hashable | None:
         """Looks for a single pred node matched to a gt node
@@ -182,7 +183,7 @@ class Matched:
         """
         return self._get_match(pred_node, self.pred_gt_map)
 
-    def _get_matches(self, node: Hashable, map: dict[Hashable, list]):
+    def _get_matches(self, node: Hashable, map: dict[Hashable, list]) -> list:
         return map.get(node, [])
 
     def get_gt_pred_matches(self, gt_node: Hashable) -> list[Hashable]:

@@ -20,10 +20,10 @@ from typing import TYPE_CHECKING, Any
 from traccuracy.matchers._base import Matched
 
 from ._base import Metric
-import numpy as np
 
 if TYPE_CHECKING:
-    from traccuracy._tracking_graph import TrackingGraph
+    import networkx as nx
+
     from traccuracy.matchers import Matched
 
 
@@ -46,7 +46,14 @@ class TrackOverlapMetrics(Metric):
         super().__init__(valid_match_types)
         self.include_division_edges = include_division_edges
 
-    def _compute(self, matched: Matched) -> dict:
+    def _compute(
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            raise NotImplementedError(
+                "Cannot currently compute track overlap metrics with relaxed skips."
+            )
+
         gt_tracklets = matched.gt_graph.get_tracklets(
             include_division_edges=self.include_division_edges
         )
@@ -66,10 +73,10 @@ class TrackOverlapMetrics(Metric):
 
 
 def _calc_overlap_score(
-    reference_tracklets: list[TrackingGraph],
-    overlap_tracklets: list[TrackingGraph],
+    reference_tracklets: list[nx.DiGraph],
+    overlap_tracklets: list[nx.DiGraph],
     overlap_reference_mapping: dict[Any, list[Any]],
-):
+) -> float:
     """Calculate weighted sum of the length of the longest overlap tracklet
     for each reference tracklet.
 
@@ -98,4 +105,4 @@ def _calc_overlap_score(
                     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
         total_count += tracklet_length
         max_overlap += max(overlapping_id_to_count.values(), default=0)
-    return max_overlap / total_count if total_count > 0 else np.nan
+    return max_overlap / total_count if total_count > 0 else -1

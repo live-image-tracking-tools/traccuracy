@@ -31,11 +31,13 @@ from ._compute_overlap import get_labels_with_overlap
 from ._ctc import CTCMatcher
 from ._iou import IOUMatcher
 from ._point import PointMatcher
+from ._point_seg import PointSegMatcher
 
 __all__ = [
     "CTCMatcher",
     "IOUMatcher",
     "Matched",
     "PointMatcher",
+    "PointSegMatcher",
     "get_labels_with_overlap",
 ]

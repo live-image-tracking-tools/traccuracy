@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -9,6 +9,9 @@ from scipy.spatial import KDTree
 from ._base import Matcher
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from typing import Any
+
     from traccuracy._tracking_graph import TrackingGraph
 
 
@@ -46,9 +49,12 @@ class PointMatcher(Matcher):
         if gt_graph.start_frame is None or gt_graph.end_frame is None:
             return mapping
         for frame in range(gt_graph.start_frame, gt_graph.end_frame):
-            gt_nodes = list(gt_graph.nodes_by_frame.get(frame, []))
+            # Sorting node ids to ensure deterministic solution when there are ties
+            # Ignoring typing because technically "Hashable" node ids are not
+            # always sortable, but we don't anticipate non-sortable types
+            gt_nodes = sorted(gt_graph.nodes_by_frame.get(frame, []))  # type: ignore
+            pred_nodes = sorted(pred_graph.nodes_by_frame.get(frame, []))  # type: ignore
             gt_locations = [gt_graph.get_location(node) for node in gt_nodes]
-            pred_nodes = list(pred_graph.nodes_by_frame.get(frame, []))
             pred_locations = [pred_graph.get_location(node) for node in pred_nodes]
             if self.scale_factor is not None:
                 assert len(self.scale_factor) == len(gt_locations[0]), (
@@ -72,7 +78,11 @@ class PointMatcher(Matcher):
         return mapping
 
     def _match_frame(
-        self, gt_nodes, gt_locations, pred_nodes, pred_locations
+        self,
+        gt_nodes: list[Hashable],
+        gt_locations: list[list[float] | tuple[float] | np.ndarray],
+        pred_nodes: list[Hashable],
+        pred_locations: list[list[float] | tuple[float] | np.ndarray],
     ) -> list[tuple[Any, Any]]:
         mapping: list[tuple[Any, Any]] = []
         if len(gt_nodes) == 0 or len(pred_nodes) == 0:
@@ -81,7 +91,7 @@ class PointMatcher(Matcher):
         pred_kdtree = KDTree(pred_locations)
         # indices correspond to indices in the gt_nodes, pred_nodes lists
         sdm: dict[tuple[Any, Any], float] = gt_kdtree.sparse_distance_matrix(
-            pred_kdtree, max_distance=self.threshold
+            pred_kdtree, max_distance=self.threshold, output_type="dict"
         )
         # unmapped cost has to be higher than the max distance so if something can
         # be matched it will
@@ -117,7 +127,7 @@ class PointMatcher(Matcher):
 
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         # go back to matched node ids from matrix indices
-        for row, col in zip(row_ind, col_ind):
+        for row, col in zip(row_ind, col_ind, strict=True):
             # it said they were sorted by row index, so we only want the top left corner
             if row >= num_gt:
                 break

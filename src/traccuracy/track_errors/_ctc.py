@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def evaluate_ctc_events(matched_data: Matched):
+def evaluate_ctc_events(matched_data: Matched) -> None:
     """Annotates ground truth and predicted graph with node and edge error types
 
     Annotations are made in place
@@ -22,7 +22,7 @@ def evaluate_ctc_events(matched_data: Matched):
     get_edge_errors(matched_data)
 
 
-def get_vertex_errors(matched_data: Matched):
+def get_vertex_errors(matched_data: Matched) -> None:
     """Count vertex errors and assign class to each comp/gt node.
 
     Parameters
@@ -64,7 +64,7 @@ def get_vertex_errors(matched_data: Matched):
     gt_graph.node_errors = True
 
 
-def get_edge_errors(matched_data: Matched):
+def get_edge_errors(matched_data: Matched) -> None:
     comp_graph = matched_data.pred_graph
     gt_graph = matched_data.gt_graph
     node_mapping = matched_data.mapping
@@ -79,7 +79,7 @@ def get_edge_errors(matched_data: Matched):
         get_vertex_errors(matched_data)
 
     comp_tp_nodes = comp_graph.get_nodes_with_flag(NodeFlag.CTC_TRUE_POS)
-    induced_graph = comp_graph.get_subgraph(comp_tp_nodes).graph
+    induced_graph = comp_graph.graph.subgraph(comp_tp_nodes)
 
     gt_comp_mapping = {gt: comp for gt, comp in node_mapping if comp in induced_graph}
     comp_gt_mapping = {comp: gt for gt, comp in node_mapping if comp in induced_graph}

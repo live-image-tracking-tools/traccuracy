@@ -10,11 +10,11 @@ import numpy as np
 from skimage.measure import regionprops
 
 
-def _union_slice(a: tuple[slice], b: tuple[slice]):
+def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
     """returns the union of slice tuples a and b"""
-    starts = tuple(min(_a.start, _b.start) for _a, _b in zip(a, b))
-    stops = tuple(max(_a.stop, _b.stop) for _a, _b in zip(a, b))
-    return tuple(slice(start, stop) for start, stop in zip(starts, stops))
+    starts = tuple(min(_a.start, _b.start) for _a, _b in zip(a, b, strict=True))
+    stops = tuple(max(_a.stop, _b.stop) for _a, _b in zip(a, b, strict=True))
+    return tuple(slice(start, stop) for start, stop in zip(starts, stops, strict=True))
 
 
 def get_labels_with_overlap(
@@ -35,13 +35,11 @@ def get_labels_with_overlap(
         overlap values. Each tuple contains (gt_label, res_label, overlap_value).
     """
     gt_props = regionprops(gt_frame)
-    gt_boxes = [np.array(gt_prop.bbox) for gt_prop in gt_props]
-    gt_boxes = np.array(gt_boxes).astype(np.float64)
+    gt_boxes = np.array([np.array(gt_prop.bbox) for gt_prop in gt_props]).astype(np.float64)
     gt_box_labels = np.asarray([int(gt_prop.label) for gt_prop in gt_props], dtype=np.uint16)
 
     res_props = regionprops(res_frame)
-    res_boxes = [np.array(res_prop.bbox) for res_prop in res_props]
-    res_boxes = np.array(res_boxes).astype(np.float64)
+    res_boxes = np.array([np.array(res_prop.bbox) for res_prop in res_props]).astype(np.float64)
     res_box_labels = np.asarray([int(res_prop.label) for res_prop in res_props], dtype=np.uint16)
     if len(gt_props) == 0 or len(res_props) == 0:
         return []
@@ -54,8 +52,8 @@ def get_labels_with_overlap(
     # Find the bboxes that have overlap at all (ind_ corresponds to box number - starting at 0)
     ind_gt, ind_res = np.nonzero(overlaps)
 
-    overlaps = []
-    for i, j in zip(ind_gt, ind_res):
+    output = []
+    for i, j in zip(ind_gt, ind_res, strict=True):
         sslice = _union_slice(gt_props[i].slice, res_props[j].slice)
         gt_mask = gt_frame[sslice] == gt_box_labels[i]
         res_mask = res_frame[sslice] == res_box_labels[j]
@@ -68,8 +66,8 @@ def get_labels_with_overlap(
         else:
             raise ValueError(f"Unknown overlap type: {overlap}")
 
-        overlaps.append((gt_box_labels[i], res_box_labels[j], area_inter / denom))
-    return overlaps
+        output.append((gt_box_labels[i], res_box_labels[j], area_inter / denom))
+    return output
 
 
 def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:

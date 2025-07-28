@@ -16,15 +16,32 @@ if TYPE_CHECKING:
 
 
 class AOGMMetrics(Metric):
+    """AOGM metric is a generalized graph measure that allows users to define their own
+    error weights for each type of node and edge error. The AOGM is simply the
+    weighted sum of all errors.
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+
+    Args:
+        vertex_ns_weight (float): Weight for vertex/node non-split errors. Defaults to 1
+        vertex_fp_weight (float): Weight for false positive vertex/node errors. Defaults to 1
+        vertex_fn_weight (float): Weight for false negative vertex/node errors. Defaults to 1
+        edge_fp_weight (float): Weight for false positive edge errors. Defaults to 1
+        edge_fn_weight (float): Weight for false negative edge errors. Defaults to 1
+        edge_ws_weight (float): Weight for wrong semantic edge errors. Defaults to 1
+    """
+
     def __init__(
         self,
-        vertex_ns_weight=1,
-        vertex_fp_weight=1,
-        vertex_fn_weight=1,
-        edge_fp_weight=1,
-        edge_fn_weight=1,
-        edge_ws_weight=1,
-    ):
+        vertex_ns_weight: float = 1,
+        vertex_fp_weight: float = 1,
+        vertex_fn_weight: float = 1,
+        edge_fp_weight: float = 1,
+        edge_fn_weight: float = 1,
+        edge_ws_weight: float = 1,
+    ) -> None:
         valid_matching_types = ["one-to-one", "many-to-one"]
         super().__init__(valid_matching_types)
 
@@ -39,15 +56,24 @@ class AOGMMetrics(Metric):
             "ws": edge_ws_weight,
         }
 
-    def _compute(self, data: Matched):
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         evaluate_ctc_events(data)
 
-        vertex_error_counts = {
+        vertex_error_counts: dict[str, float] = {
             "ns": len(data.pred_graph.get_nodes_with_flag(NodeFlag.NON_SPLIT)),
             "fp": len(data.pred_graph.get_nodes_with_flag(NodeFlag.CTC_FALSE_POS)),
             "fn": len(data.gt_graph.get_nodes_with_flag(NodeFlag.CTC_FALSE_NEG)),
         }
-        edge_error_counts = {
+        edge_error_counts: dict[str, float] = {
             "ws": len(data.pred_graph.get_edges_with_flag(EdgeFlag.WRONG_SEMANTIC)),
             "fp": len(data.pred_graph.get_edges_with_flag(EdgeFlag.CTC_FALSE_POS)),
             "fn": len(data.gt_graph.get_edges_with_flag(EdgeFlag.CTC_FALSE_NEG)),
@@ -74,7 +100,19 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
-    def __init__(self):
+    """CTCMetrics computes three core metrics used by the Cell Tracking Challenge.
+    These metrics are based on the more general AOGM metric.
+
+    - DET: Assesses detection performance
+    - LNK: Assesses linking performance by measuring only edge errors
+    - TRA: Assesses both detection and tracking performance
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+    """
+
+    def __init__(self) -> None:
         vertex_weight_ns = 5
         vertex_weight_fn = 10
         vertex_weight_fp = 1
@@ -91,7 +129,16 @@ class CTCMetrics(AOGMMetrics):
             edge_ws_weight=edge_weight_ws,
         )
 
-    def _compute(self, data: Matched):
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         errors = super()._compute(data)
         gt_graph = data.gt_graph.graph
         n_nodes = gt_graph.number_of_nodes()
@@ -108,7 +155,7 @@ class CTCMetrics(AOGMMetrics):
 
         return errors
 
-    def _get_tra(self, errors: dict[str, int], n_nodes: int, n_edges: int) -> float:
+    def _get_tra(self, errors: dict[str, float], n_nodes: int, n_edges: int) -> float:
         """Get the TRA score from the error counts and total number of gt nodes and edges
 
         Args:
@@ -135,7 +182,7 @@ class CTCMetrics(AOGMMetrics):
         tra = 1 - min(aogm, aogm_0) / aogm_0
         return tra
 
-    def _get_det(self, errors: dict[str, int], n_nodes: int) -> float:
+    def _get_det(self, errors: dict[str, float], n_nodes: int) -> float:
         """Get the DET score from the error counts and total number of gt nodes
 
         Args:
@@ -168,7 +215,7 @@ class CTCMetrics(AOGMMetrics):
         det = 1 - min(aogmd, aogmd_0) / aogmd_0
         return det
 
-    def _get_lnk(self, errors: dict[str, int], n_edges: int):
+    def _get_lnk(self, errors: dict[str, float], n_edges: int) -> float:
         """Get the DET score from the error counts and total number of gt edges
 
         Args:
@@ -203,8 +250,11 @@ class CTCMetrics(AOGMMetrics):
 
 
 def get_weighted_vertex_error_sum(
-    vertex_error_counts, vertex_ns_weight=1, vertex_fp_weight=1, vertex_fn_weight=1
-):
+    vertex_error_counts: dict[str, float],
+    vertex_ns_weight: float = 1,
+    vertex_fp_weight: float = 1,
+    vertex_fn_weight: float = 1,
+) -> float:
     vertex_ns_count = vertex_error_counts["ns"]
     vertex_fp_count = vertex_error_counts["fp"]
     vertex_fn_count = vertex_error_counts["fn"]
@@ -217,8 +267,11 @@ def get_weighted_vertex_error_sum(
 
 
 def get_weighted_edge_error_sum(
-    edge_error_counts, edge_fp_weight=1, edge_fn_weight=1, edge_ws_weight=1
-):
+    edge_error_counts: dict[str, float],
+    edge_fp_weight: float = 1,
+    edge_fn_weight: float = 1,
+    edge_ws_weight: float = 1,
+) -> float:
     edge_fp_count = edge_error_counts["fp"]
     edge_fn_count = edge_error_counts["fn"]
     edge_ws_count = edge_error_counts["ws"]
@@ -231,15 +284,15 @@ def get_weighted_edge_error_sum(
 
 
 def get_weighted_error_sum(
-    vertex_error_counts,
-    edge_error_counts,
-    vertex_ns_weight=1,
-    vertex_fp_weight=1,
-    vertex_fn_weight=1,
-    edge_fp_weight=1,
-    edge_fn_weight=1,
-    edge_ws_weight=1,
-):
+    vertex_error_counts: dict[str, float],
+    edge_error_counts: dict[str, float],
+    vertex_ns_weight: float = 1,
+    vertex_fp_weight: float = 1,
+    vertex_fn_weight: float = 1,
+    edge_fp_weight: float = 1,
+    edge_fn_weight: float = 1,
+    edge_ws_weight: float = 1,
+) -> float:
     vertex_error_sum = get_weighted_vertex_error_sum(
         vertex_error_counts, vertex_ns_weight, vertex_fp_weight, vertex_fn_weight
     )

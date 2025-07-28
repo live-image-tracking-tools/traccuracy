@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../src"))
 # -- Project information -----------------------------------------------------
 
 project = "Traccuracy"
-copyright = "2023"  # noqa
+copyright = "2025"  # noqa
 author = "Morgan Schwartz, Draga Doncila Pop, and Caroline Malin-Mayor"
 
 
@@ -48,12 +48,11 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "IPython.sphinxext.ipython_console_highlighting",  # code highlighting in notebooks
-    "myst_parser",  # include md files in rst files
     "autoapi.extension",  # autobuild api docs
     "nbsphinx",  # add notebooks to docs
     "nbsphinx_link",  # add notebooks to docs
     "sphinx_click",  # auto document cli
-    "jupyter_sphinx",  # executable code blocks in rst
+    "myst_nb",  # Execute and render myst md
 ]
 
 napoleon_google_docstring = True
@@ -63,12 +62,16 @@ templates_path = ["../_templates"]
 
 default_role = "py:obj"
 
-source_suffix = [".rst", ".md"]
+source_suffix = [".md", ".rst"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Suppress error about unnpickable config value 'nbsphinx_custom_formats'
+# https://github.com/sphinx-doc/sphinx/issues/12300
+suppress_warnings = ["config.cache"]
 
 # -- AutoAPI configuration ---------------------------------------------------
 autoapi_dirs = ["../../src/traccuracy"]
@@ -82,18 +85,22 @@ autoapi_options = [
 ]
 autoapi_ignore = ["*/cli.py"]
 
-# -- Nbsphinx extension ------------------------------------------------------
+# -- Myst NB -----------------------------------------------------------------
+nb_execution_raise_on_error = True
 
-nbsphinx_execute = "auto"
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
-
-nbsphinx_custom_formats = {
-    ".pct.py": ["jupytext.reads", {"fmt": "py:percent"}],
-}
+myst_enable_extensions = [
+    "dollarmath",
+    "colon_fence",
+]
 
 # Import Matplotlib to avoid this message in notebooks:
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa
+
+# -- Nbsphinx extension ------------------------------------------------------
+
+nbsphinx_execute = "auto"
+exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -105,8 +112,11 @@ html_theme = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["_static"]
+html_static_path = ["_static"]
 
+html_css_files = [
+    "css/tablefix.css",
+]
 # -- Extension configuration -------------------------------------------------
 autodoc_mock_imports = [
     "scipy",

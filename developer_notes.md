@@ -5,7 +5,7 @@ We recommend using `pixi` for environment management while developing `traccurac
 ## Development
 For local development, clone the repo and install in editable mode.
 ```
-git clone https://github.com/Janelia-Trackathon-2023/traccuracy.git
+git clone https://github.com/live-image-tracking-tools/traccuracy.git
 pixi install
 ```
 
@@ -43,17 +43,9 @@ git push --follow-tags
 ### Documentation
 Documentation is built with Sphinx using `sphinx-autoapi` to automatically generate API documentation at build time. Docs are hosted on ReadTheDocs and build automatically after each push to main. Documentation can be built locally by running the following:
 ```
-# Install docs requirements
-pip install -e ".[docs]"
-# Change into docs directory
-cd docs
-# Run the build 
-sphinx-build source _build
+pixi run docs
 ```
 
 Note that running documentation locally requires Pandoc to be installed as well - https://pandoc.org/installing.html.
 
 You can view the documentation by opening `docs/_build/index.html` in your browser.
-
-#### Running code cells in docs
-Executable code blocks can be added to rst files using `.. jupyter-execute::`. In order to get these code cells to run, assume that sphinx-build is being called from the docs/source directory and append to `sys.path` if necessary. 

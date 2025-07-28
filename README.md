@@ -1,12 +1,12 @@
 # traccuracy: Evaluate Cell Tracking Solutions
 
-[![License](https://img.shields.io/pypi/l/traccuracy.svg?color=green)](https://github.com/Janelia-Trackathon-2023/traccuracy/raw/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/traccuracy.svg?color=green)](https://github.com/live-image-tracking-tools/traccuracy/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/traccuracy.svg?color=green)](https://pypi.org/project/traccuracy)
 [![Python Version](https://img.shields.io/pypi/pyversions/traccuracy.svg?color=green)](https://python.org)
-[![CI](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/ci.yml/badge.svg)](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/ci.yml)
-[![Benchmarking](https://github.com/Janelia-Trackathon-2023/traccuracy/actions/workflows/benchmark-report.yml/badge.svg)](https://janelia-trackathon-2023.github.io/traccuracy/dev/bench/)
+[![CI](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/ci.yml/badge.svg)](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/ci.yml)
+[![Benchmarking](https://github.com/live-image-tracking-tools/traccuracy/actions/workflows/benchmark-report.yml/badge.svg)](https://live-image-tracking-tools.github.io/traccuracy/dev/bench/)
 [![Documentation Status](https://readthedocs.org/projects/traccuracy/badge/?version=latest)](https://traccuracy.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/Janelia-Trackathon-2023/traccuracy/branch/main/graph/badge.svg)](https://codecov.io/gh/Janelia-Trackathon-2023/traccuracy)
+[![codecov](https://codecov.io/gh/live-image-tracking-tools/traccuracy/branch/main/graph/badge.svg)](https://codecov.io/gh/live-image-tracking-tools/traccuracy)
 
 
 `traccuracy` provides a suite of benchmarking functions that can be used to evaluate cell
@@ -18,7 +18,7 @@ predicted lineages is a crucial step for performing evaluation, `traccuracy` inc
 a number of algorithms for matching ground truth and predicted lineages, both with
 and without segmentation masks.
 
-Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) or check out the [source code](https://github.com/Janelia-Trackathon-2023/traccuracy).
+Learn more in the [documentation](https://traccuracy.readthedocs.io/en/latest/) or check out the [source code](https://github.com/live-image-tracking-tools/traccuracy).
 
 ## Installation
 `pip install traccuracy`
@@ -28,7 +28,7 @@ The `traccuracy` library has three main components: loaders, matchers, and metri
 Loaders load tracking graphs from other formats, such as the CTC format, into a [TrackingGraph](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/index.html#traccuracy.TrackingGraph) object.
 A TrackingGraph is a spatiotemporal graph.
 Nodes represent a single cell in a given time point, and are annotated with a time and a location.
-Edges point from a node representing a cell in time point `t` to the same cell or its daughter in `t+1`.
+Edges point forward in time from a node representing a cell in time point `t` to the same cell or its daughter in frame `t+1` (or beyond, to represent gap-closing).
 To load TrackingGraphs from a custom format, you will likely need to implement a loader: see
 documentation [here](https://traccuracy.readthedocs.io/en/latest/autoapi/traccuracy/loaders/index.html#module-traccuracy.loaders) for more information.
 
@@ -56,3 +56,6 @@ pipelines, [documented here](https://traccuracy.readthedocs.io/en/latest/cli.htm
 
 **Track**
 : A single cell and all of its progeny. In graph terms, a connected component including divisions.
+
+**Gap-Closing**
+: Also known as *frame-skipping*, these are edges that connect non-consecutive frames to signify a cell being occluded or missing for some frames, before the track continues.

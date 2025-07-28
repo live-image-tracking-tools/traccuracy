@@ -362,7 +362,7 @@ def nodes_from_segmentation(
             f"Number of position keys {pos_keys} does not match number of "
             f"elements in centroid {centroid}"
         )
-        for key, val in zip(pos_keys, centroid):
+        for key, val in zip(pos_keys, centroid, strict=False):
             attrs[key] = val
         nodes[node_id] = attrs
     return nodes
