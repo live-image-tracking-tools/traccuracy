@@ -72,6 +72,9 @@ class TestCTCMatcher:
                 }
         nx.set_node_attributes(g, attrs)
 
+        # Convert ids to ints
+        g = nx.convert_node_labels_to_integers(g, first_label=1)
+
         matched = self.matcher.compute_mapping(
             TrackingGraph(g, segmentation=movie),
             TrackingGraph(g, segmentation=movie),

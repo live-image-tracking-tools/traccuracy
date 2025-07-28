@@ -378,6 +378,9 @@ def nodes_from_segmentation(
     for regionprop in props:
         if _id == "label":
             node_id = regionprop.label
+        # We're leaving the label_time option here for testing convenience
+        # but expect that node ids will be converted to int after making the test graph
+        # nx.convert_node_labels_to_integers
         elif _id == "label_time":
             node_id = f"{regionprop.label}_{frame}"
         attrs = {frame_key: frame, label_key: regionprop.label, "bbox": regionprop.bbox}
