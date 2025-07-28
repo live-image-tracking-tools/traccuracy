@@ -7,12 +7,10 @@ from tqdm import tqdm
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    import numpy as np
-
     from traccuracy._tracking_graph import TrackingGraph
 
 from ._base import Matcher
-from ._compute_overlap import get_labels_with_overlap
+from ._compute_overlap import get_labels_with_overlap, graph_bbox_and_labels
 
 
 class CTCMatcher(Matcher):
@@ -88,23 +86,22 @@ class CTCMatcher(Matcher):
                 if pred_label_key in G_pred.graph.nodes[node]
             }
 
-            frame_map = match_frame_majority(gt_frame, pred_frame)
+            gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_frame_nodes)
+            pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_frame_nodes)
+
+            overlaps = get_labels_with_overlap(
+                gt_frame,
+                pred_frame,
+                gt_boxes=gt_boxes,
+                res_boxes=pred_boxes,
+                gt_labels=gt_labels,
+                res_labels=pred_labels,
+                overlap="iogt",
+            )
+
             # Switch from segmentation ids to node ids
-            for gt_label, pred_label in frame_map:
-                mapping.append((gt_label_to_id[gt_label], pred_label_to_id[pred_label]))
+            for gt_label, pred_label, iogt in overlaps:
+                if iogt > 0.5:
+                    mapping.append((gt_label_to_id[gt_label], pred_label_to_id[pred_label]))
 
         return mapping
-
-
-def match_frame_majority(
-    gt_frame: np.ndarray, pred_frame: np.ndarray
-) -> list[tuple[Hashable, Hashable]]:
-    mapping: list[tuple[Hashable, Hashable]] = []
-    overlaps = get_labels_with_overlap(gt_frame, pred_frame, overlap="iogt")
-
-    for gt_label, pred_label, iogt in overlaps:
-        # CTC metrics only match comp IDs to a single GT ID if there is majority overlap
-        if iogt > 0.5:
-            mapping.append((gt_label, pred_label))
-
-    return mapping

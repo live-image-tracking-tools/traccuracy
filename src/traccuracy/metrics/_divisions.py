@@ -41,28 +41,29 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
 
 if TYPE_CHECKING:
     from traccuracy import TrackingGraph
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 
 
 class DivisionMetrics(Metric):
-    """Classify division events and provide the following summary metrics
+    """Computes division summary metrics with an optional frame tolerance.
 
+    Computes the following metrics:
     - Division Recall
     - Division Precision
     - Division F1 Score (also Branching Correctness)
-    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by Ulicna, K.,
-        Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
-        using a Bayesian single cell tracking approach. Frontiers in Computer Science
-        3, 734559 (2021).
+    - Mitotic Branching Correctness: TP / (TP + FP + FN) as defined by *Ulicna, K.,
+    Vallardi, G., Charras, G. & Lowe, A. R. Automated deep lineage tree analysis
+    using a Bayesian single cell tracking approach. Frontiers in Computer Science
+    3, 734559 (2021).*
 
     These metrics are written assuming that the ground truth annotations
     are dense. If that is not the case, interpret the numbers carefully.
@@ -86,7 +87,7 @@ class DivisionMetrics(Metric):
         """Runs `_evaluate_division_events` and calculates summary metrics for each frame buffer
 
         Args:
-            matched_data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
+            data (traccuracy.matchers.Matched): Matched object for set of GT and Pred data
                 Must meet the `needs_one_to_one` criteria
             relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
                 graph have an equivalent multi-edge path in predicted graph
@@ -99,9 +100,13 @@ class DivisionMetrics(Metric):
         evaluate_division_events(
             data,
             max_frame_buffer=self.frame_buffer,
+            relax_skips_gt=relax_skips_gt,
+            relax_skips_pred=relax_skips_pred,
         )
 
-        return self._calculate_metrics(data.gt_graph, data.pred_graph)
+        return self._calculate_metrics(
+            data.gt_graph, data.pred_graph, relaxed=(relax_skips_gt or relax_skips_pred)
+        )
 
     def _get_mbc(self, gt_div_count: int, tp_division_count: int, fp_division_count: int) -> float:
         """Computes Mitotic Branching Correctness and returns nan if there are no gt
@@ -120,22 +125,58 @@ class DivisionMetrics(Metric):
         return tp_division_count / (fp_division_count + gt_div_count)
 
     def _calculate_metrics(
-        self, g_gt: TrackingGraph, g_pred: TrackingGraph
+        self, g_gt: TrackingGraph, g_pred: TrackingGraph, relaxed: bool = False
     ) -> dict[str, dict[str, float]]:
         gt_div_count = len(g_gt.get_divisions())
         pred_div_count = len(g_pred.get_divisions())
-        tp_division_count = len(g_gt.get_nodes_with_flag(NodeFlag.TP_DIV))
-        fn_division_count = len(g_gt.get_nodes_with_flag(NodeFlag.FN_DIV))
-        fp_division_count = len(g_pred.get_nodes_with_flag(NodeFlag.FP_DIV))
-        wc_division_count = len(g_pred.get_nodes_with_flag(NodeFlag.WC_DIV))
+
+        if not relaxed:
+            tp_division_count = len(g_gt.get_nodes_with_flag(NodeFlag.TP_DIV))
+            fn_division_count = len(g_gt.get_nodes_with_flag(NodeFlag.FN_DIV))
+            fp_division_count = len(g_pred.get_nodes_with_flag(NodeFlag.FP_DIV))
+            wc_division_count = len(g_pred.get_nodes_with_flag(NodeFlag.WC_DIV))
+            skip_tp_division_count = 0
+        else:
+            # Check each node to avoid double counting
+            (
+                tp_division_count,
+                skip_tp_division_count,
+                fn_division_count,
+                fp_division_count,
+                wc_division_count,
+            ) = 0, 0, 0, 0, 0
+            for node in g_gt.get_divisions():
+                attrs = g_gt.graph.nodes[node]
+                if NodeFlag.TP_DIV_SKIP in attrs:
+                    skip_tp_division_count += 1
+                elif NodeFlag.FN_DIV in attrs:
+                    fn_division_count += 1
+                elif NodeFlag.WC_DIV in attrs:
+                    wc_division_count += 1
+                elif NodeFlag.TP_DIV in attrs:
+                    tp_division_count += 1
+            for node in g_pred.get_divisions():
+                attrs = g_pred.graph.nodes[node]
+                if NodeFlag.TP_DIV_SKIP in attrs:
+                    # Already counted on gt graph
+                    pass
+                elif NodeFlag.FP_DIV in attrs:
+                    fp_division_count += 1
+                elif NodeFlag.WC_DIV in attrs:
+                    # Already counted on gt
+                    pass
+                elif NodeFlag.TP_DIV in attrs:
+                    # Already counted on gt
+                    pass
 
         if gt_div_count == 0:
             logger.warning("No ground truth divisions present. Metrics may return np.nan")
 
-        recall = self._get_recall(tp_division_count, gt_div_count)
-        precision = self._get_precision(tp_division_count, pred_div_count)
+        total_tp_div = tp_division_count + skip_tp_division_count
+        recall = self._get_recall(total_tp_div, gt_div_count)
+        precision = self._get_precision(total_tp_div, pred_div_count)
         f1 = self._get_f1(recall, precision)
-        mbc = self._get_mbc(gt_div_count, tp_division_count, fp_division_count)
+        mbc = self._get_mbc(gt_div_count, total_tp_div, fp_division_count)
 
         res_dict = {}
         res_dict["Frame Buffer 0"] = {
@@ -150,19 +191,32 @@ class DivisionMetrics(Metric):
             "False Negative Divisions": fn_division_count,
             "Wrong Children Divisions": wc_division_count,
         }
+        if relaxed:
+            res_dict["Frame Buffer 0"]["True Positive Skip Divisions"] = skip_tp_division_count
+
+        # Get counts for other frame buffers
         for fb in range(1, self.frame_buffer + 1):
-            new_tp_div_count = 0
+            new_tp_div_count, new_skip_tp_div_count = 0, 0
             for node in g_pred.get_divisions():
                 node_info = g_pred.graph.nodes[node]
-                if node_info.get("min_buffer_correct", np.nan) <= fb:
+                if relaxed and node_info.get("min_buffer_skip_correct", np.nan) <= fb:
+                    new_skip_tp_div_count += 1
+                elif node_info.get("min_buffer_correct", np.nan) <= fb:
                     new_tp_div_count += 1
-            new_fp_div_count = fp_division_count - new_tp_div_count
-            new_fn_div_count = fn_division_count - new_tp_div_count
+            new_fp_div_count = (
+                fp_division_count - new_tp_div_count - relaxed * new_skip_tp_div_count
+            )
+            new_fn_div_count = (
+                fn_division_count - new_tp_div_count - relaxed * new_skip_tp_div_count
+            )
             new_tp_div_count += tp_division_count
-            recall = self._get_recall(new_tp_div_count, gt_div_count)
-            precision = self._get_precision(new_tp_div_count, pred_div_count)
+            new_skip_tp_div_count += skip_tp_division_count
+
+            total_tp_div = new_tp_div_count + new_skip_tp_div_count
+            recall = self._get_recall(total_tp_div, gt_div_count)
+            precision = self._get_precision(total_tp_div, pred_div_count)
             f1 = self._get_f1(recall, precision)
-            mbc = self._get_mbc(gt_div_count, tp_division_count, new_fp_div_count)
+            mbc = self._get_mbc(gt_div_count, tp_division_count, total_tp_div)
 
             res_dict[f"Frame Buffer {fb}"] = {
                 "Division Recall": recall,
@@ -176,5 +230,9 @@ class DivisionMetrics(Metric):
                 "False Negative Divisions": new_fn_div_count,
                 "Wrong Children Divisions": wc_division_count,
             }
+            if relaxed:
+                res_dict[f"Frame Buffer {fb}"]["True Positive Skip Divisions"] = (
+                    new_skip_tp_div_count
+                )
 
         return res_dict

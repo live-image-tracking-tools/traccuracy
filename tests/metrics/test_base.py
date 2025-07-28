@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from traccuracy import TrackingGraph
-from traccuracy.matchers import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._base import Metric
 
 

@@ -101,18 +101,22 @@ def plot_matched(examples, annotations, title):
 
 ## Nodes
 
+(ctc-node-tp)=
 ### True Positives
 
 A true positive node is one that is matched to only one node in the predicted graph. Additionally, the predicted node is not matched to any other node in the ground truth. True positive nodes are annotated on both the ground truth and the predicted graph.
 
+(ctc-node-fp)=
 ### False Positives
 
 False positive nodes are annotated on the predicted graph and correspond to a predicted node without a match in the ground truth graph.
 
+(ctc-node-fn)=
 ### False Negatives
 
 False negative nodes are annotated on the ground truth graph and correspond to a ground truth node without a match in the predicted graph.
 
+(ctc-node-ns)=
 ### Non-Split
 
 Non-split nodes are annotated on the predicted graph and correspond to a node in the prediction that has been matched to more than one node in the ground truth graph.
@@ -124,6 +128,7 @@ plot_matched([ex_graphs.node_two_to_one(t) for t in [0, 1]], [{4: "NS"}, {5: "NS
 
 ## Edges
 
+(ctc-edge-fp)=
 ### False Positives
 
 False positive edges are annotated on the predicted graph. An edge is considered a false positive if both nodes are true positive nodes, but the edge does not match to any edge in the ground truth graph. In the example below, edge (7, 8) is a false positive.
@@ -132,6 +137,7 @@ False positive edges are annotated on the predicted graph. An edge is considered
 plot_matched([ex_graphs.crossover_edge()], [{(7,8): "FP"}], "")
 ```
 
+(ctc-edge-fn)=
 ### False Negatives
 
 False negative edges are annotated on the ground truth graph. An edge is considered a false negative if:
@@ -154,6 +160,7 @@ plot_matched([ex_graphs.fn_edge_matched(0)], [{(1, 2): "FN"}], "")
 plot_matched([ex_graphs.node_two_to_one(t) for t in [0, 1]], [{4: "NS", (1, 2): "FN"}, {5: "NS", (1, 7): "FN", (2, 3): "FN"}], "")
 ```
 
+(ctc-edge-intertrack)=
 ### Intertrack
 
 Intertrack edges connect two nodes with different track IDs, most commonly parent cells to daughter cells, or two cells in non-consecutive frames. Note that intertrack edges are not errors, but support the annotation of Wrong Semantic edges, as detailed below.
@@ -165,6 +172,7 @@ plot_matched([matched], [{(2, 3): "IT", (2, 4): "IT"}], "")
 
 ```
 
+(ctc-edge-ws)=
 ### Wrong Semantic
 
 After identifying a matched pair of edges from the ground truth and predicted graphs, the predicted edge is annotated as wrong semantic if the ground truth and predicted edge have different intertrack edge annotations.
@@ -177,6 +185,7 @@ plot_matched(
 )
 ```
 
-## Gap-Closing Edges
+(ctc-skip-edge)=
+### Skip Edges
 
-Gap-closing edges must be identical in the ground truth and predicted graphs in order for no errors to be annotated. Otherwise, the appropriate error is annotated as described above.
+{term}`Skip edges <Skip Edges>` must be identical in the ground truth and predicted graphs in order for no errors to be annotated. Otherwise, the appropriate error is annotated as described above.
