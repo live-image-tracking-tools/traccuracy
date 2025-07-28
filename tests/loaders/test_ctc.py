@@ -76,7 +76,6 @@ def test_ctc_single_nodes():
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 0},
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 1},
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 2},
-        {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 3},
         {"segmentation_id": 3, "x": 1, "y": 1, "z": 1, "t": 3},
         {"segmentation_id": 4, "x": 1, "y": 2, "z": 2, "t": 3},
         {"segmentation_id": 5, "x": 1, "y": 1, "z": 2, "t": 3},
