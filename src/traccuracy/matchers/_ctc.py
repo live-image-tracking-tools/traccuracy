@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 from tqdm import tqdm
 
 if TYPE_CHECKING:
@@ -11,7 +10,7 @@ if TYPE_CHECKING:
     from traccuracy._tracking_graph import TrackingGraph
 
 from ._base import Matcher
-from ._compute_overlap import get_labels_with_overlap
+from ._compute_overlap import get_labels_with_overlap, graph_bbox_and_labels
 
 
 class CTCMatcher(Matcher):
@@ -87,16 +86,9 @@ class CTCMatcher(Matcher):
                 if pred_label_key in G_pred.graph.nodes[node]
             }
 
-            gt_boxes = np.asarray([gt.graph.nodes[node]["bbox"] for node in gt_frame_nodes])
-            pred_boxes = np.asarray([pred.graph.nodes[node]["bbox"] for node in pred_frame_nodes])
-            gt_labels = np.asarray(
-                [gt.graph.nodes[node]["segmentation_id"] for node in gt_frame_nodes]
-            )
-            pred_labels = np.asarray(
-                [pred.graph.nodes[node]["segmentation_id"] for node in pred_frame_nodes]
-            )
+            gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_frame_nodes)
+            pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_frame_nodes)
 
-            # frame_map = match_frame_majority(gt_frame, pred_frame)
             overlaps = get_labels_with_overlap(
                 gt_frame,
                 pred_frame,

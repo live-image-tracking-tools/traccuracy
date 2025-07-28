@@ -7,7 +7,9 @@ Copyright (c) 2015 Microsoft
 """
 
 import warnings
+from collections.abc import Hashable, Iterable
 
+import networkx as nx
 import numpy as np
 from skimage.measure import regionprops
 
@@ -23,6 +25,35 @@ def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
     """returns the slice tuple for a given bounding box"""
     ndim = len(bbox) // 2
     return tuple(slice(bbox[i], bbox[i + ndim]) for i in range(ndim))
+
+
+def graph_bbox_and_labels(
+    graph: nx.DiGraph,
+    nodes: Iterable[Hashable],
+) -> tuple[np.ndarray | None, np.ndarray | None]:
+    """
+    Get bounding boxes and labels for a list of nodes in a graph.
+    If a node is missing the 'bbox' or 'segmentation_id' attributes,
+    it returns None for both bounding boxes and labels.
+
+    Args:
+        graph (nx.DiGraph): The graph to get the bounding boxes and labels from.
+        nodes (list[Hashable]): The nodes to get the bounding boxes and labels for.
+
+    Returns:
+        tuple[np.ndarray | None, np.ndarray | None]: The bounding boxes and labels for the nodes.
+    """
+    try:
+        gt_boxes = np.asarray([graph.nodes[node]["bbox"] for node in nodes])
+        gt_labels = np.asarray([graph.nodes[node]["segmentation_id"] for node in nodes])
+    except KeyError:
+        warnings.warn(
+            "'bbox' or 'segmentation_id' not found for some nodes, "
+            "recomputing them with regionprops",
+            stacklevel=2,
+        )
+        gt_boxes, gt_labels = None, None
+    return gt_boxes, gt_labels
 
 
 def get_labels_with_overlap(
