@@ -103,7 +103,8 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     """Create a Graph from DataFrame of CTC info with node attributes.
 
     Args:
-        df (pd.DataFrame): CTC-style dataframe with columns [segmentation_id, start_frame, end_frame, parent_id]
+        df (pd.DataFrame): CTC-style dataframe with columns
+            [segmentation_id, start_frame, end_frame, parent_id]
         detections (pd.DataFrame): Dataframe from _get_node_attributes with position
             and segmentation label for each cell detection
 
@@ -189,7 +190,8 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
     - No duplicate tracklet IDs (non-connected pixels with same ID) in a single timepoint.
 
     Args:
-        tracks (pd.DataFrame): Tracks in CTC format with columns Cell_ID, Start, End, Parent_ID.
+        tracks (pd.DataFrame): Tracks in CTC format with columns
+            Cell_ID, Start, End, Parent_ID.
         detections (pd.DataFrame): Detections extracted from masks, containing columns
             segmentation_id, t.
         masks (np.ndarray): Set of masks with time in the first axis.
