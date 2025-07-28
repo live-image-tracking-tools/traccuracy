@@ -1,7 +1,7 @@
 import networkx as nx
 
 from traccuracy._tracking_graph import TrackingGraph
-from traccuracy.matchers._base import Matched
+from traccuracy.matchers._matched import Matched
 
 """A set of fixtures covering basic graph matching cases over 3 time frames
 Covers edge cases, good matchings, fn nodes, fp nodes, two to one matchings in each
@@ -274,51 +274,6 @@ def all_basic_errors():
         mapping,
         {},
     )
-
-
-def get_division_graphs():
-    """
-    G1
-                                2_4
-    1_0 -- 1_1 -- 1_2 -- 1_3 -<
-                                3_4
-    G2
-                  2_2 -- 2_3 -- 2_4
-    1_0 -- 1_1 -<
-                  3_2 -- 3_3 -- 3_4
-    """
-
-    G1 = nx.DiGraph()
-    G1.add_edge("1_0", "1_1")
-    G1.add_edge("1_1", "1_2")
-    G1.add_edge("1_2", "1_3")
-    G1.add_edge("1_3", "2_4")
-    G1.add_edge("1_3", "3_4")
-
-    attrs = {}
-    for node in G1.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
-    nx.set_node_attributes(G1, attrs)
-
-    G2 = nx.DiGraph()
-    G2.add_edge("1_0", "1_1")
-    # Divide to generate 2 lineage
-    G2.add_edge("1_1", "2_2")
-    G2.add_edge("2_2", "2_3")
-    G2.add_edge("2_3", "2_4")
-    # Divide to generate 3 lineage
-    G2.add_edge("1_1", "3_2")
-    G2.add_edge("3_2", "3_3")
-    G2.add_edge("3_3", "3_4")
-
-    attrs = {}
-    for node in G2.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
-    nx.set_node_attributes(G2, attrs)
-
-    mapper = [("1_0", "1_0"), ("1_1", "1_1"), ("2_4", "2_4"), ("3_4", "3_4")]
-
-    return G1, G2, mapper
 
 
 def basic_division_t0(start_id=1, y_offset=0, frame_key="t", location_keys=("y")):

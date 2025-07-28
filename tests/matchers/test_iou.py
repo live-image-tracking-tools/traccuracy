@@ -160,14 +160,14 @@ def test__construct_time_to_seg_id_map():
     # Test 2d data
     n_frames = 3
     n_labels = 3
-    track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
+    track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels, int_ids=False)
     time_to_seg_id_map = _construct_time_to_seg_id_map(track_graph)
     for t in range(n_frames):
         for i in range(1, n_labels):
             assert time_to_seg_id_map[t][i] == f"{i}_{t}"
 
     # Test 3d data
-    track_graph = get_movie_with_graph(ndims=4, n_frames=n_frames, n_labels=n_labels)
+    track_graph = get_movie_with_graph(ndims=4, n_frames=n_frames, n_labels=n_labels, int_ids=False)
     time_to_seg_id_map = _construct_time_to_seg_id_map(track_graph)
     for t in range(n_frames):
         for i in range(1, n_labels):

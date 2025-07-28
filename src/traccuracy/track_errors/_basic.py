@@ -8,7 +8,7 @@ from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.utils import get_equivalent_skip_edge
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 
