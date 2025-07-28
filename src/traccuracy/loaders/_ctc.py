@@ -104,7 +104,7 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     """Create a Graph from DataFrame of CTC info with node attributes.
 
     Args:
-        data (pd.DataFrame): DataFrame of CTC-style info
+        df (pd.DataFrame): DataFrame of CTC-style info
         detections (pd.DataFrame): Dataframe from _get_node_attributes with position
             and segmentation label for each cell detection
 

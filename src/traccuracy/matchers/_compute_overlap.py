@@ -151,8 +151,8 @@ def get_labels_with_overlap(
 def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
     """
     Args
-        a: (N, 4) ndarray of float
-        b: (K, 4) ndarray of float
+        boxes: (N, 4) ndarray of float
+        query_boxes: (K, 4) ndarray of float
 
     Returns
         overlaps: (N, K) ndarray of overlap between boxes and query_boxes
@@ -181,8 +181,8 @@ def compute_overlap(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
 def compute_overlap_3D(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray:
     """
     Args
-        a: (N, 6) ndarray of float
-        b: (K, 6) ndarray of float
+        boxes: (N, 6) ndarray of float
+        query_boxes: (K, 6) ndarray of float
 
     Returns
         overlaps: (N, K) ndarray of overlap between boxes and query_boxes
