@@ -1,12 +1,15 @@
+import os
 from collections import Counter
 
 import networkx as nx
 import numpy as np
+import pandas as pd
 import pytest
 
 import tests.examples.segs as ex_segs
 from tests.test_utils import get_movie_with_graph
 from traccuracy._tracking_graph import TrackingGraph
+from traccuracy.loaders._ctc import _get_node_attributes, _load_tiffs, ctc_to_graph
 from traccuracy.matchers._iou import (
     IOUMatcher,
     _construct_time_to_seg_id_map,
@@ -401,3 +404,31 @@ class TestIOUMatched:
         # gt and pred node should be the same
         for pair in matched.mapping:
             assert pair[0] == pair[1]
+
+
+def test_matching_from_in_memory():
+    """Test that passing CTC data from in-memory computes regionprops."""
+    test_dir = os.path.abspath(__file__)
+    data_dir = os.path.abspath(
+        os.path.join(test_dir, "../../../examples/sample-data/Fluo-N2DL-HeLa/01_RES/")
+    )
+
+    gt_ims = _load_tiffs(data_dir)
+    det_gt_df = _get_node_attributes(gt_ims)
+    # drop bbox so it has to be recomputed
+    det_gt_df.drop(columns=["bbox"], inplace=True)
+
+    names = ["Cell_ID", "Start", "End", "Parent_ID"]
+    gt_tracks = pd.read_csv(
+        os.path.join(data_dir, "res_track.txt"), header=None, sep=" ", names=names
+    )
+
+    gt_graph = ctc_to_graph(gt_tracks, det_gt_df)
+    gt_t_graph = TrackingGraph(gt_graph, segmentation=gt_ims, location_keys=["y", "x"])
+
+    with pytest.warns(
+        UserWarning,
+        match="'bbox' or 'segmentation_id' not found for some nodes, recomputing them",
+    ):
+        matched = IOUMatcher().compute_mapping(gt_t_graph, gt_t_graph)
+    assert len(matched.mapping) == len(gt_t_graph.nodes)
