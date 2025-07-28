@@ -57,7 +57,7 @@ def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The dataframe of track data for one time step (specified by idx)
     """
-    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid"))
+    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid", "bbox"))
     props["t"] = np.full(props["label"].shape, idx)
     return pd.DataFrame(props)
 
@@ -92,6 +92,9 @@ def _get_node_attributes(masks: np.ndarray) -> pd.DataFrame:
             for idx in tqdm(range(masks.shape[0]), desc="Computing node attributes")
         ],
     ).reset_index(drop=True)
+    bbox_cols = [col for col in data_df.columns if col.startswith("bbox")]
+    data_df["bbox"] = data_df[bbox_cols].apply(lambda x: x.to_list(), axis=1)
+    data_df = data_df.drop(columns=bbox_cols)
     data_df = data_df.rename(columns=columns)
     data_df["segmentation_id"] = data_df["segmentation_id"].astype(int)
     data_df["t"] = data_df["t"].astype(int)
