@@ -266,19 +266,19 @@ class TestStandardOverlapMetrics:
         assert results[self.tp] == tp
         assert results[self.te] == te
 
-    # @pytest.mark.parametrize(
-    #     ("incl_div_edges", "tp", "te"),
-    #     [
-    #         (True,  2/4, 2/6),
-    #         (False, 2/2, 2/4),
-    #     ]
-    # )
-    # def test_div_daughter_dual_gap(self, incl_div_edges, tp, te):
-    #     matched = ex_graphs.div_daughter_dual_gap()
-    #     metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
-    #     results = metric._compute(matched)
-    #     assert results[self.tp] == tp
-    #     assert results[self.te] == te
+    @pytest.mark.parametrize(
+        ("incl_div_edges", "tp", "te"),
+        [
+            (True, 2 / 4, 2 / 6),
+            (False, 2 / 2, 2 / 4),
+        ],
+    )
+    def test_div_daughter_dual_gap(self, incl_div_edges, tp, te):
+        matched = ex_graphs.div_daughter_dual_gap()
+        metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
 
 
 def add_frame(tree):
