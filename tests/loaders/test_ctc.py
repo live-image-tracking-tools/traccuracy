@@ -2,6 +2,7 @@ import glob
 import os
 from pathlib import Path
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,35 +14,49 @@ from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.loaders import _ctc, _load_tiffs
 
 
+def make_detections(data):
+    detections = {"segmentation_id": [], "x": [], "y": [], "z": [], "t": []}
+    for row in data:
+        n_t = row["End"] - row["Start"] + 1
+        detections["segmentation_id"].extend([row["Cell_ID"]] * n_t)
+        detections["x"].extend([row["Cell_ID"]] * n_t)
+        detections["y"].extend([row["Cell_ID"]] * n_t)
+        detections["z"].extend([row["Cell_ID"]] * n_t)
+        detections["t"].extend(list(range(row["Start"], row["End"] + 1)))
+
+    return detections
+
+
 def test_ctc_to_graph():
+    """
+    1 - 1 - 1 - 1
+                3
+    2 - 2 - 2 <
+                4
+    """
     # cell_id, start, end, parent_id
     data = [
         {"Cell_ID": 1, "Start": 0, "End": 3, "Parent_ID": 0},
         {"Cell_ID": 2, "Start": 0, "End": 2, "Parent_ID": 0},
         {"Cell_ID": 3, "Start": 3, "End": 3, "Parent_ID": 2},
         {"Cell_ID": 4, "Start": 3, "End": 3, "Parent_ID": 2},
-        {"Cell_ID": 5, "Start": 3, "End": 3, "Parent_ID": 4},
     ]
-    df = pd.DataFrame(data)
-    G = _ctc.ctc_to_graph(
-        df, pd.DataFrame({"segmentation_id": [], "x": [], "y": [], "z": [], "t": []})
-    )
-    for d in data:
-        node_ids = ["{}_{}".format(d["Cell_ID"], t) for t in range(d["Start"], d["End"] + 1)]
+    detections = make_detections(data)
+    G = _ctc.ctc_to_graph(pd.DataFrame(data), pd.DataFrame(detections))
 
-        for node_id in node_ids:
-            assert node_id in G
+    # Check number of edges and nodes
+    assert len(G.nodes) == 9
+    assert len(G.edges) == 7
 
-        if d["Parent_ID"]:  # should have a division
-            parent_row = df[df["Cell_ID"] == d["Parent_ID"]].iloc[
-                0
-            ]  # Needs to be a Series for indexing below
-            daughter_id = "{}_{}".format(d["Cell_ID"], d["Start"])
-            parent_id = "{}_{}".format(parent_row["Cell_ID"], parent_row["End"])
-            if G.has_node(parent_id):
-                assert G.has_edge(parent_id, daughter_id)
-            else:
-                assert not G.in_degree(daughter_id)
+    # Check the division node
+    for node, attrs in G.nodes.items():
+        if G.out_degree(node) == 2:
+            assert attrs["t"] == 2
+            assert attrs["segmentation_id"] == 2
+
+    # Check for two subgraphs
+    subgraphs = nx.weakly_connected_components(G)
+    assert len(list(subgraphs)) == 2
 
 
 def test_ctc_single_nodes():
@@ -61,7 +76,6 @@ def test_ctc_single_nodes():
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 0},
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 1},
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 2},
-        {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 3},
         {"segmentation_id": 3, "x": 1, "y": 1, "z": 1, "t": 3},
         {"segmentation_id": 4, "x": 1, "y": 2, "z": 2, "t": 3},
         {"segmentation_id": 5, "x": 1, "y": 1, "z": 2, "t": 3},
@@ -73,6 +87,11 @@ def test_ctc_single_nodes():
 
 
 def test_ctc_with_gap_closing():
+    """
+    t 0   1   2   3   4   5   6   7   8
+      1 - 1 - - - 3 - 3 - 3
+      2 - 2 - - - - - - - - - 4 - 4 - 4
+    """
     data = [
         {"Cell_ID": 1, "Start": 0, "End": 1, "Parent_ID": 0},
         {"Cell_ID": 2, "Start": 0, "End": 1, "Parent_ID": 0},
@@ -81,12 +100,9 @@ def test_ctc_with_gap_closing():
         # Connecting frame 1 to frame 6
         {"Cell_ID": 4, "Start": 6, "End": 8, "Parent_ID": 2},
     ]
-    df = pd.DataFrame(data)
-    G = _ctc.ctc_to_graph(
-        df, pd.DataFrame({"segmentation_id": [], "x": [], "y": [], "z": [], "t": []})
-    )
-    assert G.has_edge("1_1", "3_3")
-    assert G.has_edge("2_1", "4_6")
+    detections = make_detections(data)
+    G = _ctc.ctc_to_graph(pd.DataFrame(data), pd.DataFrame(detections))
+    assert len(G.edges) == 8
 
 
 def test_load_data():
@@ -141,4 +157,4 @@ def test_3d_data(tmpdir):
     track_graph = _ctc.load_ctc_data(tmpdir)
 
     # Check that when we get the location we get all 3 dims
-    assert len(track_graph.get_location("1_0")) == 3
+    assert len(track_graph.get_location(1)) == 3
