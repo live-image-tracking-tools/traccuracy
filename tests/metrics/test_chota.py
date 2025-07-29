@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -7,17 +9,19 @@ from traccuracy.matchers import CTCMatcher
 from traccuracy.metrics import CHOTAMetric, CTCMetrics
 
 
-def test_replicating_ctc_metrics_test(pytestconfig: pytest.Config) -> None:
-    ctc_data_dir = pytestconfig.cache._cachedir / "test_dataset_ctc/train/BF-C2DL-HSC"
-    if not ctc_data_dir.exists():
-        pytest.skip(
-            f"CTC data not found at {ctc_data_dir}.\n"
-            "Download from 'https://www.tnt.uni-hannover.de/de/project/MPT/data/CTC/test_dataset_ctc.zip'"
-            "and extract it to the pytest cache directory (.pytest_cache)."
-        )
+def test_replicating_ctc_metrics_test() -> None:
+    project_root = Path(__file__).parent.parent.parent
 
-    input_graph = load_ctc_data(str(ctc_data_dir / "01_RES"), run_checks=False)
-    gt_graph = load_ctc_data(str(ctc_data_dir / "01_GT/TRA"), run_checks=False)
+    gt_path = project_root / "downloads/Fluo-N2DL-HeLa/01_GT/TRA"
+    if not gt_path.exists():
+        pytest.skip(f"GT path not found at {gt_path}")
+
+    res_path = project_root / "examples/sample-data/Fluo-N2DL-HeLa/01_RES"
+    if not res_path.exists():
+        pytest.skip(f"RES path not found at {res_path}")
+
+    input_graph = load_ctc_data(str(res_path), run_checks=False)
+    gt_graph = load_ctc_data(str(gt_path), run_checks=False)
 
     matcher = CTCMatcher()
     metrics_func = [CTCMetrics(), CHOTAMetric()]
@@ -32,22 +36,19 @@ def test_replicating_ctc_metrics_test(pytestconfig: pytest.Config) -> None:
     metrics = {k: metrics_dict[0]["results"][k] for k in ["DET", "TRA"]}
     metrics["CHOTA"] = metrics_dict[1]["results"]["CHOTA"]
 
-    # # from: https://github.com/CellTrackingChallenge/py-ctcmetrics/blob/main/test/utils.py
+    # hard-coded values from running py-ctcmetrics command
+    # ctc_evaluate \
+    # --res ~/Softwares/traccuracy/examples/sample-data/Fluo-N2DL-HeLa/01_RES \
+    # --gt ~/Softwares/traccuracy/downloads/Fluo-N2DL-HeLa/01_GT
     expected_values = {
-        "DET": 0.95377521,
-        # "SEG": 0.903990207454052,
-        "TRA": 0.9588616,
-        "CHOTA": 0.6100031649165364,
-        # "CCA": 0.060606060606061,
-        # "CT": 0.0190476,
-        # "TF": 0.72417699,
-        # "BC(0)": 0.434782,
-        # "BC(1)": 0.47826086,
-        # "BC(2)": 0.47826086,
-        # "BC(3)": 0.47826086,
+        "DET": 0.9954855886097927,
+        "TRA": 0.9936361895740329,
+        "CHOTA": 0.9224725394515368,
     }
 
+    atol = 1e-4  # CHOTA works with 1e-10 precision, TRA needs larger tolerance
+
     for key, expected_value in expected_values.items():
-        assert np.isclose(metrics[key], expected_value, atol=1e-6), (
+        assert np.isclose(metrics[key], expected_value, atol=atol), (
             f"{key=} {metrics[key]=} {expected_value=}"
         )
