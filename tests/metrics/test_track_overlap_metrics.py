@@ -6,6 +6,28 @@ from tests.examples import larger_examples as ex_graphs_larger
 from traccuracy.metrics._track_overlap import TrackOverlapMetrics
 
 
+def test_overlap_relax_warning():
+    matched = ex_graphs.gap_close_gt_gap()
+    metric = TrackOverlapMetrics()
+    with pytest.warns(
+        UserWarning,
+        match="Relaxing skips for either predicted or ground truth graphs",
+    ):
+        results = metric.compute(matched, relax_skips_gt=True).results
+    assert results["track_purity"] == 1
+    assert results["target_effectiveness"] == 1
+    assert results["track_fractions"] == 1
+
+    with pytest.warns(
+        UserWarning,
+        match="Relaxing skips for either predicted or ground truth graphs",
+    ):
+        results = metric.compute(matched, relax_skips_pred=True).results
+    assert results["track_purity"] == 1
+    assert results["target_effectiveness"] == 1
+    assert results["track_fractions"] == 1
+
+
 class TestStandardOverlapMetrics:
     tp = "track_purity"
     te = "target_effectiveness"
@@ -305,15 +327,19 @@ class TestStandardOverlapMetrics:
         assert results[self.te] == te
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "tp", "te"),
+        ("incl_div_edges", "relax_edges", "tp", "te"),
         [
-            (True, 13 / 18, 11 / 20),
-            (False, 8 / 14, 8 / 14),
+            (True, False, 13 / 18, 11 / 20),
+            (False, False, 8 / 14, 8 / 14),
+            # making sure relaxing affects nothing where
+            # there are no skip edges
+            (True, True, 13 / 18, 11 / 20),
+            (False, True, 8 / 14, 8 / 14),
         ],
     )
-    def test_larger_example_1(self, incl_div_edges, tp, te):
+    def test_larger_example_1(self, incl_div_edges, relax_edges, tp, te):
         matched = ex_graphs_larger.larger_example_1()
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
-        results = metric._compute(matched)
+        results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
