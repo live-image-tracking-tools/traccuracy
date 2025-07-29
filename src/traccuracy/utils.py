@@ -181,7 +181,7 @@ def export_results(
             if target_frame_buffer > max_frame_buffer:
                 raise ValueError(
                     f"Requested target frame buffer {target_frame_buffer} exceeds computed "
-                    "frame buffer {max_frame_buffer}"
+                    f"frame buffer {max_frame_buffer}"
                 )
             else:
                 reannotate_div = True
