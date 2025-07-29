@@ -13,7 +13,10 @@ def load_geff_data(
     seg_property: str | None = None,
     name: str | None = None,
 ) -> TrackingGraph:
-    """_summary_
+    """Load a graph into memory from a geff file
+
+    Segmentations can be optionally loaded either from a related object specified in
+    the geff (`load_geff_seg=True`) or with a path to a zarr array `seg_path` and `seg_property`
 
     Args:
         geff_path (str): Path to a geff group inside of a zarr,
