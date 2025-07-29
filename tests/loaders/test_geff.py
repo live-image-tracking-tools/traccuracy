@@ -77,7 +77,7 @@ class Test_load_geff_data:
         with pytest.raises(
             ValueError,
             match="If seg_path is specified, a corresponding seg_property must be specified to link"
-            "segmentations to a segmentation label property on the graph",
+            " segmentations to a segmentation label property on the graph",
         ):
             load_geff_data("geff_path.zarr", seg_path="seg_path.zarr")
 
