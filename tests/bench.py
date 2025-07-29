@@ -20,6 +20,7 @@ from traccuracy.metrics import (
     DivisionMetrics,
     TrackOverlapMetrics,
 )
+from traccuracy.metrics._chota import CHOTAMetric
 from traccuracy.metrics._ctc import CellCycleAccuracy
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -311,5 +312,19 @@ def test_cca_metric(benchmark, iou_matched, request):
 
     def run_compute():
         return CellCycleAccuracy().compute(matched)
+
+    benchmark.pedantic(run_compute, rounds=1, iterations=1)
+
+
+@pytest.mark.parametrize(
+    "ctc_matched",
+    ["ctc_matched_2d", "ctc_matched_3d"],
+    ids=["2d", "3d"],
+)
+def test_chota_metric(benchmark, ctc_matched, request):
+    ctc_matched = request.getfixturevalue(ctc_matched)
+
+    def run_compute():
+        return CHOTAMetric().compute(ctc_matched)
 
     benchmark.pedantic(run_compute, rounds=1, iterations=1)
