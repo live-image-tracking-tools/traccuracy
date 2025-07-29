@@ -37,9 +37,9 @@ def test_replicating_ctc_metrics_test() -> None:
     metrics["CHOTA"] = metrics_dict[1]["results"]["CHOTA"]
 
     # hard-coded values from running py-ctcmetrics command
-    # ctc_evaluate \
-    # --res ~/Softwares/traccuracy/examples/sample-data/Fluo-N2DL-HeLa/01_RES \
-    # --gt ~/Softwares/traccuracy/downloads/Fluo-N2DL-HeLa/01_GT
+    # $ ctc_evaluate \
+    # --res <YOUR_TRACCURACY_ROOT>/examples/sample-data/Fluo-N2DL-HeLa/01_RES \
+    # --gt <YOUR_TRACCURACY_ROOT>/downloads/Fluo-N2DL-HeLa/01_GT
     expected_values = {
         "DET": 0.9954855886097927,
         "TRA": 0.9936361895740329,
