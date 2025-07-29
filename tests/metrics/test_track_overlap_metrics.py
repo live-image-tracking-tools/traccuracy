@@ -1,11 +1,12 @@
 from copy import deepcopy
 
 import networkx as nx
+import numpy as np
 import pytest
 
 from tests.examples import graphs as ex_graphs
 from traccuracy import TrackingGraph
-from traccuracy.matchers import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._track_overlap import TrackOverlapMetrics
 
 
@@ -60,10 +61,12 @@ TEST_TREES = [
         "results_with_division_edges": {
             "track_purity": 7 / 9,
             "target_effectiveness": 6 / 11,
+            "track_fractions": 7 / 12,
         },
         "results_without_division_edges": {
             "track_purity": 5 / 7,
             "target_effectiveness": 6 / 9,
+            "track_fractions": 2 / 3,
         },
     },
     {
@@ -104,10 +107,12 @@ TEST_TREES = [
         "results_with_division_edges": {
             "track_purity": 5 / 6,
             "target_effectiveness": 4 / 5,
+            "track_fractions": 2.5 / 3,
         },
         "results_without_division_edges": {
             "track_purity": 3 / 4,
             "target_effectiveness": 2 / 3,
+            "track_fractions": 2 / 3,
         },
     },
 ]
@@ -131,10 +136,12 @@ simple2["pred_edges"].extend(
 simple2["results_with_division_edges"] = {
     "track_purity": 7 / 11,
     "target_effectiveness": 5 / 11,
+    "track_fractions": 6 / 12,
 }
 simple2["results_without_division_edges"] = {
     "track_purity": 5 / 7,
     "target_effectiveness": 5 / 9,
+    "track_fractions": 7 / 12,
 }
 TEST_TREES.append(simple2)
 assert TEST_TREES[0] != TEST_TREES[1]
@@ -166,7 +173,12 @@ def test_track_overlap_metrics(data, inverse) -> None:
             "track_purity": expected["target_effectiveness"],
             "target_effectiveness": expected["track_purity"],
         }
-    assert results == expected, f"{data['name']} failed with division edges"
+        results.pop("track_fractions", None)
+    np.testing.assert_allclose(
+        list(results.values()),
+        list(expected.values()),
+        err_msg=f"{data['name']} failed with division edges",
+    )
 
     metric = TrackOverlapMetrics(include_division_edges=False)
     results = metric._compute(matched)
@@ -178,7 +190,12 @@ def test_track_overlap_metrics(data, inverse) -> None:
             "track_purity": expected["target_effectiveness"],
             "target_effectiveness": expected["track_purity"],
         }
-    assert results == expected, f"{data['name']} failed without division edges"
+        results.pop("track_fractions", None)
+    np.testing.assert_allclose(
+        list(results.values()),
+        list(expected.values()),
+        err_msg=f"{data['name']} failed without division edges",
+    )
 
 
 @pytest.mark.parametrize(

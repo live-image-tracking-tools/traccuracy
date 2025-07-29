@@ -37,6 +37,7 @@ class NodeFlag(str, enum.Enum):
     NON_SPLIT = "is_ns"
     # True positive divisions. Valid on gt and computed graphs.
     TP_DIV = "is_tp_division"
+    TP_DIV_SKIP = "is_tp_division_skip"
     # False positive divisions. Valid on computed graph.
     FP_DIV = "is_fp_division"
     # False negative divisions. Valid on gt graph.
@@ -50,6 +51,9 @@ class NodeFlag(str, enum.Enum):
 
     # Minimum buffer value that would correct a shifted division.
     MIN_BUFFER_CORRECT = "min_buffer_correct"
+    # Minimum buffer value that would correct a shifted division
+    # with skip edges allowed
+    MIN_BUFFER_CORRECT_SKIP = "min_buffer_correct_skip"
 
     @classmethod
     def has_value(cls, value: str) -> bool:
@@ -177,7 +181,7 @@ class TrackingGraph:
                 pixel value of the node in the segmentation. Defaults to
                 'segmentation_id'. Pass `None` if there is not a label
                 attribute on the graph.
-            location_key (str | tuple, optional): The key or list of keys on each node
+            location_keys (str | tuple, optional): The key or list of keys on each node
                 in graph that contains the spatial location of the node, in the order
                 needed to index the segmentation, if applicable. Every
                 node must have a value stored at each of these provided keys.
@@ -260,6 +264,8 @@ class TrackingGraph:
 
         # Record types of annotations that have been calculated
         self.division_annotations = False
+        self.division_skip_gt_relaxed = False
+        self.division_skip_pred_relaxed = False
         self.node_errors = False
         self.edge_errors = False
         self.skip_edges_gt_relaxed = False

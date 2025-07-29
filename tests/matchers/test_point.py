@@ -2,10 +2,10 @@ import copy
 import re
 
 import networkx as nx
-import numpy as np
 import pytest
 
 import tests.examples.segs as ex_segs
+from examples.segs import SegmentationData
 from tests.test_utils import get_movie_with_graph
 from traccuracy import TrackingGraph
 from traccuracy.matchers._point import PointMatcher
@@ -22,9 +22,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_good_seg(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_good_seg(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -52,9 +54,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_false_pos(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_false_pos(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -82,9 +86,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_false_neg(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_false_neg(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -112,9 +118,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_overseg(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_overseg(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -143,9 +151,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_underseg(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_underseg(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -174,9 +184,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_multicell(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_multicell(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())
@@ -204,9 +216,11 @@ class TestStandards:
         ],
         ids=["2D", "3D"],
     )
-    def test_no_overlaps(self, data: tuple[np.ndarray, np.ndarray], loc_keys: tuple[str, ...]):
-        gt_nodes = ex_segs.nodes_from_segmentation(data[0], pos_keys=loc_keys)
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+    def test_no_overlaps(
+        self, data: tuple[SegmentationData, SegmentationData], loc_keys: tuple[str, ...]
+    ):
+        gt_nodes = ex_segs.nodes_from_segmentation(data[0].segmentation, pos_keys=loc_keys)
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
 
         def get_ids_locations(node_dict, loc_keys):
             ids = list(node_dict.keys())

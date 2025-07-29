@@ -9,7 +9,7 @@ from traccuracy._tracking_graph import TrackingGraph
 
 def load_point_data(
     path: str | None = None,
-    df: Optional[pd.DataFrame] = None,  # noqa: UP007, bar syntax breaks docs build
+    df: Optional[pd.DataFrame] = None,
     parent_column: str = "parent",
     id_column: str = "node_id",
     pos_columns: tuple[str, ...] = ("z", "y", "x"),
@@ -33,8 +33,9 @@ def load_point_data(
             Defaults to None.
         parent_column (str | None, optional): A reference to the parent node in the previous
             time frame. Defaults to "parent".
-        id_column (str, optional): Optional column used to specify node ids.
-            Defaults to "node_id"
+        id_column (str, optional): Column used to specify node ids. Node IDs should
+            be unique positive integers.
+            Defaults to 'node_id'
         pos_columns (tuple[str], optional): A tuple of columns to use for position.
             Defaults to ("z", "y", "x").
         time_column (str, optional): The column to use for time. Defaults to "t".
@@ -47,6 +48,8 @@ def load_point_data(
         ValueError: Must provide either a path or a dataframe
         ValueError: parent_column not present in data
         ValueError: id_column not present in data
+        ValueError: id_column does not contain positive integers
+        ValueError: id_column does not contain unique values
         ValueError: pos_columns not present in data
         ValueError: time_column not present in data
         ValueError: seg_id_column not present in data
@@ -71,6 +74,12 @@ def load_point_data(
 
     if id_column not in df.columns:
         raise ValueError(f"Specified id_column {id_column} not present")
+
+    if not pd.api.types.is_integer_dtype(df[id_column]) or not np.all(df[id_column] >= 0):
+        raise ValueError(f"Specified id_column {id_column} must contain positive integers.")
+
+    if not len(df[id_column].unique()) == len(df[id_column]):
+        raise ValueError(f"Specified id_column {id_column} must contain unique values.")
 
     if not all(c in df.columns for c in pos_columns):
         raise ValueError(f"Specified pos_columns {pos_columns} not present")

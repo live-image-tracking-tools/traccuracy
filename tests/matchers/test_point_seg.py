@@ -31,8 +31,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_good_seg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -48,8 +48,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_false_pos(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -66,8 +66,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_false_neg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -84,8 +84,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_overseg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -101,8 +101,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_underseg(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -118,8 +118,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_no_overlap(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -135,8 +135,8 @@ class TestStandards:
         ids=["2D", "3D"],
     )
     def test_no_multicell(self, data, loc_keys):
-        gt_seg = data[0]
-        pred_nodes = ex_segs.nodes_from_segmentation(data[1], pos_keys=loc_keys)
+        gt_seg = data[0].segmentation
+        pred_nodes = ex_segs.nodes_from_segmentation(data[1].segmentation, pos_keys=loc_keys)
         pred_ids, pred_locs = get_ids_locations(pred_nodes, loc_keys)
 
         matches = match_point_to_seg(pred_ids, pred_locs, gt_seg)
@@ -174,7 +174,7 @@ class TestPointSegMatcher:
     def test_diff_node_ids(self):
         # Relabel nodes to distinguish point nodes from seg nodes
         pgraph = nx.relabel_nodes(
-            self.track_graph.graph, {node: f"p_{node}" for node in self.track_graph.graph}
+            self.track_graph.graph, {node: node + 100 for node in self.track_graph.graph}
         )
         point_data = TrackingGraph(pgraph, location_keys=self.track_graph.location_keys)
         # Nodes ids are label_time so not an exact mapping from segmentation label value
@@ -183,9 +183,9 @@ class TestPointSegMatcher:
         matched = self.matcher.compute_mapping(point_data, seg_data)
         # Check for correct number of pairs
         assert len(matched.mapping) == self.n_frames * self.n_labels
-        # gt and pred node should be the same after removing p prefix
+        # gt and pred node should be the same after subtracting 100 from point node
         for pair in matched.mapping:
-            assert pair[0][2:] == pair[1]
+            assert pair[0] - 100 == pair[1]
 
         # Check matching going in the other direction
         matched = self.matcher.compute_mapping(seg_data, point_data)
@@ -193,7 +193,7 @@ class TestPointSegMatcher:
         assert len(matched.mapping) == self.n_frames * self.n_labels
         # gt and pred node should be the same after removing p prefix
         for pair in matched.mapping:
-            assert pair[0] == pair[1][2:]
+            assert pair[0] == pair[1] - 100
 
     def test_empty(self):
         point_empty = TrackingGraph(nx.DiGraph(), location_keys=("x", "y"))
