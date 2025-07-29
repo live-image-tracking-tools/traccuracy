@@ -1,4 +1,5 @@
 import warnings
+from collections import Counter
 
 import networkx as nx
 import numpy as np
@@ -124,13 +125,20 @@ class CHOTAMetric(Metric):
         pred_tracklet_assignments = _assign_trajectories(pred_tracklets_graph)
         gt_tracklet_assignments = _assign_trajectories(gt_tracklets_graph)
 
-        # this could be wrong if the mapping is not one-to-one
         fp = len(matched.pred_graph.nodes) - len(matched.mapping)
         fn = len(matched.gt_graph.nodes) - len(matched.mapping)
 
-        # required because of the many-to-many mapping
-        fp = max(fp, 0)
-        fn = max(fn, 0)
+        # repeated predicted matching are counted as false positives
+        counter = Counter([pred_node_id for _, pred_node_id in matched.mapping])
+        for v in counter.values():
+            if v > 1:
+                fp += v - 1
+
+        # repeated ground truth matching are counted as false negatives
+        counter = Counter([gt_node_id for gt_node_id, _ in matched.mapping])
+        for v in counter.values():
+            if v > 1:
+                fn += v - 1
 
         print(f"{fp=} {fn=}")
 
@@ -160,6 +168,7 @@ class CHOTAMetric(Metric):
                 fpa = len(pred_tracklet_assignments[i]) * pred_tracklet_mask.shape[1] - tpa
                 fna = len(gt_tracklet_assignments[j]) * gt_tracklet_mask.shape[0] - tpa
 
+                tpa, fpa, fna = tpa.item(), fpa.item(), fna.item()
                 print(f"{tpa=} {fpa=} {fna=}")
 
                 A_sigma = tracklets_overlap[i, j] * tpa / (tpa + fpa + fna)
@@ -167,6 +176,7 @@ class CHOTAMetric(Metric):
 
         union = fp + fn + len(matched.mapping)
 
+        print(f"{fp=} {fn=} {len(matched.mapping)=}")
         print(total_A_sigma, union)
 
         return {
