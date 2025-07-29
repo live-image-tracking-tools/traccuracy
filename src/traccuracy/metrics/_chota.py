@@ -189,10 +189,7 @@ class CHOTAMetric(Metric):
 
                 tpa = tracklets_overlap[pred_tracklet_mask & gt_tracklet_mask].sum()
                 fpa = pred_overlap_sum - tpa
-
                 fna = gt_overlap_sum - tpa
-
-                tpa, fpa, fna = tpa.item(), fpa.item(), fna.item()
 
                 LOG.info(
                     "tracklets_overlap[i, j]={}, pred_overlap_sum={} gt_overlap_sum={}",
@@ -202,9 +199,9 @@ class CHOTAMetric(Metric):
                 )
                 LOG.info(
                     "tpa={} fpa={} fna={} pred_tracklet_size={} gt_tracklet_size={}",
-                    tpa,
-                    fpa,
-                    fna,
+                    tpa.item(),
+                    fpa.item(),
+                    fna.item(),
                     len(pred_tracklet_assignments[j]),
                     len(gt_tracklet_assignments[i]),
                 )
