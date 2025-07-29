@@ -68,9 +68,9 @@ class TrackOverlapMetrics(Metric):
 
         gt_skips = gt_graph.get_skip_edges() if relaxed else set()
         pred_skips = pred_graph.get_skip_edges() if relaxed else set()
+
         gt_skip_to_path_length = {}
-        pred_skip_to_path_length = {}
-        pred_gt_path_skip_map = {}
+        pred_path_to_gt_skip_map = {}
         for skip_src, skip_tgt in gt_skips:
             matched_src = matched.gt_pred_map.get(skip_src, [])
             matched_tgt = matched.gt_pred_map.get(skip_tgt, [])
@@ -80,16 +80,18 @@ class TrackOverlapMetrics(Metric):
                 )
                 if equivalent_path:
                     for edge_src, edge_tgt in pairwise(equivalent_path):
-                        pred_gt_path_skip_map[edge_src] = {
+                        pred_path_to_gt_skip_map[edge_src] = {
                             "edge_in_path": (edge_src, edge_tgt),
                             "skip_edge": (skip_src, skip_tgt),
                         }
-                        pred_gt_path_skip_map[edge_tgt] = {
+                        pred_path_to_gt_skip_map[edge_tgt] = {
                             "edge_in_path": (edge_src, edge_tgt),
                             "skip_edge": (skip_src, skip_tgt),
                         }
                     gt_skip_to_path_length[(skip_src, skip_tgt)] = len(equivalent_path) - 1
-        gt_pred_path_skip_map = {}
+
+        pred_skip_to_path_length = {}
+        gt_path_to_pred_skip_map = {}
         for skip_src, skip_tgt in pred_skips:
             matched_src = matched.pred_gt_map.get(skip_src, [])
             matched_tgt = matched.pred_gt_map.get(skip_tgt, [])
@@ -99,11 +101,11 @@ class TrackOverlapMetrics(Metric):
                 )
                 if equivalent_path:
                     for edge_src, edge_tgt in pairwise(equivalent_path):
-                        pred_gt_path_skip_map[edge_src] = {
+                        gt_path_to_pred_skip_map[edge_src] = {
                             "edge_in_path": (edge_src, edge_tgt),
                             "skip_edge": (skip_src, skip_tgt),
                         }
-                        pred_gt_path_skip_map[edge_tgt] = {
+                        gt_path_to_pred_skip_map[edge_tgt] = {
                             "edge_in_path": (edge_src, edge_tgt),
                             "skip_edge": (skip_src, skip_tgt),
                         }
@@ -115,20 +117,20 @@ class TrackOverlapMetrics(Metric):
             gt_tracklets,
             matched,
             matched.pred_gt_map,
-            pred_skip_to_path_length,
-            gt_skip_to_path_length,
-            pred_gt_path_skip_map,
-            gt_pred_path_skip_map,
+            pred_skip_to_path_length,  # ref skips
+            gt_skip_to_path_length,  # overlap skips
+            gt_path_to_pred_skip_map,  # overlap_path_to_reference_skip_map
+            pred_path_to_gt_skip_map,  # reference_path_to_overlap_skip_map
         )
         target_effectiveness, track_fractions = _calc_overlap_score(
             gt_tracklets,
             pred_tracklets,
             matched,
             matched.gt_pred_map,
-            gt_skip_to_path_length,
-            pred_skip_to_path_length,
-            gt_pred_path_skip_map,
-            pred_gt_path_skip_map,
+            gt_skip_to_path_length,  # ref skips
+            pred_skip_to_path_length,  # overlap skips
+            pred_path_to_gt_skip_map,  # overlap_path_to_reference_skip_map
+            gt_path_to_pred_skip_map,  # reference_path_to_overlap_skip_map
         )
         return {
             "track_purity": track_purity,
@@ -144,8 +146,8 @@ def _calc_overlap_score(
     overlap_reference_mapping: dict[Any, list[Any]],
     reference_skips: dict[tuple[int, int], int] = {},
     overlap_skips: dict[tuple[int, int], int] = {},
-    reference_overlap_skip_map: dict[Any, dict[str, Any]] = None,
-    overlap_reference_skip_map: dict[Any, dict[str, Any]] = None,
+    overlap_path_to_reference_skip_map: dict[Any, dict[str, Any]] = None,
+    reference_path_to_overlap_skip_map: dict[Any, dict[str, Any]] = None,
 ) -> tuple[float | np.floating[Any], float | np.floating[Any]]:
     """Get weighted/unweighted fraction of reference_tracklets overlapped by overlap_tracklets.
 
@@ -178,15 +180,22 @@ def _calc_overlap_score(
         # that overlap
         overlapping_id_to_count: dict[int, int] = defaultdict(lambda: 0)
         for ref_src, ref_tgt in reference_tracklet.edges():
-            skip_counted = False
+            # skip_counted = False
             if (ref_src, ref_tgt) in reference_skips:
-                # we need to subtract an edge from the tracklet length
-                # because we'll be adding the overlapping paths to it
-                tracklet_length -= 1
+                # if this is a skip edge, there is some equivalent path in the overlaps
+                # let's find an edge on that path and update the count
+                edge_in_overlapping_path = next(iter(overlap_path_to_reference_skip_map.values()))[
+                    "edge_in_path"
+                ]
+                overlapping_id_to_count[overlap_edge_to_tid[edge_in_overlapping_path]] += 1
+                continue
             # this edge is part of an equivalent path for an overlap skip edge
             # we need to find that skip edge and update its count by 1
-            if ref_src in overlap_reference_skip_map and ref_tgt in overlap_reference_skip_map:
-                equivalent_skip_edge = overlap_reference_skip_map[ref_src]["skip_edge"]
+            if (
+                ref_src in reference_path_to_overlap_skip_map
+                and ref_tgt in reference_path_to_overlap_skip_map
+            ):
+                equivalent_skip_edge = reference_path_to_overlap_skip_map[ref_src]["skip_edge"]
                 overlapping_id_to_count[overlap_edge_to_tid[equivalent_skip_edge]] += 1
             overlap_src = overlap_reference_mapping.get(ref_src, [])
             overlap_tgt = overlap_reference_mapping.get(ref_tgt, [])
@@ -199,21 +208,21 @@ def _calc_overlap_score(
                 # since the edge is in the overlap tracklets, we update count by 1
                 # because we need to match the reference track length (we'll be updating)
                 # this count as many times as edges in the path
-                elif (src, tgt) in overlap_skips:
-                    overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
+                # elif (src, tgt) in overlap_skips:
+                #     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
                 # if (ref_src, ref_tgt) is in skip edges, we found an equivalent path in overlap graph
-                elif (ref_src, ref_tgt) in reference_skips and not skip_counted:
-                    # is this one of the edges along that path?
-                    if src in reference_overlap_skip_map and tgt in reference_overlap_skip_map:
-                        edge_in_path = reference_overlap_skip_map[src]["edge_in_path"]
-                        # if it is, we update our count by equivalent length and mark this edge as counted
-                        overlapping_id_to_count[overlap_edge_to_tid[edge_in_path]] += (
-                            reference_skips[(ref_src, ref_tgt)]
-                        )
-                        # and since the length of the reference tracklet will otherwise be too short
-                        # we also update it
-                        tracklet_length += reference_skips[(ref_src, ref_tgt)]
-                        skip_counted = True
+                # elif (ref_src, ref_tgt) in reference_skips and not skip_counted:
+                #     # is this one of the edges along that path?
+                #     if src in overlap_reference_skip_map and tgt in overlap_reference_skip_map:
+                #         edge_in_path = overlap_reference_skip_map[src]["edge_in_path"]
+                #         # if it is, we update our count by equivalent length and mark this edge as counted
+                #         overlapping_id_to_count[overlap_edge_to_tid[edge_in_path]] += (
+                #             reference_skips[(ref_src, ref_tgt)]
+                #         )
+                #         # and since the length of the reference tracklet will otherwise be too short
+                #         # we also update it
+                #         tracklet_length += reference_skips[(ref_src, ref_tgt)]
+                #         skip_counted = True
         total_count += tracklet_length
         tracklet_overlap = max(overlapping_id_to_count.values(), default=0)
         max_overlap += tracklet_overlap
