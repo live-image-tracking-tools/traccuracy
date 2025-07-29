@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
-import zarr
 from geff import GeffMetadata, write_nx
 
 from traccuracy._tracking_graph import NodeFlag
@@ -214,8 +213,7 @@ def export_results(
         )
         # Update metadata for division flags with buffer
         if reannotate_div:
-            group = zarr.open(geff_path)  # TODO: remove this once bug in geff 0.4.1 is fixed
-            meta = GeffMetadata.read(group)
+            meta = GeffMetadata.read(geff_path)
             props_meta = {}
             for flag in [
                 NodeFlag.TP_DIV,
