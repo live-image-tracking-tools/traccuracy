@@ -159,14 +159,15 @@ class CHOTAMetric(Metric):
         for i in range(len(pred_tracklets)):
             pred_tracklet_mask.fill(False)
             pred_tracklet_mask[pred_tracklet_assignments[i], :] = True
+            pred_overlap_sum = tracklets_overlap[pred_tracklet_assignments[i], :].sum()
 
             for j in np.nonzero(tracklets_overlap[i, :])[0]:
                 gt_tracklet_mask.fill(False)
                 gt_tracklet_mask[:, gt_tracklet_assignments[j]] = True
 
-                tpa = np.sum(pred_tracklet_mask & gt_tracklet_mask)
-                fpa = len(pred_tracklet_assignments[i]) * pred_tracklet_mask.shape[1] - tpa
-                fna = len(gt_tracklet_assignments[j]) * gt_tracklet_mask.shape[0] - tpa
+                tpa = tracklets_overlap[pred_tracklet_mask & gt_tracklet_mask].sum()
+                fpa = pred_overlap_sum - tpa
+                fna = tracklets_overlap[:, gt_tracklet_assignments[j]].sum() - tpa
 
                 tpa, fpa, fna = tpa.item(), fpa.item(), fna.item()
                 print(f"{tpa=} {fpa=} {fna=}")
