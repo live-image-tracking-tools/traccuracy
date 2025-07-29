@@ -43,6 +43,7 @@ dependencies = [
     "pyarrow",
     "scipy",
     "skan>=0.13",
+    "geff>=0.4.0"
 ]
 
 # extras
