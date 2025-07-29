@@ -2,10 +2,9 @@ import warnings
 
 import networkx as nx
 import numpy as np
-from sklearn.neighbors import VALID_METRICS
 
 from traccuracy.matchers._base import Matched
-from traccuracy.metrics._base import Metric
+from traccuracy.metrics._base import MATCHING_TYPES, Metric
 
 
 def _tracklets_graph(
@@ -15,21 +14,30 @@ def _tracklets_graph(
 ) -> nx.DiGraph:
     """
     Create a graph of tracklets.
+    It's a compressed graph representation where each simple path (tracklet) is a node.
+
+    Args:
+        graph (nx.DiGraph): The original segments' graph.
+        tracklets (list[nx.DiGraph]): A partition of the original segments' graph into tracklets.
+        pred_track_ids (dict[int, int]): The mapping between nodes and tracklets.
+
+    Returns:
+        nx.DiGraph: The tracklets graph.
     """
-    graph = nx.DiGraph()
+    tracklet_graph: nx.DiGraph[int] = nx.DiGraph()
     seen = set()
 
-    graph.add_nodes_from(range(len(tracklets)))
+    tracklet_graph.add_nodes_from(range(len(tracklets)))
 
     for tracklet in tracklets:
         for node in tracklet.nodes:
-            for neighbor in graph.out_edges(node):
-                edge = (node, pred_track_ids[neighbor])
-                if edge not in seen:
-                    graph.add_edge(*edge)
-                    seen.add(edge)
+            for node_edge in graph.out_edges(node):
+                tracklet_edge = (pred_track_ids[node_edge[0]], pred_track_ids[node_edge[1]])
+                if tracklet_edge not in seen:
+                    tracklet_graph.add_edge(*tracklet_edge)
+                    seen.add(tracklet_edge)
 
-    return graph
+    return tracklet_graph
 
 
 def _assign_trajectories(
@@ -40,8 +48,7 @@ def _assign_trajectories(
     they are reachable by traversing backwards in time.
 
     Args:
-        graph (nx.DiGraph): The graph to assign trajectories to.
-        tracklets (list[nx.DiGraph]): The tracklets to assign trajectories to.
+        tracklets_graph (nx.DiGraph): The graph to assign trajectories to.
 
     Returns:
         list[np.ndarray]: The assigned trajectories.
@@ -70,7 +77,7 @@ class CHOTAMetric(Metric):
 
     def __init__(self) -> None:
         # many-to-many matches are an edge case, but they are allowed
-        super().__init__(valid_matches=VALID_METRICS)
+        super().__init__(valid_matches=MATCHING_TYPES)
 
     def _compute(
         self,
@@ -125,36 +132,42 @@ class CHOTAMetric(Metric):
         fp = max(fp, 0)
         fn = max(fn, 0)
 
-        tracks_overlap = np.zeros(
+        print(f"{fp=} {fn=}")
+
+        tracklets_overlap = np.zeros(
             (len(pred_tracklets), len(gt_tracklets)),
             dtype=int,
         )
 
-        pred_tracklet_mask = np.zeros_like(tracks_overlap, dtype=bool)
-        gt_tracklet_mask = np.zeros_like(tracks_overlap, dtype=bool)
+        pred_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
+        gt_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
 
-        for pred_node, gt_node in matched.mapping:
+        for gt_node, pred_node in matched.mapping:
             pred_track_id = pred_track_ids[pred_node]
             gt_track_id = gt_track_ids[gt_node]
-            tracks_overlap[pred_track_id, gt_track_id] += 1
+            tracklets_overlap[pred_track_id, gt_track_id] += 1
 
         total_A_sigma = 0
         for i in range(len(pred_tracklets)):
             pred_tracklet_mask.fill(False)
             pred_tracklet_mask[pred_tracklet_assignments[i], :] = True
 
-            for j in np.nonzero(tracks_overlap[i, :])[0]:
+            for j in np.nonzero(tracklets_overlap[i, :])[0]:
                 gt_tracklet_mask.fill(False)
                 gt_tracklet_mask[:, gt_tracklet_assignments[j]] = True
 
                 tpa = np.sum(pred_tracklet_mask & gt_tracklet_mask)
-                fpa = len(pred_tracklet_assignments[i]) - tpa
-                fna = len(gt_tracklet_assignments[j]) - tpa
+                fpa = len(pred_tracklet_assignments[i]) * pred_tracklet_mask.shape[1] - tpa
+                fna = len(gt_tracklet_assignments[j]) * gt_tracklet_mask.shape[0] - tpa
 
-                A_sigma = tracks_overlap[i, j] * tpa / (tpa + fpa + fna)
+                print(f"{tpa=} {fpa=} {fna=}")
+
+                A_sigma = tracklets_overlap[i, j] * tpa / (tpa + fpa + fna)
                 total_A_sigma += A_sigma
 
         union = fp + fn + len(matched.mapping)
+
+        print(total_A_sigma, union)
 
         return {
             "CHOTA": np.sqrt(total_A_sigma / union).item(),
