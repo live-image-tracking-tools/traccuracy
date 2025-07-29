@@ -82,8 +82,8 @@ def load_geff_data(
             f"does not match shape {segmentation.shape}"
         )
 
-    # TODO: prevent loading edge attributes
-    G, _ = read_nx(geff_path, node_props=load_props)
+    # Don't load edge attributes
+    G, _ = read_nx(geff_path, node_props=load_props, edge_props=[])
 
     return TrackingGraph(
         graph=G,

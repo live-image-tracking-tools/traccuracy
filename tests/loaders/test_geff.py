@@ -29,6 +29,9 @@ class Test_load_geff_data:
         tg = load_geff_data(zarr_path)
         assert len(tg.get_location(0)) == 2
 
+        # Check for no edge attributes
+        assert tg.graph.edges[(0, 1)] == {}
+
     def test_no_time(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
         store, _ = create_memory_mock_geff(
