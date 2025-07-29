@@ -1,14 +1,21 @@
+import json
 import os
 import urllib.request
 import zipfile
 
 import networkx as nx
 import numpy as np
+import pytest
 import skimage as sk
+from geff.geff_reader import GeffReader
 
+from tests.examples.larger_examples import larger_example_1
 from tests.examples.segs import nodes_from_segmentation
-from traccuracy._tracking_graph import TrackingGraph
+from traccuracy._tracking_graph import NodeFlag, TrackingGraph
 from traccuracy.loaders import load_ctc_data
+from traccuracy.metrics._basic import BasicMetrics
+from traccuracy.metrics._divisions import DivisionMetrics
+from traccuracy.utils import export_results
 
 
 def download_gt_data(url, root_dir):
@@ -182,3 +189,88 @@ def get_division_graphs():
     mapped_g2 = [7, 8, 11, 14]
 
     return G1, G2, mapped_g1, mapped_g2
+
+
+class Test_export_results:
+    def test_basic_metrics(self, tmp_path):
+        matched = larger_example_1()
+        results = [BasicMetrics().compute(matched)]
+        out_zarr = tmp_path / "test.zarr"
+        export_results(out_zarr, matched, results)
+
+        # Check that correct properties are present
+        gt_props = GeffReader(out_zarr / "gt.geff").node_prop_names
+        assert str(NodeFlag.TRUE_POS) in gt_props
+        assert str(NodeFlag.FALSE_NEG) in gt_props
+        pred_props = GeffReader(out_zarr / "pred.geff").node_prop_names
+        assert str(NodeFlag.TRUE_POS) in pred_props
+        assert str(NodeFlag.FALSE_POS) in pred_props
+
+        # Check results json dump
+        with open(out_zarr / "traccuracy-results.json") as f:
+            res_dict = json.load(f)
+        assert "traccuracy" in res_dict
+        assert len(res_dict["traccuracy"]) == 1
+
+    def test_division_metrics(self, tmp_path):
+        # Test with valid frame buffer
+        matched = larger_example_1()
+        results = [DivisionMetrics(max_frame_buffer=2).compute(matched)]
+        out_zarr = tmp_path / "test.zarr"
+        export_results(out_zarr, matched, results, target_frame_buffer=2)
+
+        gt_reader = GeffReader(out_zarr / "gt.geff")
+        pred_reader = GeffReader(out_zarr / "pred.geff")
+
+        # Check that correct properties are present
+        gt_props = gt_reader.node_prop_names
+        assert str(NodeFlag.TP_DIV) in gt_props
+        assert str(NodeFlag.FN_DIV) in gt_props
+        pred_props = pred_reader.node_prop_names
+        assert str(NodeFlag.TP_DIV) in pred_props
+        assert str(NodeFlag.FP_DIV) in pred_props
+
+        # Check that frame buffer metadata is recorded
+        for reader in [gt_reader, pred_reader]:
+            for prop in reader.metadata.node_props_metadata.values():
+                assert prop.description == "Target frame buffer 2"
+
+        # Test with bad frame buffer
+        with pytest.raises(
+            ValueError, match="Requested target frame buffer 4 exceeds computed frame buffer 2"
+        ):
+            export_results(out_zarr, matched, results, target_frame_buffer=4)
+
+    def test_multiple_metrics(self, tmp_path):
+        matched = larger_example_1()
+        results = [
+            DivisionMetrics(max_frame_buffer=2).compute(matched),
+            BasicMetrics().compute(matched),
+        ]
+        out_zarr = tmp_path / "test.zarr"
+        export_results(out_zarr, matched, results, target_frame_buffer=2)
+
+        # Check results json dump
+        with open(out_zarr / "traccuracy-results.json") as f:
+            res_dict = json.load(f)
+        assert "traccuracy" in res_dict
+        assert len(res_dict["traccuracy"]) == len(results)
+
+    def test_bad_inputs(self):
+        with pytest.raises(ValueError, match="matched argument must be an instance of `Matched`"):
+            export_results("path", "bad matched", [])
+
+        matched = larger_example_1()
+        results = BasicMetrics().compute(matched)
+
+        # not a list
+        with pytest.raises(
+            ValueError, match="results argument must be a list of `Results` objects"
+        ):
+            export_results("path", matched, results)
+
+        # not a list of results
+        with pytest.raises(
+            ValueError, match="results argument must be a list of `Results` objects"
+        ):
+            export_results("path", matched, ["not a result"])

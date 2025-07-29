@@ -43,6 +43,7 @@ dependencies = [
     "pyarrow",
     "scipy",
     "skan>=0.13",
+    "geff @ git+https://github.com/live-image-tracking-tools/geff.git@main" # TODO: fix with correct lower bound
 ]
 
 # extras

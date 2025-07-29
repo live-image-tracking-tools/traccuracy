@@ -1,18 +1,23 @@
 from __future__ import annotations
 
 import copy
+import json
+import os
 from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+import zarr
+from geff import GeffMetadata, write_nx
 
 from traccuracy._tracking_graph import NodeFlag
+from traccuracy.matchers._matched import Matched
+from traccuracy.metrics._results import Results
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from traccuracy._tracking_graph import TrackingGraph
-    from traccuracy.matchers._matched import Matched
 
 
 def get_equivalent_skip_edge(
@@ -136,3 +141,97 @@ def get_corrected_division_graphs_with_delta(
             corrected_pred_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
 
     return corrected_gt_graph, corrected_pred_graph
+
+
+def export_results(
+    out_zarr: str, matched: Matched, results: list[Results], target_frame_buffer: int = 0
+) -> None:
+    """Export a annotated tracking graphs as geffs along with a summary of traccuracy results
+
+    Expected file structure:
+    out_zarr.zarr/
+    ├── gt.geff
+    ├── pred.geff
+    └── traccuracy-results.json
+
+    Args:
+        out_zarr (str): Path to output zarr
+        matched (Matched): Matched object containing annotated TrackingGraphs
+        results (list[Results]): List of Results output by Metric.compute
+        target_frame_buffer (int, optional): If divisions are annotated, target_frame_buffer can
+            be used to run `get_corrected_divisions_with_delta` in order to provide division
+            annotations for a specific frame buffer. Defaults to 0.
+
+    Raises:
+        ValueError: matched argument must be an instance of `Matched`
+        ValueError: results argument must be a list of `Results` objects
+        ValueError: Requested target frame buffer {target_frame_buffer} exceeds computed "
+            "frame buffer {max_frame_buffer}
+    """
+    if not isinstance(matched, Matched):
+        raise ValueError("matched argument must be an instance of `Matched`")
+
+    if not isinstance(results, list) or not all(isinstance(res, Results) for res in results):
+        raise ValueError("results argument must be a list of `Results` objects")
+
+    # Check if divs in results and frame buffer is valid
+    reannotate_div = False
+    for res in results:
+        if res.metric_info["name"] == "DivisionMetrics":
+            max_frame_buffer = res.metric_info["frame_buffer"]
+            if target_frame_buffer > max_frame_buffer:
+                raise ValueError(
+                    f"Requested target frame buffer {target_frame_buffer} exceeds computed "
+                    "frame buffer {max_frame_buffer}"
+                )
+            else:
+                reannotate_div = True
+                relaxed = res.metric_info["relax_skips_gt"] or res.metric_info["relax_skips_pred"]
+
+    if reannotate_div:
+        gt, pred = get_corrected_division_graphs_with_delta(
+            matched, frame_buffer=target_frame_buffer, relax_skip_edges=relaxed
+        )
+    else:
+        gt = matched.gt_graph
+        pred = matched.pred_graph
+
+    # Determine names of geffs
+    gt_name = f"{gt.name}.geff" if gt.name else "gt.geff"
+    pred_name = f"{pred.name}.geff" if pred.name else "pred.geff"
+
+    # Write geffs
+    for tg, name in zip([gt, pred], [gt_name, pred_name], strict=True):
+        geff_path = os.path.join(out_zarr, name)
+        axis_names = [tg.frame_key]
+        if tg.location_keys is not None:
+            axis_names.extend(tg.location_keys)
+        write_nx(
+            graph=tg.graph,
+            store=geff_path,
+            axis_names=axis_names,
+            axis_types=["time"] + ["space"] * (len(axis_names) - 1),
+        )
+        # Update metadata for division flags with buffer
+        if reannotate_div:
+            group = zarr.open(geff_path)  # TODO: remove this once bug in geff 0.4.1 is fixed
+            meta = GeffMetadata.read(group)
+            props_meta = {}
+            for flag in [
+                NodeFlag.TP_DIV,
+                NodeFlag.TP_DIV_SKIP,
+                NodeFlag.FP_DIV,
+                NodeFlag.FN_DIV,
+                NodeFlag.WC_DIV,
+            ]:
+                props_meta[str(flag)] = {
+                    "identifier": str(flag),
+                    "dtype": "bool",
+                    "description": f"Target frame buffer {target_frame_buffer}",
+                }
+            meta.node_props_metadata = props_meta
+            meta.write(geff_path)
+
+    # Write results json
+    with open(os.path.join(out_zarr, "traccuracy-results.json"), mode="w") as f:
+        json.dump({"traccuracy": [res.to_dict() for res in results]}, f)
