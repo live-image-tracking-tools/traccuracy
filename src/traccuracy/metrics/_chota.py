@@ -146,7 +146,7 @@ class CHOTAMetric(Metric):
                 fn += c - 1
 
         tracklets_overlap = np.zeros(
-            (len(pred_tracklets), len(gt_tracklets)),
+            (len(gt_tracklets), len(pred_tracklets)),
             dtype=int,
         )
 
@@ -169,30 +169,27 @@ class CHOTAMetric(Metric):
         for gt_node, pred_node in matched.mapping:
             pred_track_id = pred_track_ids[pred_node]
             gt_track_id = gt_track_ids[gt_node]
-            tracklets_overlap[pred_track_id, gt_track_id] += 1
+            tracklets_overlap[gt_track_id, pred_track_id] += 1
 
         LOG.info("tracklets_overlap.sum()={}", tracklets_overlap.sum().item())
         LOG.info("tracklets_overlap.shape={}", tracklets_overlap.shape)
 
-        # TODO:
-        # invert the matrix, iterating over rows as GTs should be better
-
         total_A_sigma = 0
-        for i in range(len(pred_tracklets)):
-            pred_tracklet_mask.fill(False)
-            pred_tracklet_mask[pred_tracklet_assignments[i], :] = True
-            pred_overlap_sum = tracklets_overlap[pred_tracklet_assignments[i], :].sum()
-            pred_overlap_sum += tracklets_fp[pred_tracklet_assignments[i]].sum()
+        for i in range(len(gt_tracklets)):
+            gt_tracklet_mask.fill(False)
+            gt_tracklet_mask[gt_tracklet_assignments[i], :] = True
+            gt_overlap_sum = tracklets_overlap[gt_tracklet_assignments[i], :].sum()
+            gt_overlap_sum += tracklets_fn[gt_tracklet_assignments[i]].sum()
 
             for j in np.nonzero(tracklets_overlap[i, :])[0]:
-                gt_tracklet_mask.fill(False)
-                gt_tracklet_mask[:, gt_tracklet_assignments[j]] = True
+                pred_tracklet_mask.fill(False)
+                pred_tracklet_mask[:, pred_tracklet_assignments[j]] = True
+                pred_overlap_sum = tracklets_overlap[:, pred_tracklet_assignments[j]].sum()
+                pred_overlap_sum += tracklets_fp[pred_tracklet_assignments[j]].sum()
 
                 tpa = tracklets_overlap[pred_tracklet_mask & gt_tracklet_mask].sum()
                 fpa = pred_overlap_sum - tpa
 
-                gt_overlap_sum = tracklets_overlap[:, gt_tracklet_assignments[j]].sum()
-                gt_overlap_sum += tracklets_fn[gt_tracklet_assignments[j]].sum()
                 fna = gt_overlap_sum - tpa
 
                 tpa, fpa, fna = tpa.item(), fpa.item(), fna.item()
@@ -208,8 +205,8 @@ class CHOTAMetric(Metric):
                     tpa,
                     fpa,
                     fna,
-                    len(pred_tracklet_assignments[i]),
-                    len(gt_tracklet_assignments[j]),
+                    len(pred_tracklet_assignments[j]),
+                    len(gt_tracklet_assignments[i]),
                 )
 
                 A_sigma = tracklets_overlap[i, j] * tpa / (tpa + fpa + fna)
