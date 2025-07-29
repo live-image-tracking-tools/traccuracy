@@ -55,7 +55,9 @@ class TrackOverlapMetrics(Metric):
     ) -> dict[str, float | np.floating[Any]]:
         if relax_skips_gt + relax_skips_pred == 1:
             warnings.warn(
-                "Relaxing skips for either predicted or ground truth graphs will still affect all overlap metrics."
+                "Relaxing skips for either predicted or ground truth graphs"
+                + "will still affect all overlap metrics.",
+                stacklevel=2,
             )
         relaxed = relax_skips_gt or relax_skips_pred
         gt_graph = matched.gt_graph
@@ -69,66 +71,27 @@ class TrackOverlapMetrics(Metric):
         gt_skips = gt_graph.get_skip_edges() if relaxed else set()
         pred_skips = pred_graph.get_skip_edges() if relaxed else set()
 
-        gt_skip_to_path_length = {}
-        pred_path_to_gt_skip_map = {}
-        for skip_src, skip_tgt in gt_skips:
-            matched_src = matched.gt_pred_map.get(skip_src, [])
-            matched_tgt = matched.gt_pred_map.get(skip_tgt, [])
-            for possible_src, possible_tgt in product(matched_src, matched_tgt):
-                equivalent_path = get_equivalent_skip_edge(
-                    matched, skip_src, skip_tgt, possible_src, possible_tgt
-                )
-                if equivalent_path:
-                    for edge_src, edge_tgt in pairwise(equivalent_path):
-                        pred_path_to_gt_skip_map[edge_src] = {
-                            "edge_in_path": (edge_src, edge_tgt),
-                            "skip_edge": (skip_src, skip_tgt),
-                        }
-                        pred_path_to_gt_skip_map[edge_tgt] = {
-                            "edge_in_path": (edge_src, edge_tgt),
-                            "skip_edge": (skip_src, skip_tgt),
-                        }
-                    gt_skip_to_path_length[(skip_src, skip_tgt)] = len(equivalent_path) - 1
-
-        pred_skip_to_path_length = {}
-        gt_path_to_pred_skip_map = {}
-        for skip_src, skip_tgt in pred_skips:
-            matched_src = matched.pred_gt_map.get(skip_src, [])
-            matched_tgt = matched.pred_gt_map.get(skip_tgt, [])
-            for possible_src, possible_tgt in product(matched_src, matched_tgt):
-                equivalent_path = get_equivalent_skip_edge(
-                    matched, skip_src, skip_tgt, possible_src, possible_tgt
-                )
-                if equivalent_path:
-                    for edge_src, edge_tgt in pairwise(equivalent_path):
-                        gt_path_to_pred_skip_map[edge_src] = {
-                            "edge_in_path": (edge_src, edge_tgt),
-                            "skip_edge": (skip_src, skip_tgt),
-                        }
-                        gt_path_to_pred_skip_map[edge_tgt] = {
-                            "edge_in_path": (edge_src, edge_tgt),
-                            "skip_edge": (skip_src, skip_tgt),
-                        }
-                    pred_skip_to_path_length[(skip_src, skip_tgt)] = len(equivalent_path) - 1
+        gt_skip_to_path_length, pred_path_to_gt_skip_map = _get_skip_path_maps(
+            matched, gt_skips, matched.gt_pred_map
+        )
+        pred_skip_to_path_length, gt_path_to_pred_skip_map = _get_skip_path_maps(
+            matched, pred_skips, matched.pred_gt_map
+        )
 
         # calculate track purity and target effectiveness
         track_purity, _ = _calc_overlap_score(
             pred_tracklets,
             gt_tracklets,
-            matched,
             matched.pred_gt_map,
             pred_skip_to_path_length,  # ref skips
-            gt_skip_to_path_length,  # overlap skips
             gt_path_to_pred_skip_map,  # overlap_path_to_reference_skip_map
             pred_path_to_gt_skip_map,  # reference_path_to_overlap_skip_map
         )
         target_effectiveness, track_fractions = _calc_overlap_score(
             gt_tracklets,
             pred_tracklets,
-            matched,
             matched.gt_pred_map,
             gt_skip_to_path_length,  # ref skips
-            pred_skip_to_path_length,  # overlap skips
             pred_path_to_gt_skip_map,  # overlap_path_to_reference_skip_map
             gt_path_to_pred_skip_map,  # reference_path_to_overlap_skip_map
         )
@@ -142,12 +105,10 @@ class TrackOverlapMetrics(Metric):
 def _calc_overlap_score(
     reference_tracklets: list[nx.DiGraph],
     overlap_tracklets: list[nx.DiGraph],
-    matched: Matched,
     overlap_reference_mapping: dict[Any, list[Any]],
-    reference_skips: dict[tuple[int, int], int] = {},
-    overlap_skips: dict[tuple[int, int], int] = {},
-    overlap_path_to_reference_skip_map: dict[Any, dict[str, Any]] = None,
-    reference_path_to_overlap_skip_map: dict[Any, dict[str, Any]] = None,
+    reference_skips: dict[tuple[int, int], int],
+    overlap_path_to_reference_skip_map: dict[Any, dict[str, Any]],
+    reference_path_to_overlap_skip_map: dict[Any, dict[str, Any]],
 ) -> tuple[float | np.floating[Any], float | np.floating[Any]]:
     """Get weighted/unweighted fraction of reference_tracklets overlapped by overlap_tracklets.
 
@@ -161,6 +122,14 @@ def _calc_overlap_score(
         overlap_tracklets (List[TrackingGraph]): The tracklets that overlap
         overlap_reference_mapping (Dict[Any, List[Any]]): Mapping as a dict
             from the overlap tracklet nodes to the reference tracklet nodes
+        reference_skips (Dict[Tuple[int, int], int]): Mapping of skip edges in
+            the reference tracklets to their lengths
+        overlap_path_to_reference_skip_map (Dict[Any, Dict[str, Any]]): Mapping
+            from nodes in overlap tracklet equivalent paths to the edge they are
+            part of and the reference skip edge they cover
+        reference_path_to_overlap_skip_map (Dict[Any, Dict[str, Any]]): Mapping
+            from nodes in reference tracklet equivalent paths to the edge they are
+            part of and the overlapping skip edge they cover
 
     Returns:
         tuple[float | np.floating[Any], float | np.floating[Any]]: A tuple containing the
@@ -204,25 +173,6 @@ def _calc_overlap_score(
             for src, tgt in product(overlap_src, overlap_tgt):
                 if (src, tgt) in overlap_edge_to_tid:
                     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
-                # if (src, tgt) is in skip edges, we found an equivalent path in reference
-                # since the edge is in the overlap tracklets, we update count by 1
-                # because we need to match the reference track length (we'll be updating)
-                # this count as many times as edges in the path
-                # elif (src, tgt) in overlap_skips:
-                #     overlapping_id_to_count[overlap_edge_to_tid[(src, tgt)]] += 1
-                # if (ref_src, ref_tgt) is in skip edges, we found an equivalent path in overlap graph
-                # elif (ref_src, ref_tgt) in reference_skips and not skip_counted:
-                #     # is this one of the edges along that path?
-                #     if src in overlap_reference_skip_map and tgt in overlap_reference_skip_map:
-                #         edge_in_path = overlap_reference_skip_map[src]["edge_in_path"]
-                #         # if it is, we update our count by equivalent length and mark this edge as counted
-                #         overlapping_id_to_count[overlap_edge_to_tid[edge_in_path]] += (
-                #             reference_skips[(ref_src, ref_tgt)]
-                #         )
-                #         # and since the length of the reference tracklet will otherwise be too short
-                #         # we also update it
-                #         tracklet_length += reference_skips[(ref_src, ref_tgt)]
-                #         skip_counted = True
         total_count += tracklet_length
         tracklet_overlap = max(overlapping_id_to_count.values(), default=0)
         max_overlap += tracklet_overlap
@@ -231,3 +181,52 @@ def _calc_overlap_score(
     weighted_average = max_overlap / total_count if total_count > 0 else np.nan
     unweighted_average = np.mean(track_fractions) if track_fractions else np.nan
     return weighted_average, unweighted_average
+
+
+def _get_skip_path_maps(
+    matched: Matched,
+    skips: set[tuple[Any, Any]],
+    skip_to_other_map: dict[Any, list[Any]],
+) -> tuple[dict[tuple[Any, Any], int], dict[Any, dict[str, Any]]]:
+    """Get information about equivalent paths for skip edges.
+
+    For each skip edge, find the equivalent path in the matched graph
+    and return a mapping of skip edges to their equivalent path lengths.
+    Also returns a mapping from nodes along equivalent paths to the
+    edge they are part of and the skip edge they cover.
+
+    Args:
+        matched (traccuracy.matchers.Matched): The matched object
+        containing the graphs.
+        skips (set[tuple[Any, Any]]): Set of skip edges to process.
+        skip_to_other_map (dict[Any, list[Any]]): Mapping of nodes in
+        graph with skips to nodes in the other graph.
+
+    Returns:
+        tuple[dict[tuple[Any, Any], int], dict[Any, dict[str, Any]]]:
+            A tuple containing:
+            - A dictionary mapping skip edges to their equivalent path lengths.
+            - A dictionary mapping nodes in equivalent paths to the edge they are part of
+              and the skip edge they cover.
+    """
+    skip_to_equivalent_path_length = {}
+    path_node_to_skip_map = {}
+    for skip_src, skip_tgt in skips:
+        matched_src = skip_to_other_map.get(skip_src, [])
+        matched_tgt = skip_to_other_map.get(skip_tgt, [])
+        for possible_src, possible_tgt in product(matched_src, matched_tgt):
+            equivalent_path = get_equivalent_skip_edge(
+                matched, skip_src, skip_tgt, possible_src, possible_tgt
+            )
+            if equivalent_path:
+                for edge_src, edge_tgt in pairwise(equivalent_path):
+                    path_node_to_skip_map[edge_src] = {
+                        "edge_in_path": (edge_src, edge_tgt),
+                        "skip_edge": (skip_src, skip_tgt),
+                    }
+                    path_node_to_skip_map[edge_tgt] = {
+                        "edge_in_path": (edge_src, edge_tgt),
+                        "skip_edge": (skip_src, skip_tgt),
+                    }
+                skip_to_equivalent_path_length[(skip_src, skip_tgt)] = len(equivalent_path) - 1
+    return skip_to_equivalent_path_length, path_node_to_skip_map
