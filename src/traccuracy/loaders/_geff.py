@@ -40,8 +40,7 @@ def load_geff_data(
         )
 
     # Collect names of axes so that we only load spatial properties
-    group = zarr.open(geff_path)  # TODO: remove this once bug in geff 0.4.1 is fixed
-    meta = GeffMetadata.read(group)
+    meta = GeffMetadata.read(geff_path)
     spatial_props = []
     temporal_prop = None
     for ax in meta.axes:
