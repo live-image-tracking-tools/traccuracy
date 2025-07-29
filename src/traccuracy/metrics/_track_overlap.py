@@ -159,10 +159,15 @@ def _calc_overlap_score(
                 # let's find an edge on that path and update the count
                 for node in overlap_path_to_reference_skip_map:
                     path_info = overlap_path_to_reference_skip_map[node]
-                    if path_info["skip_edge"] == (ref_src, ref_tgt):
-                        edge_in_overlapping_path = path_info["edge_in_path"]
+                    found = False
+                    for i, skip_edge in enumerate(path_info["skip_edge"]):
+                        if skip_edge == (ref_src, ref_tgt):
+                            edge_in_path = path_info["edge_in_path"][i]
+                            overlapping_id_to_count[overlap_edge_to_tid[edge_in_path]] += 1
+                            found = True
+                            break
+                    if found:
                         break
-                overlapping_id_to_count[overlap_edge_to_tid[edge_in_overlapping_path]] += 1
                 continue
             # this edge is part of an equivalent path for an overlap skip edge
             # we need to find that skip edge and update its count by 1
@@ -170,8 +175,16 @@ def _calc_overlap_score(
                 ref_src in reference_path_to_overlap_skip_map
                 and ref_tgt in reference_path_to_overlap_skip_map
             ):
-                equivalent_skip_edge = reference_path_to_overlap_skip_map[ref_src]["skip_edge"]
-                overlapping_id_to_count[overlap_edge_to_tid[equivalent_skip_edge]] += 1
+                # both nodes are in the path, but one of them might be part of multiple skip
+                # edges. We therefore find the specific edge that both ref_src and ref_tgt are
+                # part of
+                skip_info = reference_path_to_overlap_skip_map[ref_src]
+                edge_in_path = skip_info["edge_in_path"]
+                for i, edge in enumerate(edge_in_path):
+                    if edge[0] == ref_src and edge[1] == ref_tgt:
+                        equivalent_skip_edge = skip_info["skip_edge"][i]
+                        overlapping_id_to_count[overlap_edge_to_tid[equivalent_skip_edge]] += 1
+                        break
             overlap_src = overlap_reference_mapping.get(ref_src, [])
             overlap_tgt = overlap_reference_mapping.get(ref_tgt, [])
             # any edge that has both nodes in an overlap tracklet
@@ -216,7 +229,7 @@ def _get_skip_path_maps(
     matched: Matched,
     skips: set[tuple[Any, Any]],
     skip_to_other_map: dict[Any, list[Any]],
-) -> tuple[dict[tuple[Any, Any], int], dict[Any, dict[str, Any]]]:
+) -> tuple[dict[tuple[Any, Any], int], dict[Any, dict[str, list[tuple[Any, Any]]]]]:
     """Get information about equivalent paths for skip edges.
 
     For each skip edge, find the equivalent path in the matched graph
@@ -239,7 +252,9 @@ def _get_skip_path_maps(
               and the skip edge they cover.
     """
     skip_to_equivalent_path_length = {}
-    path_node_to_skip_map = {}
+    path_node_to_skip_map: dict[Any, dict[str, list[tuple[Any, Any]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     for skip_src, skip_tgt in skips:
         matched_src = skip_to_other_map.get(skip_src, [])
         matched_tgt = skip_to_other_map.get(skip_tgt, [])
@@ -249,13 +264,9 @@ def _get_skip_path_maps(
             )
             if equivalent_path:
                 for edge_src, edge_tgt in pairwise(equivalent_path):
-                    path_node_to_skip_map[edge_src] = {
-                        "edge_in_path": (edge_src, edge_tgt),
-                        "skip_edge": (skip_src, skip_tgt),
-                    }
-                    path_node_to_skip_map[edge_tgt] = {
-                        "edge_in_path": (edge_src, edge_tgt),
-                        "skip_edge": (skip_src, skip_tgt),
-                    }
+                    path_node_to_skip_map[edge_src]["edge_in_path"].append((edge_src, edge_tgt))
+                    path_node_to_skip_map[edge_src]["skip_edge"].append((skip_src, skip_tgt))
+                    path_node_to_skip_map[edge_tgt]["edge_in_path"].append((edge_src, edge_tgt))
+                    path_node_to_skip_map[edge_tgt]["skip_edge"].append((skip_src, skip_tgt))
                 skip_to_equivalent_path_length[(skip_src, skip_tgt)] = len(equivalent_path) - 1
     return skip_to_equivalent_path_length, path_node_to_skip_map
