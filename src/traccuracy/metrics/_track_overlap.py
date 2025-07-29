@@ -28,6 +28,7 @@ from ._base import Metric
 if TYPE_CHECKING:
     import networkx as nx
 
+    from traccuracy._tracking_graph import TrackingGraph
     from traccuracy.matchers._matched import Matched
 
 
@@ -68,8 +69,12 @@ class TrackOverlapMetrics(Metric):
             include_division_edges=self.include_division_edges
         )
 
-        gt_skips = gt_graph.get_skip_edges() if relaxed else set()
-        pred_skips = pred_graph.get_skip_edges() if relaxed else set()
+        gt_skips = (
+            _get_relevant_skip_edges(gt_graph, self.include_division_edges) if relaxed else set()
+        )
+        pred_skips = (
+            _get_relevant_skip_edges(pred_graph, self.include_division_edges) if relaxed else set()
+        )
 
         gt_skip_to_path_length, pred_path_to_gt_skip_map = _get_skip_path_maps(
             matched, gt_skips, matched.gt_pred_map
@@ -182,6 +187,29 @@ def _calc_overlap_score(
     weighted_average = max_overlap / total_count if total_count > 0 else np.nan
     unweighted_average = np.mean(track_fractions) if track_fractions else np.nan
     return weighted_average, unweighted_average
+
+
+def _get_relevant_skip_edges(
+    graph: TrackingGraph, include_division_edges: bool
+) -> set[tuple[Any, Any]]:
+    """Get relevant skip edges from the graph, potentially including division edges.
+
+    Args:
+        graph (TrackingGraph): graph to extract skip edges from
+        include_division_edges (bool): True if parent-daughter edges should be included,
+            otherwise False.
+
+    Returns:
+        set[tuple[Any, Any]]: skip edges on graph with/without division edges.
+    """
+    skips = graph.get_skip_edges()
+    if include_division_edges:
+        return skips
+    # if division edges are not included, we only consider skips that are not division edges
+    for skip_src, skip_tgt in skips.copy():
+        if graph.graph.out_degree(skip_src) > 1:  # type: ignore
+            skips.remove((skip_src, skip_tgt))
+    return skips
 
 
 def _get_skip_path_maps(
