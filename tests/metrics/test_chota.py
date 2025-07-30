@@ -6,7 +6,7 @@ import pytest
 from traccuracy import run_metrics
 from traccuracy.loaders import load_ctc_data
 from traccuracy.matchers import CTCMatcher
-from traccuracy.metrics import CHOTAMetric, CTCMetrics
+from traccuracy.metrics import CHOTAMetric
 
 
 def test_replicating_ctc_metrics_test() -> None:

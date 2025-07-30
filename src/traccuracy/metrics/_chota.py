@@ -112,7 +112,7 @@ class CHOTAMetric(Metric):
         pred_tracklets = matched.pred_graph.get_tracklets(False)
         gt_tracklets = matched.gt_graph.get_tracklets(False)
 
-        # Construct mapping between node ids and the id of the tracklet that contains the ndoe
+        # Construct mapping between node ids and the id of the tracklet that contains the node
         pred_track_ids = {}
         for i, tracklet in enumerate(pred_tracklets):
             for node in tracklet.nodes:
