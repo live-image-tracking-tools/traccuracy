@@ -158,6 +158,12 @@ plot_matched(
 
 ```{code-cell} ipython3
 plot_matched(
+    [ex_graphs.gap_close_two_to_one()], "Two GT edges to one pred skip edge"
+)
+```
+
+```{code-cell} ipython3
+plot_matched(
     [
         ex_graphs.gap_close_gt_gap(),
         ex_graphs.gap_close_pred_gap(),

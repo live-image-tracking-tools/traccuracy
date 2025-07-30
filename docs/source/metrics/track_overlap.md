@@ -26,6 +26,12 @@ results, matched = run_metrics(
 
 The `results` object contains a dictionary `results.results` that stores all values associated with the metric.
 
+If **either** `relax_skips_gt` **or** `relax_skips_pred` is set to True, metric computation is relaxed
+in both directions, so all metrics below may be affected. If the metric is computed in relaxed mode,
+a skip edge whose source and target vertices have a valid match, and which has a valid equivalent path
+in the other graph, is considered overlapping. Offset skip edges, where the source or target vertex
+has no match in the other graph, are still considered incorrect.
+
 ## Track Purity
 Track Purity (TP) for a single predicted track $T^p_j$ is calculated by finding the ground truth track $T^g_k$ that overlaps with $T^p_j$ in the largest number of the frames and then dividing the overlap frame counts by the total frame counts for $T^p_j$. The TP for the total dataset is calculated as the mean of TPs for all predicted tracks, weighted by the length of the tracks.
 

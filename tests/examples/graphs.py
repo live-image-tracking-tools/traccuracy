@@ -189,6 +189,22 @@ def edge_two_to_one(time):  # 0 or 1
     return Matched(gt, pred, mapping, {})
 
 
+def gap_close_two_to_one():
+    a = basic_graph(node_ids=(1, 2, 3, 4, 5), y_offset=1).graph
+    b = basic_graph(node_ids=(6, 7, 8, 9, 10), y_offset=-1).graph
+    a.add_nodes_from(b.nodes(data=True))
+    a.add_edges_from(b.edges(data=True))
+    gt = TrackingGraph(a, location_keys=("y"))
+
+    pred = basic_graph(node_ids=(11, 12, 13, 14, 15))
+    pred.graph.remove_node(14)
+    pred.graph.add_edge(13, 15)
+
+    mapping = [(1, 11), (2, 12), (3, 13), (5, 15)]
+    mapping.extend([(8, 13), (10, 15)])
+    return Matched(gt, pred, mapping, {})
+
+
 def gap_close_gt_gap():
     gt = basic_graph(node_ids=(1, 2, 3, 4)).graph
     pred = basic_graph(node_ids=(5, 6, 7, 8), y_offset=-1)
