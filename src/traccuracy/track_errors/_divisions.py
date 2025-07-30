@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-import logging
+import warnings
 from typing import TYPE_CHECKING
 
 import networkx as nx
@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
     from traccuracy import TrackingGraph
     from traccuracy.matchers._matched import Matched
-
-logger = logging.getLogger(__name__)
 
 
 def _classify_divisions(
@@ -42,6 +40,14 @@ def _classify_divisions(
     g_gt = matched_data.gt_graph
     g_pred = matched_data.pred_graph
 
+    if g_pred.division_annotations + g_gt.division_annotations == 1:
+        graph_with_errors = "pred graph" if g_pred.division_annotations else "GT graph"
+        raise ValueError(
+            f"Only {graph_with_errors} has division annotations. "
+            "Please ensure either both or neither "
+            + "of the graphs have traccuracy annotations before running metrics."
+        )
+
     if (
         g_pred.division_annotations
         and g_gt.division_annotations
@@ -50,7 +56,9 @@ def _classify_divisions(
         and (not relax_skips_gt or g_gt.division_skip_gt_relaxed)
         and (not relax_skips_pred or g_pred.division_skip_pred_relaxed)
     ):
-        logger.info("Division annotations already present. Skipping graph annotation.")
+        warnings.warn(
+            "Division annotations already present. Skipping graph annotation.", stacklevel=2
+        )
         return
 
     # Classify edge errors, will be skipped if already computed

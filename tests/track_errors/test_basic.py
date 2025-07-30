@@ -22,7 +22,7 @@ class TestStandardNode:
         for attrs in matched.gt_graph.nodes.values():
             assert NodeFlag.FALSE_NEG in attrs
 
-    def test_good_match(self, caplog):
+    def test_good_match(self):
         matched = ex_graphs.good_matched()
         _classify_nodes(matched)
 
@@ -32,8 +32,8 @@ class TestStandardNode:
                 assert NodeFlag.TRUE_POS in attrs
 
         # Check that it doesn't run a second time
-        _classify_nodes(matched)
-        assert "Node errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_nodes(matched)
 
     @pytest.mark.parametrize("t", [0, 1, 2])
     def test_fn_node(self, t):
@@ -141,8 +141,8 @@ class TestStandardEdge:
                 assert EdgeFlag.TRUE_POS in attrs
 
         # Check that it doesn't run a second time
-        _classify_edges(matched)
-        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched)
 
     def test_fn_node_end(self):
         matched = ex_graphs.fn_node_matched(0)
@@ -254,8 +254,8 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
 
         # Check that it doesn't run a second time
-        _classify_edges(matched, relax_skips_gt=True)
-        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched, relax_skips_gt=True)
 
     def test_fp_gap_close_edge(self, caplog):
         matched = ex_graphs.gap_close_pred_gap()
@@ -281,8 +281,8 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
 
         # Check that it doesn't run a second time
-        _classify_edges(matched, relax_skips_pred=True)
-        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched, relax_skips_pred=True)
 
     def test_good_gap_close_edge(self):
         matched = ex_graphs.gap_close_matched_gap()

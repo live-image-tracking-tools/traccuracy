@@ -144,6 +144,7 @@ class Test_get_succ_by_t:
 class TestStandardShifted:
     """Test correct_shifted_divisions against standard shifted cases"""
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 2])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -164,6 +165,7 @@ class TestStandardShifted:
 
         assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -188,6 +190,7 @@ class TestStandardShifted:
 
             assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 2])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -208,6 +211,7 @@ class TestStandardShifted:
 
         assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",

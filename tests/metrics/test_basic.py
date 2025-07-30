@@ -67,7 +67,8 @@ class TestBasicMetrics:
         matched = ex_graphs.all_basic_errors()
         # Compute strict first to test for double counting
         resdict = self.m._compute(matched)
-        resdict = self.m._compute(matched, relax_skips_gt=True, relax_skips_pred=True)
+        with pytest.warns(UserWarning, match="already calculated"):
+            resdict = self.m._compute(matched, relax_skips_gt=True, relax_skips_pred=True)
 
         # Expected counts
         node_tp = 5
