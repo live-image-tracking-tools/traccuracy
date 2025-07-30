@@ -207,11 +207,11 @@ class Test_export_results:
 
         # Check that correct properties are present
         gt_props = GeffReader(out_zarr / "gt.geff").node_prop_names
-        assert str(NodeFlag.TRUE_POS) in gt_props
-        assert str(NodeFlag.FALSE_NEG) in gt_props
+        assert self.check_valid_flag(NodeFlag.TRUE_POS, gt_props)
+        assert self.check_valid_flag(NodeFlag.FALSE_NEG, gt_props)
         pred_props = GeffReader(out_zarr / "pred.geff").node_prop_names
-        assert str(NodeFlag.TRUE_POS) in pred_props
-        assert str(NodeFlag.FALSE_POS) in pred_props
+        assert self.check_valid_flag(NodeFlag.TRUE_POS, pred_props)
+        assert self.check_valid_flag(NodeFlag.FALSE_POS, pred_props)
 
         # Check results json dump
         with open(out_zarr / "traccuracy-results.json") as f:
