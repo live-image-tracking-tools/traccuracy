@@ -39,6 +39,17 @@ def swap_gt_pred(matched: Matched):
     )
 
 
+def test_inconsistent_annotations_raises():
+    matched = ex_graphs.good_matched()
+    _classify_divisions(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_divisions(matched)
+
+
 class TestStandardsDivisions:
     """Test _classify_divisions against standard cases
 

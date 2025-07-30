@@ -2,7 +2,23 @@ import pytest
 
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._basic import _classify_edges, _classify_nodes
+
+
+def test_inconsistent_annotation_raises():
+    matched = ex_graphs.good_matched()
+    _classify_nodes(matched)
+    _classify_edges(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_nodes(matched)
+
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_edges(matched)
 
 
 class TestStandardNode:
