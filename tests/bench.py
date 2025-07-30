@@ -7,15 +7,15 @@ import pytest
 
 from traccuracy import TrackingGraph
 from traccuracy.loaders import (
-    _check_ctc,
-    _get_node_attributes,
-    _load_tiffs,
     load_ctc_data,
+    load_tiffs,
 )
+from traccuracy.loaders._ctc import _check_ctc, _get_node_attributes
 from traccuracy.loaders._point import load_point_data
 from traccuracy.matchers import CTCMatcher, IOUMatcher, PointMatcher, PointSegMatcher
 from traccuracy.metrics import (
     BasicMetrics,
+    CHOTAMetric,
     CTCMetrics,
     DivisionMetrics,
     TrackOverlapMetrics,
@@ -153,7 +153,7 @@ def test_ctc_checks(benchmark, dataset):
         sep=" ",
         names=names,
     )
-    masks = _load_tiffs(os.path.join(ROOT_DIR, path))
+    masks = load_tiffs(os.path.join(ROOT_DIR, path))
     detections = _get_node_attributes(masks)
     benchmark(_check_ctc, tracks, detections, masks)
 
@@ -311,5 +311,19 @@ def test_cca_metric(benchmark, iou_matched, request):
 
     def run_compute():
         return CellCycleAccuracy().compute(matched)
+
+    benchmark.pedantic(run_compute, rounds=1, iterations=1)
+
+
+@pytest.mark.parametrize(
+    "ctc_matched",
+    ["ctc_matched_2d", "ctc_matched_3d"],
+    ids=["2d", "3d"],
+)
+def test_chota_metric(benchmark, ctc_matched, request):
+    ctc_matched = request.getfixturevalue(ctc_matched)
+
+    def run_compute():
+        return CHOTAMetric().compute(ctc_matched)
 
     benchmark.pedantic(run_compute, rounds=1, iterations=1)

@@ -9,7 +9,7 @@ import pytest
 import tests.examples.segs as ex_segs
 from tests.test_utils import get_movie_with_graph
 from traccuracy._tracking_graph import TrackingGraph
-from traccuracy.loaders._ctc import _get_node_attributes, _load_tiffs, ctc_to_graph
+from traccuracy.loaders._ctc import _get_node_attributes, ctc_to_graph, load_tiffs
 from traccuracy.matchers._iou import (
     IOUMatcher,
     _construct_time_to_seg_id_map,
@@ -413,7 +413,7 @@ def test_matching_from_in_memory():
         os.path.join(test_dir, "../../../examples/sample-data/Fluo-N2DL-HeLa/01_RES/")
     )
 
-    gt_ims = _load_tiffs(data_dir)
+    gt_ims = load_tiffs(data_dir)
     det_gt_df = _get_node_attributes(gt_ims)
     # drop bbox so it has to be recomputed
     det_gt_df.drop(columns=["bbox"], inplace=True)
