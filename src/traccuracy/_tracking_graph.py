@@ -171,6 +171,7 @@ class TrackingGraph:
                 solution where edges go forward in time. If the graph already
                 has annotations that are strings included in NodeFlags or
                 EdgeFlags, this will likely ruin metrics computation!
+                Node ids must be positive integers.
             segmentation (numpy-like array, optional): A numpy-like array of segmentations.
                 The location of each node in tracking_graph is assumed to be inside the
                 area of the corresponding segmentation. Defaults to None.
@@ -296,6 +297,10 @@ class TrackingGraph:
             assert self.label_key in attrs.keys(), {
                 f"Segmentation label key {self.label_key} not present for node {node}"
             }
+
+        # Node ids must be positive integers
+        assert isinstance(node, int), f"Node id of node {node} is not an integer"
+        assert node >= 0, f"Node id of node {node} is not positive"
 
     @property
     def nodes(self) -> NodeView:

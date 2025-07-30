@@ -276,9 +276,17 @@ def test_validate_node():
     with pytest.raises(AssertionError, match=r"Location key .* not present for node .*."):
         tg._validate_node(node, attrs)
 
+    # Not an int
+    attrs = {**attrs, "x": 0, "y": 0}
+    with pytest.raises(AssertionError, match=r"Node id of node .* is not an integer"):
+        tg._validate_node(1.0, attrs)
+
+    # Not positive
+    with pytest.raises(AssertionError, match=r"Node id of node .* is not positive"):
+        tg._validate_node(-1, attrs)
+
     # No label_key with segmentation
     tg = TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 5), dtype="int"))
-    attrs = {**attrs, "x": 0, "y": 0}
     with pytest.raises(AssertionError, match=r"Segmentation label key .* not present for node .*"):
         tg._validate_node(node, attrs)
 
