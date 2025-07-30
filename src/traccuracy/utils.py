@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 import numpy as np
@@ -143,7 +143,10 @@ def get_corrected_division_graphs_with_delta(
 
 
 def export_results(
-    out_zarr: str, matched: Matched, results: list[Results], target_frame_buffer: int = 0
+    out_zarr: str,
+    matched: Matched,
+    results: list[dict[str, Any] | Results],
+    target_frame_buffer: int = 0,
 ) -> None:
     """Export a annotated tracking graphs as geffs along with a summary of traccuracy results
 
@@ -157,8 +160,8 @@ def export_results(
         out_zarr (str): Path to output zarr
         matched (traccuracy.matchers._base.Matched): Matched object containing
             annotated TrackingGraphs
-        results (list[traccuracy.metrics._results.Results]): List of Results output
-             by Metric.compute
+        results (list[dict[str, Any]|traccuracy.metrics._results.Results]): List of Results output
+             by Metric.compute OR results objects as dictionary as returned by `run_metrics`
         target_frame_buffer (int, optional): If divisions are annotated, target_frame_buffer can
             be used to run `get_corrected_divisions_with_delta` in order to provide division
             annotations for a specific frame buffer. Defaults to 0.
@@ -172,14 +175,24 @@ def export_results(
     if not isinstance(matched, Matched):
         raise ValueError("matched argument must be an instance of `Matched`")
 
-    if not isinstance(results, list) or not all(isinstance(res, Results) for res in results):
-        raise ValueError("results argument must be a list of `Results` objects")
+    if not isinstance(results, list):
+        raise ValueError("results argument must be a list")
+
+    if "~" in out_zarr:
+        out_zarr = os.path.expanduser(out_zarr)
+
+    res_dicts: list[dict[str, Any]] = []
+    for res in results:
+        if isinstance(res, Results):
+            res_dicts.append(res.to_dict())
+        else:
+            res_dicts.append(res)
 
     # Check if divs in results and frame buffer is valid
     reannotate_div = False
-    for res in results:
-        if res.metric_info["name"] == "DivisionMetrics":
-            max_frame_buffer = res.metric_info["frame_buffer"]
+    for res in res_dicts:
+        if res["metric"]["name"] == "DivisionMetrics":
+            max_frame_buffer = res["metric"]["frame_buffer"]
             if target_frame_buffer > max_frame_buffer:
                 raise ValueError(
                     f"Requested target frame buffer {target_frame_buffer} exceeds computed "
@@ -187,7 +200,7 @@ def export_results(
                 )
             else:
                 reannotate_div = True
-                relaxed = res.metric_info["relax_skips_gt"] or res.metric_info["relax_skips_pred"]
+                relaxed = res["metric"]["relax_skips_gt"] or res["metric"]["relax_skips_pred"]
 
     if reannotate_div:
         gt, pred = get_corrected_division_graphs_with_delta(
@@ -234,4 +247,4 @@ def export_results(
 
     # Write results json
     with open(os.path.join(out_zarr, "traccuracy-results.json"), mode="w") as f:
-        json.dump({"traccuracy": [res.to_dict() for res in results]}, f)
+        json.dump({"traccuracy": res_dicts}, f)
