@@ -32,6 +32,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # downloading data, required for CHOTA metric test
+      - name: Retrieve cached data
+        uses: actions/cache/restore@v4
+        id: cache_data
+        with:
+          path: downloads
+          key: ${{ hashFiles('scripts/download_test_data.py') }}
+
+      - name: Download Samples
+        if: steps.cache_data.outputs.cache-hit != 'true'
+        run: |
+          pip install requests
+          python scripts/download_test_data.py
+
+      - name: Cache sample data
+        uses: actions/cache/save@v4
+        if: steps.cache_data.outputs.cache-hit != 'true'
+        with:
+          path: downloads
+          key: ${{ hashFiles('scripts/download_test_data.py') }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
