@@ -16,38 +16,6 @@ from traccuracy._tracking_graph import TrackingGraph
 logger = logging.getLogger(__name__)
 
 
-def _load_tiffs(data_dir: str) -> np.ndarray:
-    """Load a directory of individual frames into a stack.
-
-    Args:
-        data_dir (str): Path to directory of tiff files
-
-    Raises:
-        FileNotFoundError: No tif files found in data_dir
-
-    Returns:
-        np.array: 4D array with dims TYXC
-    """
-    files = np.sort(glob.glob(f"{data_dir}/*.tif*"))
-    if len(files) == 0:
-        raise FileNotFoundError(f"No tif files were found in {data_dir}")
-
-    first_im = imread(files[0])
-    shape = (len(files), *first_im.shape)
-    dtype = first_im.dtype
-
-    if dtype.kind not in ["i", "u"]:
-        warn(f"Segmentation has {dtype}: casting to uint64", stacklevel=2)
-        dtype = np.dtype(np.uint64)
-    stack = np.zeros(shape=shape, dtype=dtype)
-    stack[0] = first_im.astype(dtype, copy=False)
-
-    for i, f in enumerate(tqdm(files[1:], "Loading TIFFs")):
-        stack[i + 1] = imread(f).astype(dtype, copy=False)
-
-    return stack
-
-
 def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     """Return the unique track label, centroid and time for each track vertex.
 
@@ -234,6 +202,38 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
             logger.warning(f"{n_components - n_labels} non-connected masks at t={t}.")
 
 
+def load_tiffs(data_dir: str) -> np.ndarray:
+    """Load a directory of individual frames into a stack.
+
+    Args:
+        data_dir (str): Path to directory of tiff files
+
+    Raises:
+        FileNotFoundError: No tif files found in data_dir
+
+    Returns:
+        np.array: 4D array with dims TYXC
+    """
+    files = np.sort(glob.glob(f"{data_dir}/*.tif*"))
+    if len(files) == 0:
+        raise FileNotFoundError(f"No tif files were found in {data_dir}")
+
+    first_im = imread(files[0])
+    shape = (len(files), *first_im.shape)
+    dtype = first_im.dtype
+
+    if dtype.kind not in ["i", "u"]:
+        warn(f"Segmentation has {dtype}: casting to uint64", stacklevel=2)
+        dtype = np.dtype(np.uint64)
+    stack = np.zeros(shape=shape, dtype=dtype)
+    stack[0] = first_im.astype(dtype, copy=False)
+
+    for i, f in enumerate(tqdm(files[1:], "Loading TIFFs")):
+        stack[i + 1] = imread(f).astype(dtype, copy=False)
+
+    return stack
+
+
 def load_ctc_data(
     data_dir: str, track_path: str | None = None, name: str | None = None, run_checks: bool = True
 ) -> TrackingGraph:
@@ -272,7 +272,7 @@ def load_ctc_data(
 
     tracks = pd.read_csv(track_path, header=None, sep=" ", names=names)
 
-    masks = _load_tiffs(data_dir)
+    masks = load_tiffs(data_dir)
     detections = _get_node_attributes(masks)
     if run_checks:
         _check_ctc(tracks, detections, masks)
