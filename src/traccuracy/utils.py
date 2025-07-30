@@ -148,9 +148,9 @@ def export_results(
     results: list[dict[str, Any] | Results],
     target_frame_buffer: int = 0,
 ) -> None:
-    """Export a annotated tracking graphs as geffs along with a summary of traccuracy results
+    """Export annotated tracking graphs as geffs along with a summary of traccuracy results
 
-    Expected file structure:
+    Output file structure:
     out_zarr.zarr/
     ├── gt.geff
     ├── pred.geff
