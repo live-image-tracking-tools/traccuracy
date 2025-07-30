@@ -12,6 +12,7 @@ def load_geff_data(
     seg_path: str | None = None,
     seg_property: str | None = None,
     name: str | None = None,
+    load_all_props: bool = False,
 ) -> TrackingGraph:
     """Load a graph into memory from a geff file
 
@@ -30,6 +31,8 @@ def load_geff_data(
             property on the geff graph that contains the segmentation key. Defaults to None.
         name (str | None, optional): Optional name to store on TrackingGraph for identification.
             Defaults to None.
+        load_all_props (bool, optional): If True, load all node and edge properties on the graph.
+            Defaults to False and only spatiotemporal and segmentation node properties are loaded.
     """
     if load_geff_seg and seg_path is not None:
         raise ValueError('Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"')
@@ -84,8 +87,10 @@ def load_geff_data(
             f"does not match shape {segmentation.shape}"
         )
 
-    # Don't load edge attributes
-    G, _ = read_nx(geff_path, node_props=load_props, edge_props=[])
+    if load_all_props:
+        G, _ = read_nx(geff_path)
+    else:
+        G, _ = read_nx(geff_path, node_props=load_props, edge_props=[])
 
     return TrackingGraph(
         graph=G,

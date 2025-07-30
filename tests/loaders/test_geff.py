@@ -10,12 +10,6 @@ from geff.testing.data import (
 
 from traccuracy.loaders._geff import load_geff_data
 
-# edge properties excluded
-# extra node properties excluded
-# no temporal prop
-# no spatial props
-# segmentation dimensionality mismatch
-
 
 class Test_load_geff_data:
     def geff_to_disk(self, store, path):
@@ -31,6 +25,10 @@ class Test_load_geff_data:
 
         # Check for no edge attributes
         assert tg.graph.edges[(0, 1)] == {}
+
+        # test with loading other attributes
+        tg = load_geff_data(zarr_path, load_all_props=True)
+        assert "score" in tg.graph.edges[(0, 1)]
 
     def test_no_time(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
