@@ -320,5 +320,5 @@ class Test_save_results_json:
 
         # path already exists
         out_path.touch()
-        with pytest.raises(ValueError, match=f"out_path {out_path} already exists"):
+        with pytest.raises(ValueError, match=r"out_path .* already exists"):
             save_results_json([results], out_path)
