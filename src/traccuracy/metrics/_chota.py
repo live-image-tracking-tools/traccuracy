@@ -1,6 +1,5 @@
 import logging
 import warnings
-from collections import Counter
 
 import networkx as nx
 import numpy as np
@@ -8,6 +7,7 @@ import numpy as np
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._base import Matched
 from traccuracy.metrics._base import MATCHING_TYPES, Metric
+from traccuracy.metrics._ctc import evaluate_ctc_events
 
 LOG = logging.getLogger(__name__)
 
@@ -129,33 +129,10 @@ class CHOTAMetric(Metric):
         )
         gt_tracklets_graph = _tracklets_graph(matched.gt_graph.graph, gt_tracklets, gt_track_ids)
 
-        # For each tracklet, identify all tracklets that can be reached by traversing backwards in time
-        pred_tracklet_assignments = _assign_trajectories(pred_tracklets_graph)
-        gt_tracklet_assignments = _assign_trajectories(gt_tracklets_graph)
+        # required to compute the basic errors
+        evaluate_ctc_events(matched)
 
-        fp = len(matched.pred_graph.nodes) - len(matched.mapping)
-        fn = len(matched.gt_graph.nodes) - len(matched.mapping)
-
-        # repeated predicted matching are counted as false positives
-        pred_counter = Counter([pred_node_id for _, pred_node_id in matched.mapping])
-        for c in pred_counter.values():
-            if c > 1:
-                fp += c - 1
-
-        # repeated ground truth matching are counted as false negatives
-        gt_counter = Counter([gt_node_id for gt_node_id, _ in matched.mapping])
-        for c in gt_counter.values():
-            if c > 1:
-                fn += c - 1
-
-        tracklets_overlap = np.zeros(
-            (len(gt_tracklets), len(pred_tracklets)),
-            dtype=int,
-        )
-
-        pred_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
-        gt_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
-
+        # count the number of false positives and false negatives nodes per tracklet
         tracklets_fp = np.zeros(len(pred_tracklets), dtype=int)
         tracklets_fn = np.zeros(len(gt_tracklets), dtype=int)
 
@@ -169,6 +146,16 @@ class CHOTAMetric(Metric):
             gt_track_id = gt_track_ids[node]
             tracklets_fn[gt_track_id] += 1
 
+        # For each tracklet, identify all tracklets that can be reached
+        # by traversing backwards in time
+        pred_tracklet_assignments = _assign_trajectories(pred_tracklets_graph)
+        gt_tracklet_assignments = _assign_trajectories(gt_tracklets_graph)
+
+        # counts the number of matched nodes that are shared between a pred and gt tracklets
+        tracklets_overlap = np.zeros(
+            (len(gt_tracklets), len(pred_tracklets)),
+            dtype=int,
+        )
         for gt_node, pred_node in matched.mapping:
             pred_track_id = pred_track_ids[pred_node]
             gt_track_id = gt_track_ids[gt_node]
@@ -176,6 +163,9 @@ class CHOTAMetric(Metric):
 
         LOG.info("tracklets_overlap.sum()={}", tracklets_overlap.sum().item())
         LOG.info("tracklets_overlap.shape={}", tracklets_overlap.shape)
+
+        pred_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
+        gt_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
 
         total_A_sigma = 0
         for i in range(len(gt_tracklets)):
@@ -211,6 +201,9 @@ class CHOTAMetric(Metric):
 
                 A_sigma = tracklets_overlap[i, j] * tpa / (tpa + fpa + fna)
                 total_A_sigma += A_sigma
+
+        fp = tracklets_fp.sum()
+        fn = tracklets_fn.sum()
 
         union = fp + fn + len(matched.mapping)
 
