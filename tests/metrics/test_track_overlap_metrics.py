@@ -138,11 +138,77 @@ class TestStandardOverlapMetrics:
         assert results[self.tp] == tp
         assert results[self.te] == te
 
-    # Skipping the following cases because they are not one to one
-    # ex_graphs.node_two_to_one
-    # ex_graphs.edge_two_to_one
-    # ex_graphs.node_one_to_two
-    # ex_graphs.edge_one_to_two
+    @pytest.mark.parametrize(
+        ("time", "tp", "te"),
+        [
+            (0, 1, 1),
+            (1, 0.5, 1),
+            (2, 1, 1),
+        ],
+    )
+    def test_node_two_to_one(self, time, tp, te):
+        matched = ex_graphs.node_two_to_one(time)
+        metric = TrackOverlapMetrics()
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("time", "tp", "te"),
+        [
+            (0, 1, 3 / 4),
+            (1, 1, 3 / 4),
+        ],
+    )
+    def test_edge_two_to_one(self, time, tp, te):
+        matched = ex_graphs.edge_two_to_one(time)
+        metric = TrackOverlapMetrics()
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("time", "tp", "te"),
+        [
+            (0, 1, 1),
+            (1, 1, 0.5),
+            (2, 1, 1),
+        ],
+    )
+    def test_node_one_to_two(self, time, tp, te):
+        matched = ex_graphs.node_one_to_two(time)
+        metric = TrackOverlapMetrics()
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("time", "tp", "te"),
+        [
+            (0, 3 / 4, 1),
+            (1, 3 / 4, 1),
+        ],
+    )
+    def test_edge_one_to_two(self, time, tp, te):
+        matched = ex_graphs.edge_one_to_two(time)
+        metric = TrackOverlapMetrics()
+        results = metric._compute(matched)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
+
+    @pytest.mark.parametrize(
+        ("relax_edges", "tp", "te"),
+        [
+            (False, 2 / 3, 2 / 8),
+            (True, 1, 6 / 8),
+        ],
+    )
+    def test_gap_close_two_to_one(self, relax_edges, tp, te):
+        matched = ex_graphs.gap_close_two_to_one()
+        metric = TrackOverlapMetrics()
+        results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
+        assert results[self.tp] == tp
+        assert results[self.te] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
