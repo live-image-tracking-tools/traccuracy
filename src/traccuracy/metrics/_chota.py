@@ -170,18 +170,23 @@ class CHOTAMetric(Metric):
         total_A_sigma = 0
         for i in range(len(gt_tracklets)):
             gt_tracklet_mask.fill(False)
+            # fills mask with all tracklets belonging to this trajectory
             gt_tracklet_mask[gt_tracklet_assignments[i], :] = True
             gt_overlap_sum = tracklets_overlap[gt_tracklet_assignments[i], :].sum()
             gt_overlap_sum += tracklets_fn[gt_tracklet_assignments[i]].sum()
 
             for j in np.nonzero(tracklets_overlap[i, :])[0]:
+                # fills mask with all tracklets belonging to this trajectory
                 pred_tracklet_mask.fill(False)
                 pred_tracklet_mask[:, pred_tracklet_assignments[j]] = True
                 pred_overlap_sum = tracklets_overlap[:, pred_tracklet_assignments[j]].sum()
                 pred_overlap_sum += tracklets_fp[pred_tracklet_assignments[j]].sum()
 
+                # number of overlaps between the two trajectories
                 tpa = tracklets_overlap[pred_tracklet_mask & gt_tracklet_mask].sum()
+                # number of false positives
                 fpa = pred_overlap_sum - tpa
+                # number of false negatives
                 fna = gt_overlap_sum - tpa
 
                 LOG.info(
@@ -199,6 +204,7 @@ class CHOTAMetric(Metric):
                     len(gt_tracklet_assignments[i]),
                 )
 
+                # (tpa / (tpa + fpa + fna)) is the intersection over union
                 A_sigma = tracklets_overlap[i, j] * tpa / (tpa + fpa + fna)
                 total_A_sigma += A_sigma
 
