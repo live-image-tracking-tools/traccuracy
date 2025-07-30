@@ -15,7 +15,7 @@ from traccuracy._tracking_graph import NodeFlag, TrackingGraph
 from traccuracy.loaders import load_ctc_data
 from traccuracy.metrics._basic import BasicMetrics
 from traccuracy.metrics._divisions import DivisionMetrics
-from traccuracy.utils import export_results
+from traccuracy.utils import export_graphs_to_geff, save_results_json
 
 
 def download_gt_data(url, root_dir):
@@ -191,7 +191,7 @@ def get_division_graphs():
     return G1, G2, mapped_g1, mapped_g2
 
 
-class Test_export_results:
+class Test_export_graphs_to_geff:
     def check_valid_flag(self, flag, props):
         """strenum in python 3.10 ends up annotating the graph with is_tp_div.
         Later python annotates with NodeFlag.TP_DIV. For now we want to accept either
@@ -201,9 +201,10 @@ class Test_export_results:
 
     def test_basic_metrics(self, tmp_path):
         matched = larger_example_1()
-        results = [BasicMetrics().compute(matched)]
+        # Test dictionary case
+        results = [BasicMetrics().compute(matched).to_dict()]
         out_zarr = tmp_path / "test.zarr"
-        export_results(out_zarr, matched, results)
+        export_graphs_to_geff(out_zarr, matched, results)
 
         # Check that correct properties are present
         gt_props = GeffReader(out_zarr / "gt.geff").node_prop_names
@@ -222,9 +223,10 @@ class Test_export_results:
     def test_division_metrics(self, tmp_path):
         # Test with valid frame buffer
         matched = larger_example_1()
+        # Check results case
         results = [DivisionMetrics(max_frame_buffer=2).compute(matched)]
         out_zarr = tmp_path / "test.zarr"
-        export_results(out_zarr, matched, results, target_frame_buffer=2)
+        export_graphs_to_geff(out_zarr, matched, results, target_frame_buffer=2)
 
         gt_reader = GeffReader(out_zarr / "gt.geff")
         pred_reader = GeffReader(out_zarr / "pred.geff")
@@ -246,16 +248,17 @@ class Test_export_results:
         with pytest.raises(
             ValueError, match="Requested target frame buffer 4 exceeds computed frame buffer 2"
         ):
-            export_results(out_zarr, matched, results, target_frame_buffer=4)
+            export_graphs_to_geff(tmp_path / "test2.zarr", matched, results, target_frame_buffer=4)
 
     def test_multiple_metrics(self, tmp_path):
         matched = larger_example_1()
+        # Test results object and the dictionary
         results = [
             DivisionMetrics(max_frame_buffer=2).compute(matched),
             BasicMetrics().compute(matched),
         ]
         out_zarr = tmp_path / "test.zarr"
-        export_results(out_zarr, matched, results, target_frame_buffer=2)
+        export_graphs_to_geff(out_zarr, matched, results, target_frame_buffer=2)
 
         # Check results json dump
         with open(out_zarr / "traccuracy-results.json") as f:
@@ -263,21 +266,59 @@ class Test_export_results:
         assert "traccuracy" in res_dict
         assert len(res_dict["traccuracy"]) == len(results)
 
-    def test_bad_inputs(self):
+    def test_bad_inputs(self, tmp_path):
         with pytest.raises(ValueError, match="matched argument must be an instance of `Matched`"):
-            export_results("path", "bad matched", [])
+            export_graphs_to_geff("path", "bad matched", [])
 
         matched = larger_example_1()
         results = BasicMetrics().compute(matched)
 
         # not a list
-        with pytest.raises(
-            ValueError, match="results argument must be a list of `Results` objects"
-        ):
-            export_results("path", matched, results)
+        with pytest.raises(ValueError, match="results argument must be a list"):
+            export_graphs_to_geff("path", matched, results)
 
         # not a list of results
         with pytest.raises(
-            ValueError, match="results argument must be a list of `Results` objects"
+            ValueError, match="results argument must be a list of Results objects or dictionaries"
         ):
-            export_results("path", matched, ["not a result"])
+            export_graphs_to_geff("path", matched, ["not a result"])
+
+        # zarr already exists
+        zarr_path = tmp_path / "out.zarr"
+        os.mkdir(zarr_path)
+        with pytest.raises(ValueError, match="Zarr already exists"):
+            export_graphs_to_geff(zarr_path, matched, [results])
+
+
+class Test_save_results_json:
+    def test_valid_save(self, tmp_path):
+        matched = larger_example_1()
+        results = BasicMetrics().compute(matched)
+        out_path = tmp_path / "traccuracy-results.json"
+        save_results_json([results], out_path)
+
+        # Check results json dump
+        with open(out_path) as f:
+            res_dict = json.load(f)
+        assert "traccuracy" in res_dict
+        assert len(res_dict["traccuracy"]) == 1
+
+    def test_bad_inputs(self, tmp_path):
+        matched = larger_example_1()
+        results = BasicMetrics().compute(matched)
+        out_path = tmp_path / "test.json"
+
+        # results must be list
+        with pytest.raises(ValueError, match="results argument must be a list"):
+            save_results_json(results, out_path)
+
+        # must be list of results or dict
+        with pytest.raises(
+            ValueError, match="results argument must be a list of Results objects or dictionaries"
+        ):
+            save_results_json(["bad results"], out_path)
+
+        # path already exists
+        out_path.touch()
+        with pytest.raises(ValueError, match=f"out_path {out_path} already exists"):
+            save_results_json([results], out_path)

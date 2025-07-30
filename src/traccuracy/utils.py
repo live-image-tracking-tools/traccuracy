@@ -142,10 +142,10 @@ def get_corrected_division_graphs_with_delta(
     return corrected_gt_graph, corrected_pred_graph
 
 
-def export_results(
+def export_graphs_to_geff(
     out_zarr: str,
     matched: Matched,
-    results: list[dict[str, Any] | Results],
+    results: list[Results] | list[dict[str, Any]],
     target_frame_buffer: int = 0,
 ) -> None:
     """Export annotated tracking graphs as geffs along with a summary of traccuracy results
@@ -160,15 +160,16 @@ def export_results(
         out_zarr (str): Path to output zarr
         matched (traccuracy.matchers._base.Matched): Matched object containing
             annotated TrackingGraphs
-        results (list[dict[str, Any]|traccuracy.metrics._results.Results]): List of Results output
-             by Metric.compute OR results objects as dictionary as returned by `run_metrics`
+        results ( list[traccuracy.metrics._results.Results] | list[dict[str, Any]): List of Results
+            output by Metric.compute OR results objects as dictionary as returned by `run_metrics`
         target_frame_buffer (int, optional): If divisions are annotated, target_frame_buffer can
             be used to run `get_corrected_divisions_with_delta` in order to provide division
             annotations for a specific frame buffer. Defaults to 0.
 
     Raises:
         ValueError: matched argument must be an instance of `Matched`
-        ValueError: results argument must be a list of `Results` objects
+        ValueError: results argument must be a list
+        ValueError: Zarr already exists at out_zarr
         ValueError: Requested target frame buffer {target_frame_buffer} exceeds computed "
             "frame buffer {max_frame_buffer}
     """
@@ -178,15 +179,21 @@ def export_results(
     if not isinstance(results, list):
         raise ValueError("results argument must be a list")
 
-    if "~" in out_zarr:
-        out_zarr = os.path.expanduser(out_zarr)
+    if "~" in str(out_zarr):
+        out_zarr = os.path.expanduser(str(out_zarr))
+
+    # Check if zarr exists
+    if os.path.exists(out_zarr):
+        raise ValueError(f"Zarr already exists at {out_zarr}")
 
     res_dicts: list[dict[str, Any]] = []
     for res in results:
         if isinstance(res, Results):
             res_dicts.append(res.to_dict())
-        else:
+        elif isinstance(res, dict):
             res_dicts.append(res)
+        else:
+            raise ValueError("results argument must be a list of Results objects or dictionaries")
 
     # Check if divs in results and frame buffer is valid
     reannotate_div = False
@@ -246,5 +253,39 @@ def export_results(
             meta.write(geff_path)
 
     # Write results json
-    with open(os.path.join(out_zarr, "traccuracy-results.json"), mode="w") as f:
+    save_results_json(res_dicts, os.path.join(out_zarr, "traccuracy-results.json"))
+
+
+def save_results_json(results: list[Results] | list[dict[str, Any]], out_path: str) -> None:
+    """Save a list of results to a traccuracy export json
+
+    Args:
+        results (list[traccuracy.metrics._results.Results] | list[dict[str, Any]): List of either
+            results dictionaries or results objects
+        out_path (str): Path to save json file
+
+    Raises:
+        ValueError: out_path already exists
+        ValueError: results argument must be a list of Results objects or dictionaries
+        ValueError: results argument must be a list
+    """
+    if "~" in str(out_path):
+        out_path = os.path.expanduser(str(out_path))
+
+    if not isinstance(results, list):
+        raise ValueError("results argument must be a list")
+
+    if os.path.exists(out_path):
+        raise ValueError(f"out_path {out_path} already exists")
+
+    res_dicts: list[dict[str, Any]] = []
+    for res in results:
+        if isinstance(res, Results):
+            res_dicts.append(res.to_dict())
+        elif isinstance(res, dict):
+            res_dicts.append(res)
+        else:
+            raise ValueError("results argument must be a list of Results objects or dictionaries")
+
+    with open(out_path, mode="w") as f:
         json.dump({"traccuracy": res_dicts}, f)
