@@ -104,7 +104,7 @@ class CHOTAMetric(Metric):
         """
         if relax_skips_gt or relax_skips_pred:
             warnings.warn(
-                "CTC metrics do not support relaxing skip edges. "
+                "The CHOTA metric does not support relaxing skip edges. "
                 "Ignoring relax_skips_gt and relax_skips_pred.",
                 stacklevel=2,
             )
@@ -112,6 +112,7 @@ class CHOTAMetric(Metric):
         pred_tracklets = matched.pred_graph.get_tracklets(False)
         gt_tracklets = matched.gt_graph.get_tracklets(False)
 
+        # Construct mapping between node ids and the id of the tracklet that contains the ndoe
         pred_track_ids = {}
         for i, tracklet in enumerate(pred_tracklets):
             for node in tracklet.nodes:
@@ -122,11 +123,13 @@ class CHOTAMetric(Metric):
             for node in tracklet.nodes:
                 gt_track_ids[node] = i
 
+        # Make a compressed graph where each tracklet becomes a node on the graph
         pred_tracklets_graph = _tracklets_graph(
             matched.pred_graph.graph, pred_tracklets, pred_track_ids
         )
         gt_tracklets_graph = _tracklets_graph(matched.gt_graph.graph, gt_tracklets, gt_track_ids)
 
+        # For each tracklet, identify all tracklets that can be reached by traversing backwards in time
         pred_tracklet_assignments = _assign_trajectories(pred_tracklets_graph)
         gt_tracklet_assignments = _assign_trajectories(gt_tracklets_graph)
 

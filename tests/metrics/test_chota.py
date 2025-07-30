@@ -24,7 +24,7 @@ def test_replicating_ctc_metrics_test() -> None:
     gt_graph = load_ctc_data(str(gt_path), run_checks=False)
 
     matcher = CTCMatcher()
-    metrics_func = [CTCMetrics(), CHOTAMetric()]
+    metrics_func = [CHOTAMetric()]
 
     metrics_dict, _ = run_metrics(
         gt_graph,
@@ -46,7 +46,7 @@ def test_replicating_ctc_metrics_test() -> None:
         "CHOTA": 0.9224725394515368,
     }
 
-    atol = 1e-4  # CHOTA works with 1e-10 precision, TRA needs larger tolerance
+    atol = 1e-10  # CHOTA works with 1e-10 precision, TRA needs larger tolerance
 
     for key, expected_value in expected_values.items():
         assert np.isclose(metrics[key], expected_value, atol=atol), (
