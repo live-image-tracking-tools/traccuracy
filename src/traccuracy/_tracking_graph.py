@@ -6,11 +6,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, cast
 
 import networkx as nx
+import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    import numpy as np
     from networkx.classes.reportviews import DiDegreeView, NodeView, OutEdgeView
 
 logger = logging.getLogger(__name__)
@@ -171,6 +171,7 @@ class TrackingGraph:
                 solution where edges go forward in time. If the graph already
                 has annotations that are strings included in NodeFlags or
                 EdgeFlags, this will likely ruin metrics computation!
+                Node ids must be positive integers.
             segmentation (numpy-like array, optional): A numpy-like array of segmentations.
                 The location of each node in tracking_graph is assumed to be inside the
                 area of the corresponding segmentation. Defaults to None.
@@ -234,6 +235,7 @@ class TrackingGraph:
         }
 
         for node, attrs in self.graph.nodes.items():
+            node = cast("int", node)
             if validate:
                 self._validate_node(node, attrs)
 
@@ -271,11 +273,11 @@ class TrackingGraph:
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
 
-    def _validate_node(self, node: Hashable, attrs: dict) -> None:
+    def _validate_node(self, node: int, attrs: dict) -> None:
         """Check that every node has the time frame, location and seg_id (if needed) specified
 
         Args:
-            node (Hashable): Node id
+            node (int): Node id
             attrs (dict): Attributes extracted from the graph for the given node
         """
         assert self.frame_key in attrs.keys(), (
@@ -296,6 +298,10 @@ class TrackingGraph:
             assert self.label_key in attrs.keys(), {
                 f"Segmentation label key {self.label_key} not present for node {node}"
             }
+
+        # Node ids must be positive integers
+        assert np.issubdtype(type(node), np.integer), f"Node id of node {node} is not an integer"
+        assert node >= 0, f"Node id of node {node} is not positive"
 
     @property
     def nodes(self) -> NodeView:

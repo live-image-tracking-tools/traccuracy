@@ -25,7 +25,7 @@ def load_point_data(
     - time
     - position, e.g. three columns 'z', 'y', 'x'
     - parent, a reference to the node in the previous time frame.
-      A node without a parent can be indicated by either -1 or NaN
+      A node without a parent can be indicated by -1
 
     Args:
         path (str | None, optional): Path to the csv-like file to load. Defaults to None.
@@ -99,7 +99,7 @@ def load_point_data(
         node_id = row[id_column]
         nodes.append((node_id, row[node_attr_cols].to_dict()))
 
-        if row[parent_column] != -1 and not np.isnan(row[parent_column]):
+        if row[parent_column] != -1:
             edges.append((row[parent_column], node_id))
 
     G: nx.DiGraph = nx.DiGraph()
