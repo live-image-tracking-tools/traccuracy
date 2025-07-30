@@ -79,6 +79,7 @@ target/
 
 # pyenv
 .python-version
+uv.lock
 
 # celery beat schedule file
 celerybeat-schedule
