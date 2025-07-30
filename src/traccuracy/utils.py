@@ -155,8 +155,10 @@ def export_results(
 
     Args:
         out_zarr (str): Path to output zarr
-        matched (Matched): Matched object containing annotated TrackingGraphs
-        results (list[Results]): List of Results output by Metric.compute
+        matched (traccuracy.matchers._base.Matched): Matched object containing
+            annotated TrackingGraphs
+        results (list[traccuracy.metrics._results.Results]): List of Results output
+             by Metric.compute
         target_frame_buffer (int, optional): If divisions are annotated, target_frame_buffer can
             be used to run `get_corrected_divisions_with_delta` in order to provide division
             annotations for a specific frame buffer. Defaults to 0.
