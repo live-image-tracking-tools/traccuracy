@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import warnings
 from typing import TYPE_CHECKING
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
@@ -53,8 +54,15 @@ def _classify_nodes(matched: Matched) -> None:
     pred_graph = matched.pred_graph
     gt_graph = matched.gt_graph
 
+    if pred_graph.node_errors + gt_graph.node_errors == 1:
+        graph_with_errors = "pred graph" if pred_graph.node_errors else "GT graph"
+        raise ValueError(
+            f"Only {graph_with_errors} has node errors annotated. Please ensure either both "
+            + "or neither of the graphs have traccuracy annotations before running metrics."
+        )
+
     if pred_graph.node_errors and gt_graph.node_errors:
-        logger.warning("Node errors already calculated. Skipping graph annotation")
+        warnings.warn("Node errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
     # Label as TP if the node is matched
@@ -97,6 +105,15 @@ def _classify_edges(
     pred_graph = matched.pred_graph
     gt_graph = matched.gt_graph
 
+    # if only one of the graphs has been annotated, we raise
+    # because we'll likely leave things in an inconsistent state
+    if pred_graph.edge_errors + gt_graph.edge_errors == 1:
+        graph_with_errors = "pred graph" if pred_graph.edge_errors else "GT graph"
+        raise ValueError(
+            f"Only {graph_with_errors} has edge errors annotated. Please ensure either both or"
+            " neither of the graphs have traccuracy annotations before running metrics."
+        )
+
     if (
         pred_graph.edge_errors
         and gt_graph.edge_errors
@@ -105,12 +122,12 @@ def _classify_edges(
         and (not relax_skips_gt or gt_graph.skip_edges_gt_relaxed)
         and (not relax_skips_pred or pred_graph.skip_edges_pred_relaxed)
     ):
-        logger.warning("Edge errors already calculated. Skipping graph annotation")
+        warnings.warn("Edge errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
     # Node errors are needed for edge annotation
     if not pred_graph.node_errors and not gt_graph.node_errors:
-        logger.warning("Node errors have not been annotated. Running node annotation.")
+        logger.info("Node errors have not been annotated. Running node annotation.", stacklevel=2)
         _classify_nodes(matched)
 
     gt_skips = set()

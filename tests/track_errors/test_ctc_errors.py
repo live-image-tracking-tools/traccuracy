@@ -8,6 +8,21 @@ from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._ctc import get_edge_errors, get_vertex_errors
 
 
+def test_inconsistent_annotations_raises():
+    matched = ex_graphs.good_matched()
+    get_vertex_errors(matched)
+    get_edge_errors(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        get_vertex_errors(matched)
+
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        get_edge_errors(matched)
+
+
 class TestStandardNode:
     def test_no_gt(self):
         matched = ex_graphs.empty_gt()

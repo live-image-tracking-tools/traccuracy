@@ -253,10 +253,11 @@ class Test_export_graphs_to_geff:
     def test_multiple_metrics(self, tmp_path):
         matched = larger_example_1()
         # Test results object and the dictionary
-        results = [
-            DivisionMetrics(max_frame_buffer=2).compute(matched),
-            BasicMetrics().compute(matched),
-        ]
+        with pytest.warns(UserWarning, match="already calculated"):
+            results = [
+                DivisionMetrics(max_frame_buffer=2).compute(matched),
+                BasicMetrics().compute(matched),
+            ]
         out_zarr = tmp_path / "test.zarr"
         export_graphs_to_geff(out_zarr, matched, results, target_frame_buffer=2)
 
