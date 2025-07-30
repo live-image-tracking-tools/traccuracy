@@ -192,6 +192,13 @@ def get_division_graphs():
 
 
 class Test_export_results:
+    def check_valid_flag(self, flag, props):
+        """strenum in python 3.10 ends up annotating the graph with is_tp_div.
+        Later python annotates with NodeFlag.TP_DIV. For now we want to accept either
+        """
+
+        return str(flag) in props or flag.value in props
+
     def test_basic_metrics(self, tmp_path):
         matched = larger_example_1()
         results = [BasicMetrics().compute(matched)]
@@ -224,11 +231,11 @@ class Test_export_results:
 
         # Check that correct properties are present
         gt_props = gt_reader.node_prop_names
-        assert str(NodeFlag.TP_DIV) in gt_props
-        assert str(NodeFlag.FN_DIV) in gt_props
+        assert self.check_valid_flag(NodeFlag.TP_DIV, gt_props)
+        assert self.check_valid_flag(NodeFlag.FN_DIV, gt_props)
         pred_props = pred_reader.node_prop_names
-        assert str(NodeFlag.TP_DIV) in pred_props
-        assert str(NodeFlag.FP_DIV) in pred_props
+        assert self.check_valid_flag(NodeFlag.TP_DIV, pred_props)
+        assert self.check_valid_flag(NodeFlag.FP_DIV, pred_props)
 
         # Check that frame buffer metadata is recorded
         for reader in [gt_reader, pred_reader]:
