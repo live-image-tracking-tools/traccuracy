@@ -287,7 +287,7 @@ def test__construct_time_to_seg_id_map():
     # Test 2d data
     n_frames = 3
     n_labels = 3
-    track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels, int_ids=True)
+    track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
     # Get lookup from string id to node id
     id_lut = {}
     for node, attrs in track_graph.graph.nodes.items():
@@ -299,7 +299,7 @@ def test__construct_time_to_seg_id_map():
             assert id_lut[time_to_seg_id_map[t][i]] == f"{i}_{t}"
 
     # Test 3d data
-    track_graph = get_movie_with_graph(ndims=4, n_frames=n_frames, n_labels=n_labels, int_ids=True)
+    track_graph = get_movie_with_graph(ndims=4, n_frames=n_frames, n_labels=n_labels)
     # Get lookup from string id to node id
     id_lut = {}
     for node, attrs in track_graph.graph.nodes.items():
