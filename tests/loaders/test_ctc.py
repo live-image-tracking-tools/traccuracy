@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 
 from tests.examples.segs import multicell_3d
 from traccuracy._tracking_graph import TrackingGraph
-from traccuracy.loaders import _ctc, _load_tiffs
+from traccuracy.loaders import _ctc, load_tiffs
 
 
 def make_detections(data):
@@ -137,8 +137,8 @@ def test_load_tiffs_float_data(tmp_path):
         arr = tifffile.imread(file).astype(np.float64)
         tifffile.imwrite(tmp_path / Path(file).name, arr)
     with pytest.warns(UserWarning, match="Segmentation has float64: casting to uint64"):
-        casted_seg = _load_tiffs(tmp_path)
-    orig_seg = _load_tiffs(data_dir)
+        casted_seg = load_tiffs(tmp_path)
+    orig_seg = load_tiffs(data_dir)
     assert casted_seg.dtype == np.uint64
     assert_array_equal(casted_seg.astype(orig_seg.dtype), orig_seg)
 
