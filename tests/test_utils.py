@@ -140,7 +140,7 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, int_ids=True):
     # Relabel nodes to get rid of string ids
     # Preserve the option for string ids because it makes a few tests impossible otherwise
     if int_ids:
-        G = nx.convert_node_labels_to_integers(G, first_label=1)
+        G = nx.convert_node_labels_to_integers(G, first_label=1, label_attribute="string_id")
 
     return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
 
