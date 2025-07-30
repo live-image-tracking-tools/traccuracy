@@ -69,6 +69,9 @@ class TrackOverlapMetrics(Metric):
             include_division_edges=self.include_division_edges
         )
 
+        # if skips are not relaxed, we pass through an empty set of "relevant skips"
+        # this means for all downstream compute, skip edges will only be matched
+        # if the exact same skip edge exists in the other graph
         gt_skips = (
             _get_relevant_skip_edges(gt_graph, self.include_division_edges) if relaxed else set()
         )
