@@ -31,6 +31,7 @@ def test_overlap_relax_warning():
 class TestStandardOverlapMetrics:
     tp = "track_purity"
     te = "target_effectiveness"
+    tf = "track_fractions"
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_empty_gt(self, incl_div_edges):
@@ -39,6 +40,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == 0
         assert np.isnan(results[self.te])
+        assert np.isnan(results[self.tf])
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_empty_pred(self, incl_div_edges):
@@ -47,6 +49,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert np.isnan(results[self.tp])
         assert results[self.te] == 0
+        assert results[self.tf] == 0
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_good_match(self, incl_div_edges):
@@ -55,11 +58,12 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == 1
         assert results[self.te] == 1
+        assert results[self.tf] == 1
 
     @pytest.mark.parametrize(
-        ("t", "incl_div_edges", "tp", "te"),
+        ("t", "incl_div_edges", "tp", "te", "tf"),
         [
-            (0, True, 1, 0.5),
+            (0, True, 1, 0.5, ),
             (0, False, 1, 0.5),
             (1, True, np.nan, 0),
             (1, False, np.nan, 0),
@@ -67,7 +71,7 @@ class TestStandardOverlapMetrics:
             (2, False, 1, 0.5),
         ],
     )
-    def test_fn_node(self, t, incl_div_edges, tp, te):
+    def test_fn_node(self, t, incl_div_edges, tp, te, tf):
         matched = ex_graphs.fn_node_matched(t)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
@@ -77,6 +81,7 @@ class TestStandardOverlapMetrics:
         else:
             assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
         ("edge_er", "incl_div_edges", "tp", "te"),
