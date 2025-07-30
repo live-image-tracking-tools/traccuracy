@@ -168,7 +168,7 @@ def export_graphs_to_geff(
 
     Raises:
         ValueError: matched argument must be an instance of `Matched`
-        ValueError: results argument must be a list
+        ValueError: results argument must be a list of Results or dictionary objects
         ValueError: Zarr already exists at out_zarr
         ValueError: Requested target frame buffer {target_frame_buffer} exceeds computed "
             "frame buffer {max_frame_buffer}
