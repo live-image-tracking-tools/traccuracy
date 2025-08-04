@@ -49,7 +49,7 @@ target_effectiveness = results.results["target_effectiveness"]
 
 ## Track Fractions
 
-Track fractions, for a single track, is identical to target effectiveness. However, unlike TE, the TF measure is averaged *per track* i.e. it is unweighted by the length of the tracks. This means errors in shorter tracks get penalized more heavily by this measure than errors in longer tracks e.g. consider a two track solution with one fully  correct track of length 10 and one track of length 2 with an error in it. The TE score for this solution is $11/12$, while the TF is $(10/10 + 1/2)/2 = 3/4$
+Track fractions, for a single track, is identical to target effectiveness. However, unlike TE, the TF measure is averaged *per track* i.e. it is unweighted by the length of the tracks. This means errors in shorter tracks get penalized more heavily by this measure than errors in longer tracks e.g. consider a two track solution with one fully  correct track of length 10 and one track of length 2 with an error in it. The TE score for this solution is $\frac{11}{12}$, while the TF is $\frac{(10/10 + 1/2)}{2} = \frac{3}{4}$
 
 
 ```python
