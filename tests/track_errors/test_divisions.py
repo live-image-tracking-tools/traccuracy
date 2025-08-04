@@ -39,6 +39,17 @@ def swap_gt_pred(matched: Matched):
     )
 
 
+def test_inconsistent_annotations_raises():
+    matched = ex_graphs.good_matched()
+    _classify_divisions(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_divisions(matched)
+
+
 class TestStandardsDivisions:
     """Test _classify_divisions against standard cases
 
@@ -144,6 +155,7 @@ class Test_get_succ_by_t:
 class TestStandardShifted:
     """Test correct_shifted_divisions against standard shifted cases"""
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 2])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -164,6 +176,7 @@ class TestStandardShifted:
 
         assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -188,6 +201,7 @@ class TestStandardShifted:
 
             assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 2])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",
@@ -208,6 +222,7 @@ class TestStandardShifted:
 
         assert_corrected_graphs(matched, gt_node, pred_node, n_frames)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize("n_frames", [1, 3])
     @pytest.mark.parametrize(
         "matched, gt_node, pred_node",

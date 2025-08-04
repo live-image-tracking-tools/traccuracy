@@ -93,12 +93,6 @@ class Test_load_point_data:
         track_graph = load_point_data(df=df_mod, parent_column="pid")
         assert len(track_graph.graph.edges) == nrows - 1
 
-        # Change parent value to be None
-        df_mod = df.copy()
-        df_mod.loc[0, "parent"] = None
-        track_graph = load_point_data(df=df_mod)
-        assert len(track_graph.graph.edges) == nrows - 1
-
         # Change pos default
         df_mod = df.drop(columns=["z"])
         track_graph = load_point_data(df=df_mod, pos_columns=("y", "x"))

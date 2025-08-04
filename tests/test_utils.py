@@ -118,7 +118,7 @@ def get_annotated_movie(img_size=256, labels_per_frame=3, frames=3, mov_type="se
     return y.astype("int32")
 
 
-def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, int_ids=True):
+def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
     movie = get_annotated_movie(labels_per_frame=n_labels, frames=n_frames, mov_type="repeated")
 
     # Extend to 3d if needed
@@ -139,8 +139,7 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, int_ids=True):
 
     # Relabel nodes to get rid of string ids
     # Preserve the option for string ids because it makes a few tests impossible otherwise
-    if int_ids:
-        G = nx.convert_node_labels_to_integers(G, first_label=1)
+    G = nx.convert_node_labels_to_integers(G, first_label=1, label_attribute="string_id")
 
     return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
 
@@ -253,10 +252,11 @@ class Test_export_graphs_to_geff:
     def test_multiple_metrics(self, tmp_path):
         matched = larger_example_1()
         # Test results object and the dictionary
-        results = [
-            DivisionMetrics(max_frame_buffer=2).compute(matched),
-            BasicMetrics().compute(matched),
-        ]
+        with pytest.warns(UserWarning, match="already calculated"):
+            results = [
+                DivisionMetrics(max_frame_buffer=2).compute(matched),
+                BasicMetrics().compute(matched),
+            ]
         out_zarr = tmp_path / "test.zarr"
         export_graphs_to_geff(out_zarr, matched, results, target_frame_buffer=2)
 
