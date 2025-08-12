@@ -31,6 +31,7 @@ def test_overlap_relax_warning():
 class TestStandardOverlapMetrics:
     tp = "track_purity"
     te = "target_effectiveness"
+    tf = "track_fractions"
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_empty_gt(self, incl_div_edges):
@@ -39,6 +40,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == 0
         assert np.isnan(results[self.te])
+        assert np.isnan(results[self.tf])
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_empty_pred(self, incl_div_edges):
@@ -47,6 +49,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert np.isnan(results[self.tp])
         assert results[self.te] == 0
+        assert results[self.tf] == 0
 
     @pytest.mark.parametrize("incl_div_edges", [True, False])
     def test_good_match(self, incl_div_edges):
@@ -55,6 +58,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == 1
         assert results[self.te] == 1
+        assert results[self.tf] == 1
 
     @pytest.mark.parametrize(
         ("t", "incl_div_edges", "tp", "te"),
@@ -77,6 +81,7 @@ class TestStandardOverlapMetrics:
         else:
             assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("edge_er", "incl_div_edges", "tp", "te"),
@@ -93,6 +98,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("t", "incl_div_edges", "tp", "te"),
@@ -111,6 +117,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("edge_er", "incl_div_edges", "tp", "te"),
@@ -127,6 +134,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "tp", "te"), [(True, 0.5, 0.25), (False, 0.5, 0.25)]
@@ -137,6 +145,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("time", "tp", "te"),
@@ -152,6 +161,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("time", "tp", "te"),
@@ -166,6 +176,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("time", "tp", "te"),
@@ -181,6 +192,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("time", "tp", "te"),
@@ -195,6 +207,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("relax_edges", "tp", "te"),
@@ -209,6 +222,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
@@ -225,6 +239,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
@@ -241,6 +256,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
@@ -252,6 +268,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
@@ -263,6 +280,7 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "relax_edges", "tp", "te"),
@@ -279,38 +297,41 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "t_div", "tp", "te"),
+        ("incl_div_edges", "t_div", "tp", "te", "tf"),
         [
-            (True, 0, 3 / 4, 1),
-            (True, 1, 2 / 3, 0.5),
-            (False, 0, 1, 2 / 3),
-            (False, 1, 1, 0.5),
+            (True, 0, 3 / 4, 1, 1),
+            (True, 1, 2 / 3, 0.5, 0.5),
+            (False, 0, 1, 2 / 3, 1.5 / 2),
+            (False, 1, 1, 0.5, 0.5),
         ],
     )
-    def test_fp_div(self, incl_div_edges, tp, te, t_div):
+    def test_fp_div(self, incl_div_edges, tp, te, tf, t_div):
         matched = ex_graphs.fp_div(t_div)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "t_div", "tp", "te"),
+        ("incl_div_edges", "t_div", "tp", "te", "tf"),
         [
-            (True, 0, 1, 3 / 4),
-            (True, 1, 0.5, 2 / 3),
-            (False, 0, 2 / 3, 1),
-            (False, 1, 0.5, 1),
+            (True, 0, 1, 3 / 4, 1.5 / 2),
+            (True, 1, 0.5, 2 / 3, 2 / 3),
+            (False, 0, 2 / 3, 1, 1),
+            (False, 1, 0.5, 1, 1),
         ],
     )
-    def test_one_child(self, incl_div_edges, tp, te, t_div):
+    def test_one_child(self, incl_div_edges, tp, te, tf, t_div):
         matched = ex_graphs.one_child(t_div)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "t_div", "tp", "te"),
@@ -327,22 +348,24 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "t_div", "tp", "te"),
+        ("incl_div_edges", "t_div", "tp", "te", "tf"),
         [
-            (True, 0, 3 / 4, 3 / 5),
-            (True, 1, 2 / 3, 2 / 3),
-            (False, 0, 1, 2 / 3),
-            (False, 1, 1, 1),
+            (True, 0, 3 / 4, 3 / 5, 2 / 3),
+            (True, 1, 2 / 3, 2 / 3, 2 / 3),
+            (False, 0, 1, 2 / 3, 2 / 3),
+            (False, 1, 1, 1, 1),
         ],
     )
-    def test_wrong_child(self, incl_div_edges, tp, te, t_div):
+    def test_wrong_child(self, incl_div_edges, tp, te, tf, t_div):
         matched = ex_graphs.wrong_child(t_div)
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
         ("incl_div_edges", "t_div", "tp", "te"),
@@ -359,53 +382,59 @@ class TestStandardOverlapMetrics:
         results = metric._compute(matched)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == te
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "relax_edges", "tp", "te"),
+        ("incl_div_edges", "relax_edges", "tp", "te", "tf"),
         [
-            (True, False, 4 / 5, 4 / 6),
-            (False, False, 3 / 3, 3 / 4),
-            (True, True, 1, 1),
-            (False, True, 3 / 3, 3 / 4),
+            (True, False, 4 / 5, 4 / 6, 4 / 6),
+            (False, False, 3 / 3, 3 / 4, 2 / 3),
+            (True, True, 1, 1, 1),
+            (False, True, 3 / 3, 3 / 4, 2 / 3),
         ],
     )
-    def test_div_daughter_gap(self, incl_div_edges, relax_edges, tp, te):
+    def test_div_daughter_gap(self, incl_div_edges, relax_edges, tp, te, tf):
         matched = ex_graphs.div_daughter_gap()
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "relax_edges", "tp", "te"),
+        ("incl_div_edges", "relax_edges", "tp", "te", "tf"),
         [
-            (True, False, 2 / 4, 2 / 6),
-            (False, False, 2 / 2, 2 / 4),
-            (True, True, 1, 1),
-            (False, True, 1, 2 / 4),
+            (True, False, 2 / 4, 2 / 6, 1 / 3),
+            (False, False, 2 / 2, 2 / 4, 1 / 3),
+            (True, True, 1, 1, 1),
+            (False, True, 1, 2 / 4, 1 / 3),
         ],
     )
-    def test_div_daughter_dual_gap(self, incl_div_edges, relax_edges, tp, te):
+    def test_div_daughter_dual_gap(self, incl_div_edges, relax_edges, tp, te, tf):
         matched = ex_graphs.div_daughter_dual_gap()
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        assert results[self.tf] == tf
 
     @pytest.mark.parametrize(
-        ("incl_div_edges", "relax_edges", "tp", "te"),
+        ("incl_div_edges", "relax_edges", "tp", "te", "tf"),
         [
-            (True, False, 13 / 18, 11 / 20),
-            (False, False, 8 / 14, 8 / 14),
+            (True, False, 13 / 18, 11 / 20, 5.25 / 9),
+            (False, False, 8 / 14, 8 / 14, 16 / 27),
             # making sure relaxing affects nothing where
             # there are no skip edges
-            (True, True, 13 / 18, 11 / 20),
-            (False, True, 8 / 14, 8 / 14),
+            (True, True, 13 / 18, 11 / 20, 5.25 / 9),
+            (False, True, 8 / 14, 8 / 14, 16 / 27),
         ],
     )
-    def test_larger_example_1(self, incl_div_edges, relax_edges, tp, te):
+    def test_larger_example_1(self, incl_div_edges, relax_edges, tp, te, tf):
         matched = ex_graphs_larger.larger_example_1()
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched, relax_skips_gt=relax_edges, relax_skips_pred=relax_edges)
         assert results[self.tp] == tp
         assert results[self.te] == te
+        # tf of 16/27 leads to a floating point error, so we compare against
+        # a very small tolerance here instead
+        assert abs(results[self.tf] - tf) < 1e-10
