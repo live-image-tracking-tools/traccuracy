@@ -31,6 +31,7 @@ track_errors/ctc
 :hidden: true
 :maxdepth: 2
 
+metrics/metrics
 metrics/basic
 metrics/ctc
 metrics/track_overlap
