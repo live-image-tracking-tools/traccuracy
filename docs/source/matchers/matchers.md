@@ -1,9 +1,9 @@
-# Matchers
+# Matchers Overview
 
 The first step in comparing a ground truth and predicted graph is computing a matching
 between the two graphs. Currently, traccuracy represents a matching between graphs
 as a matching between the nodes of the graphs - edges are considered matched if the
-endpoints of the edge are matched. Traccuracy supports three types of matchings, depending
+endpoints of the edge are matched. Traccuracy supports four types of matchings, depending
 on how many nodes in one graph can be matched to one node in the other graph: 
 
 * `one-to-one`: every node can be matched to at most one node in the other graph
@@ -22,7 +22,7 @@ Unless otherwise noted, matchers are written assuming that you have dense ground
 
 | Matcher | Matching Type(s) | Description |
 ----------|------------------|-------------
-| Point | `one-to-one`  |  Given a maximum distance threshold, the matcher will perform hungarian matching on the points in each frame of the ground truth and predicted graphs, minimizing the overall distance while never matching any points with distance greater than the threshold. |
-| Point to Seg| `one-to-one`, `many-to-one`, `one-to-many` | Given one dataset with segmentation data, this matcher will match nodes from the points-only graph to nodes from the segmentation graph if and only if the point location is within the the segmentation label. |
-| IOU | `one-to-one`, `many-to-one`, `one-to-many` | Given a minimum overlap threshold, will match the segmentations in each frame of the ground truth and predicted tracks with  intersection-over-union greater than or equal to the given threshold. If the one-to-one flag is true, will produce a one-to-one matching by running linear assignment/hungarian matching on the thresholded iou array. |
-| CTC | `one-to-one`, `many-to-one` | A predicted node is matched to a reference node if the computed segmentation covers a majority of the reference segmentation. See https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0144959 for complete details. |
+| [Point](traccuracy.matchers.PointMatcher) | `one-to-one`  |  Given a maximum distance threshold, the matcher will perform hungarian matching on the points in each frame of the ground truth and predicted graphs, minimizing the overall distance while never matching any points with distance greater than the threshold. |
+| [Point to Seg](traccuracy.matchers.PointSegMatcher)| `one-to-one`, `many-to-one`, `one-to-many` | Given one dataset with segmentation data, this matcher will match nodes from the points-only graph to nodes from the segmentation graph if and only if the point location is within the the segmentation label. |
+| [IOU](traccuracy.matchers.IOUMatcher) | `one-to-one`, `many-to-one`, `one-to-many` | Given a minimum overlap threshold, will match the segmentations in each frame of the ground truth and predicted tracks with  intersection-over-union greater than or equal to the given threshold. If the one-to-one flag is true, will produce a one-to-one matching by running linear assignment/hungarian matching on the thresholded iou array. |
+| [CTC](traccuracy.matchers.CTCMatcher) | `one-to-one`, `many-to-one` | A predicted node is matched to a reference node if the computed segmentation covers a majority of the reference segmentation. See https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0144959 for complete details. |

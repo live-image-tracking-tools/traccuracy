@@ -1,3 +1,4 @@
+(chota-metric)=
 # CHOTA Metric
 
 CHOTA (Cell-specific Higher Order Tracking Accuracy) is a metric for cell tracking that unifies local correctness, global coherence, and lineage tracking aspects. It extends the HOTA metric[^2] from general multiple object tracking to address cell division and lineage relationships[^1].

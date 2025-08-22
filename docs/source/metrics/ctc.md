@@ -1,3 +1,4 @@
+(ctc-metrics)=
 # CTC/AOGM Metrics
 
 These metrics are an implementation of the Cell Segmentation & Tracking Challenge TRA and DET metrics,
@@ -162,6 +163,7 @@ div_results = DivisionMetrics(max_frame_buffer=0).compute(gt_data, pred_data)
 branching_correctness = div_results.results["Division F1"]
 ```
 
+(cca)=
 ### Cell Cycle Accuracy (CCA)
 
 The CCA metric captures the ability of a method to identify a distribution of cell
