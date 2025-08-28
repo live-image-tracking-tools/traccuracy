@@ -120,6 +120,7 @@ class TestStandardNode:
                 assert NodeFlag.NON_SPLIT not in attrs
 
     # Not testing one-to-many ex_graphs.one_to_two b/c not supported by ctc matcher
+    # Skipping ex_graphs.node_one_to_two
 
     @pytest.mark.parametrize("t", [0, 1, 2])
     def test_node_two_to_one(self, t):
@@ -541,7 +542,7 @@ class TestStandardEdge:
             assert EdgeFlag.CTC_FALSE_POS not in attrs
 
     # CTCMatcher does not allow one gt to match multiple comp nodes.
-    # Skipping the one_to_two example
+    # Skipping ex_graphs.edge_one_to_two
 
 
 class TestEdgeDivisions:
