@@ -1,3 +1,4 @@
+(division-metrics)=
 # Division Metrics
 
 Division metrics are computed using the annotations described in {doc}`../track_errors/divisions`.
