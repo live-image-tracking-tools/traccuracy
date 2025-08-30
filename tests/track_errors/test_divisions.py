@@ -56,6 +56,18 @@ class TestStandardsDivisions:
     Tests are written for sparse annotations
     """
 
+    def test_empty_pred_div(self):
+        matched = ex_graphs.empty_pred_div(1)
+        _classify_divisions(matched)
+
+        assert NodeFlag.FN_DIV in matched.gt_graph.nodes[2]
+
+    def test_empty_gt_div(self):
+        matched = ex_graphs.empty_gt_div(1)
+        _classify_divisions(matched)
+
+        assert NodeFlag.FP_DIV in matched.pred_graph.nodes[2]
+
     @pytest.mark.parametrize("t_div,div_node", [(0, (1, 6)), (1, (2, 6)), (2, (3, 8))])
     def test_good_div(self, t_div, div_node):
         matched = ex_graphs.good_div(t_div)

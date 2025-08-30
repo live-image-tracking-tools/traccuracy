@@ -28,6 +28,8 @@ SKIP_FUNCTIONS = [
     "make_split_cell_3d",
     "nodes_from_segmentation",
     "sphere",
+    "SegmentationData.__init__",
+    "all_basic_errors",  # Used for testing metrics
 ]
 # Ungrouped functions will be displayed in a separate section, but should be added here eventually
 GROUPS = {
@@ -76,6 +78,10 @@ GROUPS = {
             "gap_close_offset",
             "div_parent_gap",
             "div_daughter_gap",
+            "gap_close_two_to_one",
+            "div_daughter_dual_gap",
+            "div_parent_daughter_gap",
+            "div_shifted_one_side_skip",
         ],
     },
     "matchers": {
