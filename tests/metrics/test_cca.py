@@ -5,8 +5,7 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.matchers._base import Matched
-from traccuracy.metrics._cca import CellCycleAccuracy
-from traccuracy.metrics._ctc import _get_cumsum, _get_lengths
+from traccuracy.metrics._cca import CellCycleAccuracy, _get_cumsum, _get_lengths
 
 
 class TestCellCycleAccuracy:
