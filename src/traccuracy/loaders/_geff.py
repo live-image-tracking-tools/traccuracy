@@ -46,6 +46,8 @@ def load_geff_data(
     meta = GeffMetadata.read(geff_path)
     spatial_props = []
     temporal_prop = None
+    if meta.axes is None:
+        raise ValueError("No spatial or temporal axes were found in the input geff")
     for ax in meta.axes:
         if ax.type == "time":
             temporal_prop = ax.name

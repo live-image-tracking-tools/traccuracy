@@ -231,7 +231,7 @@ def export_graphs_to_geff(
             graph=tg.graph,
             store=geff_path,
             axis_names=axis_names,
-            axis_types=["time"] + ["space"] * (len(axis_names) - 1),
+            axis_types=["time"] + ["space"] * (len(axis_names) - 1),  # type: ignore
         )
         # Update metadata for division flags with buffer
         if reannotate_div:
