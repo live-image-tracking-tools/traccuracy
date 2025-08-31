@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
+import tests.examples.graphs as ex_graphs
 from traccuracy import EdgeFlag, NodeFlag, TrackingGraph
 
 
@@ -465,3 +466,27 @@ def test_get_skip_edges(complex_graph):
     skip_edges = complex_graph.get_skip_edges()
     assert len(skip_edges) == 2
     assert (2, 4) in skip_edges
+
+
+def test_clear_annotations():
+    # Set up an annotated tracking graph
+    tg = ex_graphs.basic_graph()
+    tg.set_flag_on_all_nodes(NodeFlag.TRUE_POS)
+    tg.set_flag_on_all_edges(EdgeFlag.TRUE_POS)
+    tg.node_errors = True
+    tg.edge_errors = True
+
+    tg.clear_annotations()
+    # Check node and edge attributes
+    for attrs in tg.graph.nodes.values():
+        assert set(attrs.keys()) == {"t", "y"}
+    for attrs in tg.graph.edges.values():
+        assert set(attrs.keys()) == set()
+
+    # Check that annotation flags have been reset
+    assert tg.node_errors is False
+    assert tg.edge_errors is False
+
+    # Check that the flag dictionaries are reset
+    assert len(tg.nodes_by_flag[NodeFlag.TRUE_POS]) == 0
+    assert len(tg.edges_by_flag[EdgeFlag.TRUE_POS]) == 0
