@@ -273,6 +273,33 @@ class TrackingGraph:
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
 
+    def clear_annotations(self) -> None:
+        """Resets a TrackingGraph by removing all traccuracy related annotations
+        from the networkx graph
+
+        Also resets any attributes on the TrackingGraph that are related to annotations
+        """
+        # Strip annotations from node
+        for attrs in self.graph.nodes.values():
+            for n_flag in NodeFlag:
+                attrs.pop(n_flag, None)
+
+        # Strip annotations from edges
+        for attrs in self.graph.edges.values():
+            for e_flag in EdgeFlag:
+                attrs.pop(e_flag, None)
+
+        # Reinitialize track graph to reset all the values defined at init based on the graph
+        self.__init__(
+            graph=self.graph,
+            segmentation=self.segmentation,
+            frame_key=self.frame_key,
+            label_key=self.label_key,
+            location_keys=self.location_keys,
+            name=self.name,
+            validate=False,
+        )
+
     def _validate_node(self, node: int, attrs: dict) -> None:
         """Check that every node has the time frame, location and seg_id (if needed) specified
 
