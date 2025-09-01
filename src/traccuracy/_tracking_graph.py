@@ -537,6 +537,16 @@ class TrackingGraph:
         else:
             self.edges_by_flag[flag] = set()
 
+    def get_lineages(self) -> list[nx.DiGraph]:
+        """Gets a list of new nx.DiGraph objects containing all lineages of the current graph.
+        
+        Lineage is defined as all connected components.
+        """
+        # Extract lineage and return as new nx graphs
+        lineage_nodes = list(nx.weakly_connected_components(self.graph))
+        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
+        return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in lineage_nodes]
+
     def get_tracklets(self, include_division_edges: bool = False) -> list[nx.DiGraph]:
         """Gets a list of new nx.DiGraph objects containing all tracklets of the current graph.
 
@@ -560,7 +570,7 @@ class TrackingGraph:
                 div_edges.append(edge)
         no_div_subgraph = self.graph.edge_subgraph(non_div_edges)
 
-        # Extract subgraphs (aka tracklets) and return as new track graphs
+        # Extract subgraphs (aka tracklets) and return as new nx graphs
         tracklets = list(nx.weakly_connected_components(no_div_subgraph))
 
         # if a daughter had no successors, it would not be part of the
