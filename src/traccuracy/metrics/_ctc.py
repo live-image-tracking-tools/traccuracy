@@ -3,19 +3,41 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING
 
+import networkx as nx
 import numpy as np
+from scipy.sparse import coo_array
+from skan.csr import PathGraph, summarize
 
-from traccuracy._tracking_graph import EdgeFlag, NodeFlag
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.matchers._base import Matched
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 
 from ._base import Metric
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 class AOGMMetrics(Metric):
+    """Computes the Acyclic Oriented Graph Measure (AOGM), along with the error counts
+
+    The AOGM metric is a generalized graph measure that allows users to define their own
+    error weights for each type of node and edge error. The AOGM is simply the
+    weighted sum of all errors.
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+
+    Args:
+        vertex_ns_weight (float): Weight for vertex/node non-split errors. Defaults to 1
+        vertex_fp_weight (float): Weight for false positive vertex/node errors. Defaults to 1
+        vertex_fn_weight (float): Weight for false negative vertex/node errors. Defaults to 1
+        edge_fp_weight (float): Weight for false positive edge errors. Defaults to 1
+        edge_fn_weight (float): Weight for false negative edge errors. Defaults to 1
+        edge_ws_weight (float): Weight for wrong semantic edge errors. Defaults to 1
+    """
+
     def __init__(
         self,
         vertex_ns_weight: float = 1,
@@ -39,7 +61,16 @@ class AOGMMetrics(Metric):
             "ws": edge_ws_weight,
         }
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         evaluate_ctc_events(data)
 
         vertex_error_counts: dict[str, float] = {
@@ -74,6 +105,18 @@ class AOGMMetrics(Metric):
 
 
 class CTCMetrics(AOGMMetrics):
+    """Computes the original Cell Tracking Challenging metrics: TRA, DET, LNK.
+    These metrics are based on the more general AOGM metric.
+
+    - DET: Assesses detection performance
+    - LNK: Assesses linking performance by measuring only edge errors
+    - TRA: Assesses both detection and tracking performance
+
+    These metrics are written assuming that the ground truth annotations
+    are dense. If that is not the case, interpret the numbers carefully.
+    Consider eliminating metrics that use the number of false positives.
+    """
+
     def __init__(self) -> None:
         vertex_weight_ns = 5
         vertex_weight_fn = 10
@@ -91,7 +134,16 @@ class CTCMetrics(AOGMMetrics):
             edge_ws_weight=edge_weight_ws,
         )
 
-    def _compute(self, data: Matched) -> dict[str, float]:
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        if relax_skips_gt or relax_skips_pred:
+            warnings.warn(
+                "CTC metrics do not support relaxing skip edges. "
+                "Ignoring relax_skips_gt and relax_skips_pred.",
+                stacklevel=2,
+            )
+
         errors = super()._compute(data)
         gt_graph = data.gt_graph.graph
         n_nodes = gt_graph.number_of_nodes()
@@ -253,3 +305,118 @@ def get_weighted_error_sum(
         edge_error_counts, edge_fp_weight, edge_fn_weight, edge_ws_weight
     )
     return vertex_error_sum + edge_error_sum
+
+
+class CellCycleAccuracy(Metric):
+    """The CCA metric captures the ability of a method to identify a distribution of cell
+    cycle lengths that matches the distribution present in the ground truth. The evaluation
+    is done on distributions and therefore does not require a matching of solution to the
+    ground truth. It ranges from [0,1] with higher values indicating better performance.
+
+    This metric is part of the biologically inspired metrics introduced by the CTC
+    and defined in Ulman 2017.
+    """
+
+    def __init__(self) -> None:
+        # CCA does not use matching and therefore any matching type is valid
+        valid_matching_types = ["one-to-one", "many-to-one", "one-to-many", "many-to-many"]
+        super().__init__(valid_matching_types)
+
+    def _compute(
+        self, data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict[str, float]:
+        gt_lengths = _get_lengths(data.gt_graph)
+        pred_lengths = _get_lengths(data.pred_graph)
+
+        cca = _get_cca(gt_lengths, pred_lengths)
+        return {"CCA": cca}
+
+
+def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
+    """Identifies the length of complete cell cycles in a tracking graph
+
+    Args:
+        track_graph (TrackingGraph): The graph to evaluate
+
+    Returns:
+        np.ndarray[int]: an array of complete cell cycle lengths
+    """
+    # Can't create a sparse graph from disconnected nodes
+    if track_graph.graph.number_of_edges() == 0:
+        return np.array([])
+
+    coords_array = np.asarray(
+        [
+            [node_info[track_graph.frame_key], *[node_info[k] for k in track_graph.location_keys]]  # type: ignore
+            for _, node_info in track_graph.graph.nodes(data=True)
+        ],
+        dtype=np.float64,
+    )
+
+    sparse_graph = nx.to_scipy_sparse_array(track_graph.graph, dtype=np.float64, format="coo")  # type: ignore
+
+    # build sparse array with frame spans of edges as weight
+    # this ensures gap-closing edges have the right "length"
+    i, j = sparse_graph.coords
+    t = coords_array[:, 0]
+    frame_span = np.abs(t[i] - t[j])
+    weighted_sparse_graph = coo_array((frame_span, (i, j)), shape=sparse_graph.shape).tocsr()
+
+    csr_graph = weighted_sparse_graph + weighted_sparse_graph.T
+    skan_graph = PathGraph.from_graph(adj=csr_graph, node_coordinates=coords_array)
+    summary = summarize(skan_graph, separator="_")
+    # branch_type 2 is junction to junction i.e. division to division
+    division_to_division = summary[summary.branch_type == 2]
+    cycle_lengths = division_to_division.branch_distance.values.astype(np.uint32)
+    return cycle_lengths
+
+
+def _get_cca(gt_lengths: np.ndarray, pred_lengths: np.ndarray) -> float:
+    """Compute CCA given two arrays of cell cycle lengths
+
+    Args:
+        gt_lengths (np.ndarray[int]): cell cycle lengths from the ground truth data
+        pred_lengths (np.ndarray[int]): cell cycle lengths from the predicted data
+
+    Returns:
+        float: the cell cycle accuracy
+    """
+    # GT and pred must both contain complete cell cycles to compute this metric
+    if np.sum(gt_lengths) == 0 or np.sum(pred_lengths) == 0:
+        warnings.warn(
+            "GT and pred data do not both contain complete cell cycles. Returning CCA = 0",
+            stacklevel=2,
+        )
+        return np.nan
+
+    n_bins = np.max([np.max(gt_lengths), np.max(pred_lengths)]) + 1
+
+    # Compute cumulative sum
+    gt_cumsum = _get_cumsum(gt_lengths, n_bins)
+    pred_cumsum = _get_cumsum(pred_lengths, n_bins)
+
+    cca = 1 - np.max(np.abs(gt_cumsum - pred_cumsum))
+    return cca
+
+
+def _get_cumsum(lengths: np.ndarray, n_bins: int) -> np.ndarray:
+    """Given an array of cell cycle lengths, computes cumulative sum from a normalized
+    histogram of the lengths
+
+    Args:
+        lengths (np.ndarray[int]): an array of cell cycle lengths
+        n_bins (int): number of bins for counting histogram
+
+    Returns:
+        np.ndarray: an array the cumulative sum of the normalized histogram
+    """
+    # Compute track length histogram
+    hist = np.bincount(lengths, minlength=n_bins)
+
+    # Normalize
+    hist = hist / hist.sum()
+
+    # Compute cumsum
+    cumsum = np.cumsum(hist)
+
+    return cumsum

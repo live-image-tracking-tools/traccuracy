@@ -9,14 +9,21 @@ from tqdm import tqdm
 from traccuracy._tracking_graph import TrackingGraph
 
 from ._base import Matcher
-from ._compute_overlap import get_labels_with_overlap
+from ._compute_overlap import get_labels_with_overlap, graph_bbox_and_labels
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
 
 def _match_nodes(
-    gt: np.ndarray, res: np.ndarray, threshold: float = 0.5, one_to_one: bool = False
+    gt: np.ndarray,
+    res: np.ndarray,
+    gt_boxes: np.ndarray | None = None,
+    res_boxes: np.ndarray | None = None,
+    gt_labels: np.ndarray | None = None,
+    res_labels: np.ndarray | None = None,
+    threshold: float = 0.5,
+    one_to_one: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Identify overlapping objects according to IoU and a threshold for minimum overlap.
 
@@ -25,6 +32,10 @@ def _match_nodes(
     Args:
         gt (np.ndarray): labeled frame
         res (np.ndarray): labeled frame
+        gt_boxes (np.ndarray | None): bounding boxes for the gt frame
+        res_boxes (np.ndarray | None): bounding boxes for the res frame
+        gt_labels (np.ndarray | None): labels for the gt frame
+        res_labels (np.ndarray | None): labels for the res frame
         threshold (optional, float): threshold value for IoU to count as same cell. Default 1.
             If segmentations are identical, 1 works well.
             For imperfect segmentations try 0.6-0.8 to get better matching
@@ -40,7 +51,15 @@ def _match_nodes(
     # casting to int to avoid issue #152 (result is float with numpy<2, dtype=uint64)
     iou = np.zeros((int(np.max(gt) + 1), int(np.max(res) + 1)))
 
-    ious = get_labels_with_overlap(gt, res, overlap="iou")
+    ious = get_labels_with_overlap(
+        gt,
+        res,
+        gt_boxes=gt_boxes,
+        res_boxes=res_boxes,
+        gt_labels=gt_labels,
+        res_labels=res_labels,
+        overlap="iou",
+    )
 
     for gt_label, res_label, iou_val in ious:
         if iou_val >= threshold:
@@ -183,9 +202,19 @@ def match_iou(
     pred_time_to_seg_id_map = _construct_time_to_seg_id_map(pred)
 
     for i, t in tqdm(enumerate(frame_range), desc="Matching frames", total=total):
+        gt_nodes = gt.nodes_by_frame[t]
+        pred_nodes = pred.nodes_by_frame[t]
+
+        gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_nodes)
+        pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_nodes)
+
         matches = _match_nodes(
             gt.segmentation[i],
             pred.segmentation[i],
+            gt_boxes=gt_boxes,
+            res_boxes=pred_boxes,
+            gt_labels=gt_labels,
+            res_labels=pred_labels,
             threshold=threshold,
             one_to_one=one_to_one,
         )

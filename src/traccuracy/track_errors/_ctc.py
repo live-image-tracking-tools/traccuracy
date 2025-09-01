@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import TYPE_CHECKING
 
 from tqdm import tqdm
@@ -8,7 +9,7 @@ from tqdm import tqdm
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 
 if TYPE_CHECKING:
-    from traccuracy.matchers import Matched
+    from traccuracy.matchers._matched import Matched
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,16 @@ def get_vertex_errors(matched_data: Matched) -> None:
     gt_graph = matched_data.gt_graph
     dict_mapping = matched_data.pred_gt_map
 
+    if comp_graph.node_errors + gt_graph.node_errors == 1:
+        graph_with_errors = "pred graph" if comp_graph.node_errors else "GT graph"
+        raise ValueError(
+            f"Only {graph_with_errors} has node errors annotated. "
+            "Please ensure either both or neither "
+            + "of the graphs have traccuracy annotations before running metrics."
+        )
+
     if comp_graph.node_errors and gt_graph.node_errors:
-        logger.info("Node errors already calculated. Skipping graph annotation")
+        warnings.warn("Node errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
     # will flip this when we come across the vertex in the mapping
@@ -69,13 +78,21 @@ def get_edge_errors(matched_data: Matched) -> None:
     gt_graph = matched_data.gt_graph
     node_mapping = matched_data.mapping
 
+    if comp_graph.edge_errors + gt_graph.edge_errors == 1:
+        graph_with_errors = "pred graph" if comp_graph.edge_errors else "GT graph"
+        raise ValueError(
+            f"Only {graph_with_errors} has edge errors annotated. "
+            "Please ensure either both or neither "
+            + "of the graphs have traccuracy annotations before running metrics."
+        )
+
     if comp_graph.edge_errors and gt_graph.edge_errors:
-        logger.info("Edge errors already calculated. Skipping graph annotation")
+        warnings.warn("Edge errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
     # Node errors must already be annotated
     if not comp_graph.node_errors and not gt_graph.node_errors:
-        logger.warning("Node errors have not been annotated. Running node annotation.")
+        logger.info("Node errors have not been annotated. Running node annotation.", stacklevel=2)
         get_vertex_errors(matched_data)
 
     comp_tp_nodes = comp_graph.get_nodes_with_flag(NodeFlag.CTC_TRUE_POS)

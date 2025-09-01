@@ -2,7 +2,23 @@ import pytest
 
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
-from traccuracy.track_errors.basic import _classify_edges, _classify_nodes
+from traccuracy.matchers._matched import Matched
+from traccuracy.track_errors._basic import _classify_edges, _classify_nodes
+
+
+def test_inconsistent_annotation_raises():
+    matched = ex_graphs.good_matched()
+    _classify_nodes(matched)
+    _classify_edges(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_nodes(matched)
+
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        _classify_edges(matched)
 
 
 class TestStandardNode:
@@ -22,7 +38,7 @@ class TestStandardNode:
         for attrs in matched.gt_graph.nodes.values():
             assert NodeFlag.FALSE_NEG in attrs
 
-    def test_good_match(self, caplog):
+    def test_good_match(self):
         matched = ex_graphs.good_matched()
         _classify_nodes(matched)
 
@@ -32,8 +48,8 @@ class TestStandardNode:
                 assert NodeFlag.TRUE_POS in attrs
 
         # Check that it doesn't run a second time
-        _classify_nodes(matched)
-        assert "Node errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_nodes(matched)
 
     @pytest.mark.parametrize("t", [0, 1, 2])
     def test_fn_node(self, t):
@@ -141,8 +157,8 @@ class TestStandardEdge:
                 assert EdgeFlag.TRUE_POS in attrs
 
         # Check that it doesn't run a second time
-        _classify_edges(matched)
-        assert "Edge errors already calculated. Skipping graph annotation" in caplog.text
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched)
 
     def test_fn_node_end(self):
         matched = ex_graphs.fn_node_matched(0)
@@ -231,7 +247,7 @@ class TestStandardEdge:
 
 
 class TestGapCloseEdge:
-    def test_fn_gap_close_edge(self):
+    def test_fn_gap_close_edge(self, caplog):
         matched = ex_graphs.gap_close_gt_gap()
         _classify_edges(matched)
 
@@ -243,7 +259,21 @@ class TestGapCloseEdge:
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(5, 6)]
         assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
 
-    def test_fp_gap_close_edge(self):
+        _classify_edges(matched, relax_skips_gt=True)
+        # gap close edge is SKIP_TP and remains FN
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(1, 3)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(1, 3)]
+        # equivalent pred edges are SKIP_TP and still FP
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(5, 6)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(5, 6)]
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(6, 7)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 7)]
+
+        # Check that it doesn't run a second time
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched, relax_skips_gt=True)
+
+    def test_fp_gap_close_edge(self, caplog):
         matched = ex_graphs.gap_close_pred_gap()
         _classify_edges(matched)
 
@@ -255,6 +285,20 @@ class TestGapCloseEdge:
         # pred edges are FN
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(2, 3)]
         assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
+
+        _classify_edges(matched, relax_skips_pred=True)
+        # gap close edge is SKIP_TP and remains FP
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(6, 8)]
+        assert EdgeFlag.FALSE_POS in pred_graph.edges[(6, 8)]
+        # equivalent gt edges are SKIP_TP and still FN
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(2, 3)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(2, 3)]
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(3, 4)]
+        assert EdgeFlag.FALSE_NEG in gt_graph.edges[(3, 4)]
+
+        # Check that it doesn't run a second time
+        with pytest.warns(UserWarning, match="already calculated"):
+            _classify_edges(matched, relax_skips_pred=True)
 
     def test_good_gap_close_edge(self):
         matched = ex_graphs.gap_close_matched_gap()
@@ -269,6 +313,10 @@ class TestGapCloseEdge:
         for edge in pred_graph.edges:
             assert EdgeFlag.TRUE_POS in pred_graph.edges[edge]
 
+        _classify_edges(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[(1, 3)]
+        assert EdgeFlag.SKIP_TRUE_POS in pred_graph.edges[(5, 7)]
+
     def test_gap_close_offset_edge(self):
         matched = ex_graphs.gap_close_offset()
         _classify_edges(matched)
@@ -279,6 +327,14 @@ class TestGapCloseEdge:
         # all pred edges are FP
         for edge in matched.pred_graph.edges:
             assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[edge]
+
+        # after relaxing skips, the edges are still offset
+        # so they remain SKIP_FN and SKIP_FP
+        _classify_edges(matched, relax_skips_gt=True, relax_skips_pred=True)
+        assert EdgeFlag.SKIP_FALSE_NEG in matched.gt_graph.edges[(1, 3)]
+        assert EdgeFlag.FALSE_NEG in matched.gt_graph.edges[(1, 3)]
+        assert EdgeFlag.SKIP_FALSE_POS in matched.pred_graph.edges[(6, 8)]
+        assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[(6, 8)]
 
     def test_gap_close_division_edges(self):
         matched = ex_graphs.div_parent_gap()

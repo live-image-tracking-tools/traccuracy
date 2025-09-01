@@ -1,4 +1,5 @@
 docs/dest
+docs/.jupyter_cache
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
@@ -78,6 +79,7 @@ target/
 
 # pyenv
 .python-version
+uv.lock
 
 # celery beat schedule file
 celerybeat-schedule
@@ -92,6 +94,7 @@ celerybeat-schedule
 .venv
 venv/
 ENV/
+uv.lock
 
 # Spyder project settings
 .spyderproject

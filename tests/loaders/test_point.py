@@ -56,6 +56,27 @@ class Test_load_point_data:
         with pytest.raises(ValueError, match="Specified seg_id_column *"):
             load_point_data(df=pd.DataFrame(data), seg_id_column="seg_label")
 
+    def test_invalid_id_column(self):
+        nrows = 5
+        df = self.get_valid_df(nrows)
+        df["node_id"] = df["node_id"] - 10
+        with pytest.raises(
+            ValueError, match="Specified id_column node_id must contain positive integers"
+        ):
+            load_point_data(df=df, name="test")
+
+        df["node_id"] = df["node_id"] + 0.5
+        with pytest.raises(
+            ValueError, match="Specified id_column node_id must contain positive integers"
+        ):
+            load_point_data(df=df, name="test")
+
+        df["node_id"] = 2
+        with pytest.raises(
+            ValueError, match="Specified id_column node_id must contain unique values"
+        ):
+            load_point_data(df=df, name="test")
+
     def test_load_from_dataframe(self):
         # Make a valid dataframe using defaults
         nrows = 5
@@ -70,12 +91,6 @@ class Test_load_point_data:
         # Change parent default
         df_mod = df.rename(columns={"parent": "pid"})
         track_graph = load_point_data(df=df_mod, parent_column="pid")
-        assert len(track_graph.graph.edges) == nrows - 1
-
-        # Change parent value to be None
-        df_mod = df.copy()
-        df_mod.loc[0, "parent"] = None
-        track_graph = load_point_data(df=df_mod)
         assert len(track_graph.graph.edges) == nrows - 1
 
         # Change pos default

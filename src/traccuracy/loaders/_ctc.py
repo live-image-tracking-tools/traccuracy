@@ -1,6 +1,7 @@
 import glob
 import logging
 import os
+from collections import defaultdict
 from warnings import warn
 
 import networkx as nx
@@ -15,38 +16,6 @@ from traccuracy._tracking_graph import TrackingGraph
 logger = logging.getLogger(__name__)
 
 
-def _load_tiffs(data_dir: str) -> np.ndarray:
-    """Load a directory of individual frames into a stack.
-
-    Args:
-        data_dir (str): Path to directory of tiff files
-
-    Raises:
-        FileNotFoundError: No tif files found in data_dir
-
-    Returns:
-        np.array: 4D array with dims TYXC
-    """
-    files = np.sort(glob.glob(f"{data_dir}/*.tif*"))
-    if len(files) == 0:
-        raise FileNotFoundError(f"No tif files were found in {data_dir}")
-
-    first_im = imread(files[0])
-    shape = (len(files), *first_im.shape)
-    dtype = first_im.dtype
-
-    if dtype.kind not in ["i", "u"]:
-        warn(f"Segmentation has {dtype}: casting to uint64", stacklevel=2)
-        dtype = np.dtype(np.uint64)
-    stack = np.zeros(shape=shape, dtype=dtype)
-    stack[0] = first_im.astype(dtype, copy=False)
-
-    for i, f in enumerate(tqdm(files[1:], "Loading TIFFs")):
-        stack[i + 1] = imread(f).astype(dtype, copy=False)
-
-    return stack
-
-
 def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     """Return the unique track label, centroid and time for each track vertex.
 
@@ -57,7 +26,7 @@ def _detections_from_image(stack: np.ndarray, idx: int) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The dataframe of track data for one time step (specified by idx)
     """
-    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid"))
+    props = regionprops_table(np.asarray(stack[idx, ...]), properties=("label", "centroid", "bbox"))
     props["t"] = np.full(props["label"].shape, idx)
     return pd.DataFrame(props)
 
@@ -92,6 +61,9 @@ def _get_node_attributes(masks: np.ndarray) -> pd.DataFrame:
             for idx in tqdm(range(masks.shape[0]), desc="Computing node attributes")
         ],
     ).reset_index(drop=True)
+    bbox_cols = [col for col in data_df.columns if col.startswith("bbox")]
+    data_df["bbox"] = data_df[bbox_cols].apply(lambda x: x.to_list(), axis=1)
+    data_df = data_df.drop(columns=bbox_cols)
     data_df = data_df.rename(columns=columns)
     data_df["segmentation_id"] = data_df["segmentation_id"].astype(int)
     data_df["t"] = data_df["t"].astype(int)
@@ -102,35 +74,46 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     """Create a Graph from DataFrame of CTC info with node attributes.
 
     Args:
-        data (pd.DataFrame): DataFrame of CTC-style info
+        df (pd.DataFrame): CTC-style dataframe with columns
+            [segmentation_id, start_frame, end_frame, parent_id]
         detections (pd.DataFrame): Dataframe from _get_node_attributes with position
             and segmentation label for each cell detection
 
     Returns:
         networkx.DiGraph: Graph representation of the CTC data.
     """
-    edges = []
-
-    all_ids = set()
+    # node IDs for each cell ID at each time t
+    # all_ids[cell_id][t] = node_id
+    all_ids: dict[int, dict[int, int]] = defaultdict(dict)
     single_nodes = set()
+    cell_id_start_end = {}
+
+    edges: list[tuple[int, int]] = []
 
     # Add each continuous cell lineage as a set of edges to df
+    current_id = 1
     for _, row in df.iterrows():
         tpoints = np.arange(row["Start"], row["End"] + 1)
 
-        cellids = ["{}_{}".format(row["Cell_ID"], t) for t in tpoints]
+        node_ids = {}
+        for t in tpoints:
+            node_ids[t] = current_id
+            current_id += 1
 
-        if len(cellids) == 1:
-            single_nodes.add(cellids[0])
+        cell_id_start_end[row["Cell_ID"]] = (node_ids[tpoints[0]], node_ids[tpoints[-1]])
 
-        all_ids.update(cellids)
+        if len(node_ids) == 1:
+            single_nodes.add(node_ids[tpoints[0]])
 
-        edges.append(
-            pd.DataFrame(
-                {
-                    "source": cellids[0:-1],
-                    "target": cellids[1:],
-                }
+        all_ids[row["Cell_ID"]] = node_ids
+
+        edges.extend(
+            list(
+                zip(
+                    [node_ids[i] for i in tpoints[:-1]],
+                    [node_ids[i] for i in tpoints[1:]],
+                    strict=False,
+                )
             )
         )
 
@@ -138,34 +121,27 @@ def ctc_to_graph(df: pd.DataFrame, detections: pd.DataFrame) -> nx.DiGraph:
     for _, row in df[df["Parent_ID"] != 0].iterrows():
         # Get the parent's details
         parent_row = df[df["Cell_ID"] == row["Parent_ID"]].iloc[0]
-        source = "{}_{}".format(parent_row["Cell_ID"], parent_row["End"])
+        parent_cell_id = parent_row["Cell_ID"]
+        current_start_id, _ = cell_id_start_end[row["Cell_ID"]]
+        _, parent_end_id = cell_id_start_end[parent_cell_id]
 
-        target = "{}_{}".format(row["Cell_ID"], row["Start"])
-
-        edges.append(pd.DataFrame({"source": [source], "target": [target]}))
-
-    # Store position attributes on nodes
-    detections["node_id"] = (
-        detections["segmentation_id"].astype("str") + "_" + detections["t"].astype("str")
-    )
-    detections = detections.set_index("node_id")
+        edges.append((parent_end_id, current_start_id))
 
     attributes = {}
     for row_tp in detections.itertuples():
         # Pandas thinks the itertuple return type can be essentially anything
         row_dict = row_tp._asdict()  # type: ignore
-        i = row_dict["Index"]
         del row_dict["Index"]
-        attributes[i] = row_dict
+        # find the node ID for this detection in our dictionary
+        cell_id = row_dict["segmentation_id"]
+        t = row_dict["t"]
+        node_id = all_ids[cell_id][t]
+        attributes[node_id] = row_dict
 
     # Create graph
-    edge_df = pd.concat(edges)
-    G = nx.from_pandas_edgelist(edge_df, source="source", target="target", create_using=nx.DiGraph)
-
-    # Add all isolates to graph
-    for cell_id in single_nodes:
-        G.add_node(cell_id)
-
+    G = nx.DiGraph()  # type: ignore
+    G.add_edges_from(edges)
+    G.add_nodes_from(single_nodes)
     nx.set_node_attributes(G, attributes)
 
     return G
@@ -185,7 +161,8 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
     - No duplicate tracklet IDs (non-connected pixels with same ID) in a single timepoint.
 
     Args:
-        tracks (pd.DataFrame): Tracks in CTC format with columns Cell_ID, Start, End, Parent_ID.
+        tracks (pd.DataFrame): Tracks in CTC format with columns
+            Cell_ID, Start, End, Parent_ID.
         detections (pd.DataFrame): Detections extracted from masks, containing columns
             segmentation_id, t.
         masks (np.ndarray): Set of masks with time in the first axis.
@@ -225,24 +202,57 @@ def _check_ctc(tracks: pd.DataFrame, detections: pd.DataFrame, masks: np.ndarray
             logger.warning(f"{n_components - n_labels} non-connected masks at t={t}.")
 
 
+def load_tiffs(data_dir: str) -> np.ndarray:
+    """Load a directory of individual frames into a stack.
+
+    Args:
+        data_dir (str): Path to directory of tiff files
+
+    Raises:
+        FileNotFoundError: No tif files found in data_dir
+
+    Returns:
+        np.array: 4D array with dims TYXC
+    """
+    files = np.sort(glob.glob(f"{data_dir}/*.tif*"))
+    if len(files) == 0:
+        raise FileNotFoundError(f"No tif files were found in {data_dir}")
+
+    first_im = imread(files[0])
+    shape = (len(files), *first_im.shape)
+    dtype = first_im.dtype
+
+    if dtype.kind not in ["i", "u"]:
+        warn(f"Segmentation has {dtype}: casting to uint64", stacklevel=2)
+        dtype = np.dtype(np.uint64)
+    stack = np.zeros(shape=shape, dtype=dtype)
+    stack[0] = first_im.astype(dtype, copy=False)
+
+    for i, f in enumerate(tqdm(files[1:], "Loading TIFFs")):
+        stack[i + 1] = imread(f).astype(dtype, copy=False)
+
+    return stack
+
+
 def load_ctc_data(
     data_dir: str, track_path: str | None = None, name: str | None = None, run_checks: bool = True
 ) -> TrackingGraph:
-    """Read the CTC segmentations and track file and create TrackingData.
+    """Read the CTC segmentations and track file and create a TrackingGraph.
 
     Args:
         data_dir (str): Path to directory containing CTC tiffs.
         track_path (optional, str): Path to CTC track file. If not passed,
             finds `*_track.txt` in data_dir.
         name (optional, str): Name of data to store in TrackingGraph
-        run_checks (optional, bool): If set to `True` (default), runs checks on the data to ensure
-            valid CTC format.
+        run_checks (optional, bool): If set to `True` (default), runs checks on the data
+            to ensure valid CTC format.
 
     Returns:
-        traccuracy.TrackingGraph: Object containing segmentations and graph.
+        traccuracy.TrackingGraph: TrackingGraph object containing segmentations and graph.
 
     Raises:
         ValueError:
+            If the tracks file is not found.
             If `run_checks` is True, whenever any of the CTC format checks are violated.
             If `run_checks` is False, whenever any other Exception occurs while creating the graph.
     """
@@ -262,7 +272,7 @@ def load_ctc_data(
 
     tracks = pd.read_csv(track_path, header=None, sep=" ", names=names)
 
-    masks = _load_tiffs(data_dir)
+    masks = load_tiffs(data_dir)
     detections = _get_node_attributes(masks)
     if run_checks:
         _check_ctc(tracks, detections, masks)

@@ -4,8 +4,23 @@ import pytest
 
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
-from traccuracy.matchers import Matched
+from traccuracy.matchers._matched import Matched
 from traccuracy.track_errors._ctc import get_edge_errors, get_vertex_errors
+
+
+def test_inconsistent_annotations_raises():
+    matched = ex_graphs.good_matched()
+    get_vertex_errors(matched)
+    get_edge_errors(matched)
+
+    gt_graph = matched.gt_graph
+    pred_graph = ex_graphs.good_matched().pred_graph
+    matched = Matched(gt_graph=gt_graph, pred_graph=pred_graph, mapping=[], matcher_info={})
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        get_vertex_errors(matched)
+
+    with pytest.raises(ValueError, match="both or neither of the graphs"):
+        get_edge_errors(matched)
 
 
 class TestStandardNode:
@@ -235,30 +250,34 @@ def test_assign_edge_errors():
 def test_assign_edge_errors_semantics():
     """
     gt:
-    1_0 -- 1_1 -- 1_2 -- 1_3
+    0 -- 1 -- 2 -- 3
 
     comp:
-                         1_3
-    1_0 -- 1_1 -- 1_2 -<
-                         2_3
+                    3
+    0 -- 1 -- 2 -<
+                    4
     """
 
     gt = nx.DiGraph()
-    gt.add_edge("1_0", "1_1")
-    gt.add_edge("1_1", "1_2")
-    gt.add_edge("1_2", "1_3")
+    gt.add_edge(0, 1)
+    gt.add_edge(1, 2)
+    gt.add_edge(2, 3)
     # Set node attrs
     attrs = {}
     for node in gt.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
+        attrs[node] = {"t": node, "x": 0, "y": 0}
     nx.set_node_attributes(gt, attrs)
 
     comp = gt.copy()
-    comp.add_edge("1_2", "2_3")
+    comp.add_edge(2, 4)
     # Set node attrs
     attrs = {}
     for node in comp.nodes:
-        attrs[node] = {"t": int(node[-1:]), "x": 0, "y": 0}
+        if node <= 3:
+            t = node
+        else:
+            t = 3
+        attrs[node] = {"t": t, "x": 0, "y": 0}
     nx.set_node_attributes(comp, attrs)
 
     # Define mapping with all nodes matching except for 2_3 in comp
@@ -270,7 +289,7 @@ def test_assign_edge_errors_semantics():
 
     get_edge_errors(matched_data)
 
-    assert matched_data.pred_graph.edges[("1_2", "1_3")][EdgeFlag.WRONG_SEMANTIC]
+    assert matched_data.pred_graph.edges[(2, 3)][EdgeFlag.WRONG_SEMANTIC]
 
 
 def test_ns_vertex_fn_edge():
@@ -354,7 +373,7 @@ class TestStandardEdge:
         matched = self.prep_matched(ex_graphs.empty_gt())
         for attrs in matched.pred_graph.edges.values():
             # Edges on FP nodes are not additionally penalized as FP edge
-            # https://github.com/Janelia-Trackathon-2023/traccuracy/pull/176#issuecomment-2552537116
+            # https://github.com/live-image-tracking-tools/traccuracy/pull/176#issuecomment-2552537116
             assert EdgeFlag.CTC_FALSE_POS not in attrs
             assert EdgeFlag.INTERTRACK_EDGE not in attrs
             assert EdgeFlag.WRONG_SEMANTIC not in attrs
@@ -477,7 +496,7 @@ class TestStandardEdge:
 
     def test_node_two_to_one_end(self):
         """See comment thread for discussion of edge errors with NS nodes
-        https://github.com/Janelia-Trackathon-2023/traccuracy/pull/176#issuecomment-2552537116
+        https://github.com/live-image-tracking-tools/traccuracy/pull/176#issuecomment-2552537116
         """
         matched = self.prep_matched(ex_graphs.node_two_to_one(0))
 

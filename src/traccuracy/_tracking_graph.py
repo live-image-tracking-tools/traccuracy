@@ -6,11 +6,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, cast
 
 import networkx as nx
+import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    import numpy as np
     from networkx.classes.reportviews import DiDegreeView, NodeView, OutEdgeView
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ class NodeFlag(str, enum.Enum):
     NON_SPLIT = "is_ns"
     # True positive divisions. Valid on gt and computed graphs.
     TP_DIV = "is_tp_division"
+    TP_DIV_SKIP = "is_tp_division_skip"
     # False positive divisions. Valid on computed graph.
     FP_DIV = "is_fp_division"
     # False negative divisions. Valid on gt graph.
@@ -50,6 +51,9 @@ class NodeFlag(str, enum.Enum):
 
     # Minimum buffer value that would correct a shifted division.
     MIN_BUFFER_CORRECT = "min_buffer_correct"
+    # Minimum buffer value that would correct a shifted division
+    # with skip edges allowed
+    MIN_BUFFER_CORRECT_SKIP = "min_buffer_correct_skip"
 
     @classmethod
     def has_value(cls, value: str) -> bool:
@@ -107,6 +111,10 @@ class EdgeFlag(str, enum.Enum):
     FALSE_POS = "is_fp"
     FALSE_NEG = "is_fn"
 
+    SKIP_FALSE_POS = "is_skip_fp"
+    SKIP_FALSE_NEG = "is_skip_fn"
+    SKIP_TRUE_POS = "is_skip_tp"
+
 
 class TrackingGraph:
     """A directed graph representing a tracking solution where edges go forward in time.
@@ -149,6 +157,7 @@ class TrackingGraph:
         label_key: str = "segmentation_id",
         location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
+        validate: bool = True,
     ):
         """A directed graph representing a tracking solution where edges go
         forward in time.
@@ -162,6 +171,7 @@ class TrackingGraph:
                 solution where edges go forward in time. If the graph already
                 has annotations that are strings included in NodeFlags or
                 EdgeFlags, this will likely ruin metrics computation!
+                Node ids must be positive integers.
             segmentation (numpy-like array, optional): A numpy-like array of segmentations.
                 The location of each node in tracking_graph is assumed to be inside the
                 area of the corresponding segmentation. Defaults to None.
@@ -172,7 +182,7 @@ class TrackingGraph:
                 pixel value of the node in the segmentation. Defaults to
                 'segmentation_id'. Pass `None` if there is not a label
                 attribute on the graph.
-            location_key (str | tuple, optional): The key or list of keys on each node
+            location_keys (str | tuple, optional): The key or list of keys on each node
                 in graph that contains the spatial location of the node, in the order
                 needed to index the segmentation, if applicable. Every
                 node must have a value stored at each of these provided keys.
@@ -180,6 +190,8 @@ class TrackingGraph:
                 or numpy array on each node. Defaults to ('x', 'y').
             name (str, optional): User specified name that will be included in result
                 outputs associated with this object
+            validate (bool, optional): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided). Default = True.
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -223,21 +235,9 @@ class TrackingGraph:
         }
 
         for node, attrs in self.graph.nodes.items():
-            assert self.frame_key in attrs.keys(), (
-                f"Frame key {self.frame_key} not present for node {node}."
-            )
-
-            # check that every node has the time frame and location specified
-            if self.location_keys is not None:
-                if isinstance(self.location_keys, str):
-                    assert self.location_keys in attrs.keys(), (
-                        f"Location key {self.location_keys} not present for node {node}."
-                    )
-                else:
-                    for key in self.location_keys:
-                        assert key in attrs.keys(), (
-                            f"Location key {key} not present for node {node}."
-                        )
+            node = cast("int", node)
+            if validate:
+                self._validate_node(node, attrs)
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
@@ -266,8 +266,42 @@ class TrackingGraph:
 
         # Record types of annotations that have been calculated
         self.division_annotations = False
+        self.division_skip_gt_relaxed = False
+        self.division_skip_pred_relaxed = False
         self.node_errors = False
         self.edge_errors = False
+        self.skip_edges_gt_relaxed = False
+        self.skip_edges_pred_relaxed = False
+
+    def _validate_node(self, node: int, attrs: dict) -> None:
+        """Check that every node has the time frame, location and seg_id (if needed) specified
+
+        Args:
+            node (int): Node id
+            attrs (dict): Attributes extracted from the graph for the given node
+        """
+        assert self.frame_key in attrs.keys(), (
+            f"Frame key {self.frame_key} not present for node {node}."
+        )
+
+        if self.location_keys is not None:
+            if isinstance(self.location_keys, str):
+                assert self.location_keys in attrs.keys(), (
+                    f"Location key {self.location_keys} not present for node {node}."
+                )
+            else:
+                for key in self.location_keys:
+                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+
+        # seg id check
+        if self.segmentation is not None:
+            assert self.label_key in attrs.keys(), {
+                f"Segmentation label key {self.label_key} not present for node {node}"
+            }
+
+        # Node ids must be positive integers
+        assert np.issubdtype(type(node), np.integer), f"Node id of node {node} is not an integer"
+        assert node >= 0, f"Node id of node {node} is not positive"
 
     @property
     def nodes(self) -> NodeView:
@@ -544,3 +578,17 @@ class TrackingGraph:
 
         # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
         return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in tracklets]
+
+    def get_skip_edges(self) -> set[tuple[Hashable, Hashable]]:
+        """Get all edges that skip one or more frames.
+
+        Returns:
+            set of tuples: A set of edges that skip one or more frames.
+                Each edge is represented as a tuple of (source_node, target_node).
+        """
+        return {
+            (source, target)
+            for source, target in self.graph.edges
+            if self.graph.nodes[source][self.frame_key] + 1
+            != self.graph.nodes[target][self.frame_key]
+        }

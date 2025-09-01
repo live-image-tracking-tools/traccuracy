@@ -5,7 +5,7 @@ We recommend using `pixi` for environment management while developing `traccurac
 ## Development
 For local development, clone the repo and install in editable mode.
 ```
-git clone https://github.com/Janelia-Trackathon-2023/traccuracy.git
+git clone https://github.com/live-image-tracking-tools/traccuracy.git
 pixi install
 ```
 

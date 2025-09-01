@@ -67,11 +67,13 @@ def plot_matching(ax, matched, color="grey"):
         ax.plot(xs, ys, color=color, linestyle="dashed")
 
 
-def plot_matched(examples, title):
+def plot_matched(examples, title, figsize=None):
     gt_color = "black"
     pred_color = "blue"
     mapping_color = "grey"
-    fig, ax = plt.subplots(1, len(examples) + 1, figsize=(3 * len(examples) + 1, 2))
+    if figsize is None:
+        figsize = (3 * len(examples) + 1, 2)
+    fig, ax = plt.subplots(1, len(examples) + 1, figsize=figsize)
     for i, matched in enumerate(examples):
         axis = ax[i]
         xbounds, ybounds = plot_graph(axis, matched.gt_graph, color=gt_color)
@@ -156,12 +158,26 @@ plot_matched(
 
 ```{code-cell} ipython3
 plot_matched(
+    [ex_graphs.gap_close_two_to_one()], "Two GT edges to one pred skip edge"
+)
+```
+
+```{code-cell} ipython3
+plot_matched(
     [
         ex_graphs.gap_close_gt_gap(),
         ex_graphs.gap_close_pred_gap(),
         ex_graphs.gap_close_matched_gap(),
         ex_graphs.gap_close_offset(),
     ],
-    "Gap closing cases",
+    "Skip edge cases",
+)
+```
+
+```{code-cell} ipython3
+plot_matched(
+    [ex_graphs.all_basic_errors()],
+    "All basic errors",
+    figsize=(6, 2)
 )
 ```

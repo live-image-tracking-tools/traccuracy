@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from importlib.metadata import version
 from typing import TYPE_CHECKING
 
 import numpy as np
 
+from traccuracy.metrics._results import Results
+
 if TYPE_CHECKING:
     from typing import Any
 
-    from traccuracy.matchers._base import Matched
+    from traccuracy.matchers._matched import Matched
 
 
 MATCHING_TYPES = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"]
@@ -44,11 +45,17 @@ class Metric(ABC):
         return matched.matching_type in self.valid_match_types
 
     @abstractmethod
-    def _compute(self, matched: Matched) -> dict:
+    def _compute(
+        self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
+    ) -> dict:
         """The compute methods of Metric objects return a dictionary with counts and statistics.
 
         Args:
             matched (traccuracy.matchers.Matched): Matched data object to compute metrics on
+            relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+                graph have an equivalent multi-edge path in predicted graph
+            relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+                graph have an equivalent multi-edge path in ground truth graph
 
         Raises:
             NotImplementedError
@@ -58,15 +65,27 @@ class Metric(ABC):
         """
         raise NotImplementedError
 
-    def compute(self, matched: Matched, override_matcher: bool = False) -> Results:
-        """The compute methods of Metric objects returns a Results object populated with results
+    def compute(
+        self,
+        matched: Matched,
+        override_matcher: bool = False,
+        relax_skips_gt: bool = False,
+        relax_skips_pred: bool = False,
+    ) -> Results:
+        """The compute methods of Metric objects return a Results object populated with results
         and associated metadata
 
         Args:
             matched (traccuracy.matchers.Matched): Matched data object to compute metrics on
+            override_matcher (bool): If True, the metric will not validate the matcher type
+            relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+                graph have an equivalent multi-edge path in predicted graph
+            relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+                graph have an equivalent multi-edge path in ground truth graph
 
         Returns:
-            Results: Object containing metric results and associated pipeline metadata
+            traccuracy.metrics._results.Results: Object containing metric results
+                and associated pipeline metadata
         """
         if override_matcher:
             warnings.warn(
@@ -82,12 +101,20 @@ class Metric(ABC):
                     "of the metric. Check the documentation for the metric for more information."
                 )
 
-        res_dict = self._compute(matched)
+        res_dict = self._compute(
+            matched,
+            relax_skips_gt=relax_skips_gt,
+            relax_skips_pred=relax_skips_pred,
+        )
+
+        run_info = self.info
+        run_info["relax_skips_gt"] = relax_skips_gt
+        run_info["relax_skips_pred"] = relax_skips_pred
 
         results = Results(
             results=res_dict,
             matcher_info=matched.matcher_info,
-            metric_info=self.info,
+            metric_info=run_info,
             gt_name=matched.gt_graph.name,
             pred_name=matched.pred_graph.name,
         )
@@ -139,54 +166,3 @@ class Metric(ABC):
         if precision + recall == 0:
             return np.nan
         return 2 * (recall * precision) / (recall + precision)
-
-
-class Results:
-    """The Results object collects information about the pipeline used
-    to generate the metric results
-
-    Args:
-        results (dict): Dictionary with metric output
-        matcher_info (dict): Dictionary with matcher name and parameters
-        metric_info (dict): Dictionary with metric name and parameters
-        gt_name (optional, str): Name of the ground truth data
-        pred_name (optional, str): Name of the predicted data
-    """
-
-    def __init__(
-        self,
-        results: dict,
-        matcher_info: dict | None,
-        metric_info: dict,
-        gt_name: str | None = None,
-        pred_name: str | None = None,
-    ):
-        self.results = results
-        self.matcher_info = matcher_info
-        self.metric_info = metric_info
-        self.gt_name = gt_name
-        self.pred_name = pred_name
-
-    @property
-    def version(self) -> str:
-        """Return current traccuracy version"""
-        return version("traccuracy")
-
-    def to_dict(self) -> dict[str, Any]:
-        """Returns all attributes that are not None as a dictionary
-
-        Returns:
-            dict: Dictionary of Results attributes
-        """
-        output = {
-            "version": self.version,
-            "results": self.results,
-            "matcher": self.matcher_info,
-            "metric": self.metric_info,
-        }
-        if self.gt_name:
-            output["gt"] = self.gt_name
-        if self.pred_name:
-            output["pred"] = self.pred_name
-
-        return output

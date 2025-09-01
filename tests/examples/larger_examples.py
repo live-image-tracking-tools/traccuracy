@@ -4,7 +4,7 @@ from traccuracy import TrackingGraph
 from traccuracy.matchers import Matched
 
 
-def full_graph(frame_key="t", location_keys=("y"), remove_nodes=None, remove_edges=None, stagger=0):
+def full_graph(frame_key="t", location_keys=("y"), stagger=0):
     loc_key = location_keys[0]
     nodes = [
         # lineage 1
@@ -79,25 +79,35 @@ def full_graph(frame_key="t", location_keys=("y"), remove_nodes=None, remove_edg
     graph = nx.DiGraph()
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
-    if remove_nodes is not None:
-        graph.remove_nodes_from(remove_nodes)
-    if remove_edges is not None:
-        graph.remove_edges_from(remove_edges)
-
-    return TrackingGraph(graph, frame_key=frame_key, location_keys=location_keys)
+    return graph
 
 
-def larger_example_1() -> Matched:
+def larger_example_1(frame_key="t", location_keys=("y")) -> Matched:
     gt_missing_nodes = [5, 15, 28, 29, 30]
     # only need to add missing edges here if the nodes are there, otherwise removing
     # the nodes will remove the edges
     gt_missing_edges = [(18, 20)]
-    pred_missing_nodes = [10, 11, 17, 26, 27]
-    pred_missing_edges = [(18, 23), (12, 13)]
-    gt = full_graph(remove_nodes=gt_missing_nodes, remove_edges=gt_missing_edges)
-    pred = full_graph(remove_nodes=pred_missing_nodes, remove_edges=pred_missing_edges, stagger=0.4)
+    gt = full_graph(frame_key=frame_key, location_keys=location_keys)
+    gt.remove_nodes_from(gt_missing_nodes)
+    gt.remove_edges_from(gt_missing_edges)
+
+    # Pred nodes are relabeled to start at 30
+    pred_missing_nodes = [40, 41, 47, 56, 57]
+    pred_missing_edges = [(48, 53), (42, 43)]
+    pred = full_graph(frame_key=frame_key, location_keys=location_keys, stagger=0.4)
+    pred = nx.relabel_nodes(pred, {i: i + 30 for i in range(0, 31)})
+    pred.remove_nodes_from(pred_missing_nodes)
+    pred.remove_edges_from(pred_missing_edges)
+
     mapping = []
-    for i in range(1, 28):
-        if i in gt.nodes and i in pred.nodes:
-            mapping.append((i, i))
-    return Matched(gt, pred, mapping, {})
+    for g_id in range(1, 28):
+        p_id = g_id + 30
+        if g_id in gt.nodes and p_id in pred.nodes:
+            mapping.append((g_id, p_id))
+
+    return Matched(
+        TrackingGraph(gt, frame_key=frame_key, location_keys=location_keys),
+        TrackingGraph(pred, frame_key=frame_key, location_keys=location_keys),
+        mapping,
+        {},
+    )
