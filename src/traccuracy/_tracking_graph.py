@@ -554,7 +554,7 @@ class TrackingGraph:
         for edge in self.graph.edges:
             # New networkx typing issue that appeared in PR 305
             # TODO: maybe can remove the ignore in the future
-            out_degree = self.graph.out_degree(edge[0])  # type: ignore
+            out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
