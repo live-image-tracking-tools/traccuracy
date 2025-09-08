@@ -53,13 +53,13 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
     if track_graph.graph.number_of_edges() == 0:
         return np.array([])
 
-    coords_list = []
-    for _, node_info in track_graph.graph.nodes.items():
-        coords = [node_info[track_graph.frame_key]]
-        if track_graph.location_keys is not None:
-            coords.extend([node_info[k] for k in track_graph.location_keys])
-        coords_list.append(coords)
-    coords_array = np.asarray(coords, dtype=np.float64)
+    coords_array = np.asarray(
+        [  # type: ignore
+            [node_info[track_graph.frame_key], *[node_info[k] for k in track_graph.location_keys]]  # type: ignore
+            for _, node_info in track_graph.graph.nodes(data=True)
+        ],
+        dtype=np.float64,
+    )
 
     sparse_graph = nx.to_scipy_sparse_array(track_graph.graph, dtype=np.float64, format="coo")  # type: ignore
 
