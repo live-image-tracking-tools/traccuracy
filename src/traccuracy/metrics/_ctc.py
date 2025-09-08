@@ -346,7 +346,7 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
         return np.array([])
 
     coords_array = np.asarray(
-        [
+        [  # type: ignore
             [node_info[track_graph.frame_key], *[node_info[k] for k in track_graph.location_keys]]  # type: ignore
             for _, node_info in track_graph.graph.nodes(data=True)
         ],
