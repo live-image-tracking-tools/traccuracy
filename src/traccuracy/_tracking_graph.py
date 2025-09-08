@@ -219,6 +219,25 @@ class TrackingGraph:
 
         self.graph = graph
 
+        self._set_attrs(validate)
+
+        # Store first and last frames for reference
+        if len(self.nodes_by_frame) == 0:
+            self.start_frame = None
+            self.end_frame = None
+        else:
+            self.start_frame = min(self.nodes_by_frame.keys())
+            self.end_frame = max(self.nodes_by_frame.keys()) + 1
+
+    def _set_attrs(self, validate: bool) -> None:
+        """Set TrackingGraph attributes that are dependent on the input graph or potentially
+        changed during annotations
+
+        Args:
+            validate (bool): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided).
+        """
+
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
         self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
@@ -256,14 +275,6 @@ class TrackingGraph:
                 if attrs.get(edge_flag):
                     self.edges_by_flag[edge_flag].add(edge)
 
-        # Store first and last frames for reference
-        if len(self.nodes_by_frame) == 0:
-            self.start_frame = None
-            self.end_frame = None
-        else:
-            self.start_frame = min(self.nodes_by_frame.keys())
-            self.end_frame = max(self.nodes_by_frame.keys()) + 1
-
         # Record types of annotations that have been calculated
         self.division_annotations = False
         self.division_skip_gt_relaxed = False
@@ -289,14 +300,8 @@ class TrackingGraph:
             for e_flag in EdgeFlag:
                 attrs.pop(e_flag, None)
 
-        # Reinitialize track graph to reset all the values defined at init based on the graph
-        self.__init__(
-            graph=self.graph,
-            segmentation=self.segmentation,
-            frame_key=self.frame_key,
-            label_key=self.label_key,
-            location_keys=self.location_keys,
-            name=self.name,
+        # Reset attrs on graph
+        self._set_attrs(
             validate=False,
         )
 
@@ -580,7 +585,7 @@ class TrackingGraph:
         div_edges = []
         for edge in self.graph.edges:
             # When passing in a single node, output will be int
-            out_degree = cast("int", self.graph.out_degree(edge[0]))
+            out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
@@ -588,7 +593,7 @@ class TrackingGraph:
         no_div_subgraph = self.graph.edge_subgraph(non_div_edges)
 
         # Extract subgraphs (aka tracklets) and return as new track graphs
-        tracklets = list(nx.weakly_connected_components(no_div_subgraph))
+        tracklets = list(nx.weakly_connected_components(no_div_subgraph))  # type: ignore
 
         # if a daughter had no successors, it would not be part of the
         # subgraph, so we need to add it back in as its own lonely tracklet
