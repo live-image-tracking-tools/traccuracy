@@ -247,13 +247,15 @@ class TrackingGraph:
                 self.nodes_by_frame[frame].add(node)
             # store node id in nodes_by_flag mapping
             for node_flag in NodeFlag:
-                if attrs.get(node_flag):
-                    self.nodes_by_flag[node_flag].add(node)
+                # explicitly excluding min buffer correct again
+                if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
+                    if attrs.get(str(node_flag)):
+                        self.nodes_by_flag[node_flag].add(node)
 
         # store edge id in edges_by_flag
         for edge, attrs in self.graph.edges.items():
             for edge_flag in EdgeFlag:
-                if attrs.get(edge_flag):
+                if attrs.get(str(edge_flag)):
                     self.edges_by_flag[edge_flag].add(edge)
 
         # Store first and last frames for reference
@@ -553,7 +555,7 @@ class TrackingGraph:
         div_edges = []
         for edge in self.graph.edges:
             # When passing in a single node, output will be int
-            out_degree = cast("int", self.graph.out_degree(edge[0]))
+            out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
@@ -561,7 +563,7 @@ class TrackingGraph:
         no_div_subgraph = self.graph.edge_subgraph(non_div_edges)
 
         # Extract subgraphs (aka tracklets) and return as new track graphs
-        tracklets = list(nx.weakly_connected_components(no_div_subgraph))
+        tracklets = list(nx.weakly_connected_components(no_div_subgraph))  # type: ignore
 
         # if a daughter had no successors, it would not be part of the
         # subgraph, so we need to add it back in as its own lonely tracklet
