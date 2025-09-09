@@ -177,18 +177,13 @@ class CompleteTracks(Metric):
             return True
         else:
             # if skip edges are relaxed, check if the node is between skip tps
+            # (enough to check that one prev edge is a skip TP)
             if relax_skips_pred:
                 for prev_edge in gt_track.graph.in_edges(node):
-                    if EdgeFlag.SKIP_TRUE_POS not in gt_track.edges[prev_edge]:
-                        return False
-
-                for next_edge in gt_track.graph.out_edges(node):
-                    if EdgeFlag.SKIP_TRUE_POS not in gt_track.edges[next_edge]:
-                        return False
-            # it's not a TP or between skip edges, so it's just wrong
-            else:
-                return False
-        return True
+                    if EdgeFlag.SKIP_TRUE_POS in gt_track.edges[prev_edge]:
+                        return True
+        # it's not a TP or between skip edges, so it's just wrong
+        return False
 
     def _check_gt_edge_correct(
         self,
@@ -229,7 +224,5 @@ class CompleteTracks(Metric):
         if is_skip_edge and relax_skips_gt and EdgeFlag.SKIP_TRUE_POS in edge_data:
             return True
         if (not is_skip_edge) and relax_skips_pred and EdgeFlag.SKIP_TRUE_POS in edge_data:
-            return True
-        if relax_skips_pred and EdgeFlag.SKIP_TRUE_POS in edge_data:
             return True
         return False

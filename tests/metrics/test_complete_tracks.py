@@ -193,3 +193,18 @@ def test_larger_example(error_type):
     assert result.results["total_lineages"] == total_lineages
     assert result.results["correct_lineages"] == correct_lineages
     assert result.results["complete_lineages"] == complete_lineages
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Mapping is empty",
+    "ignore:Node errors already calculated",
+    "ignore:Edge errors already calculated",
+)
+def test_invalid_input():
+    with pytest.raises(ValueError, match="Unrecognized error type"):
+        CompleteTracks(error_type="abcdefg")
+
+    ct = CompleteTracks(error_type="ctc")
+    matched = ex_graphs.empty_gt()
+    with pytest.warns(UserWarning, match="CTC metrics do not support relaxing skip edges"):
+        ct.compute(matched, relax_skips_gt=True)
