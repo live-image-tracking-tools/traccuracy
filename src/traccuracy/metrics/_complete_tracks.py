@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from traccuracy import EdgeFlag, NodeFlag
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.track_errors._basic import classify_basic_errors
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
