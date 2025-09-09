@@ -20,10 +20,7 @@ if TYPE_CHECKING:
 
 
 class CompleteTracks(Metric):
-    """The fraction of tracks that are completely correctly reconstructed.
-
-    Either full lineages or tracklets can be considered as the "tracks" to reconstruct.
-    Can be computed with either the CTC errors or the basic errors and division errors.
+    """The fraction of tracklets and lineages that are completely correctly reconstructed.
 
     If the reconstruction continues beyond the ground truth track, this is NOT
     counted as incorrect.
@@ -32,16 +29,16 @@ class CompleteTracks(Metric):
     errors, a wrong semantic edge), this IS counted as incorrect.
     """
 
-    def __init__(self, lineage: bool = False, error_type: str = "basic"):
+    def __init__(self, error_type: str = "basic"):
         """
         Args:
-            lineage (bool, optional): _description_. Defaults to False.
-            error_type (str, optional): _description_. Defaults to "basic".
+            error_type (str, optional): Whether to use "basic" or "ctc" errors for
+                computing if tracks are correct or not. Defaults to "basic".
         """
-        valid_matches = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"]
+        valid_matches = ["one-to-one", "many-to-one"]
         super().__init__(valid_matches)
-        self.lineage = lineage
-        assert error_type in ["ctc", "basic"]
+        if error_type not in ["ctc", "basic"]:
+            raise ValueError(f"Unrecognized error type {error_type}. Should be 'ctc' or 'basic'")
         self.error_type = error_type
 
     def _compute(
@@ -78,45 +75,75 @@ class CompleteTracks(Metric):
                     stacklevel=2,
                 )
             evaluate_ctc_events(matched)
+        total_tracklets = 0
+        total_lineages = 0
+        correct_tracklets = 0
+        correct_lineages = 0
+        gt_nxgraph = matched.gt_graph.graph
+        lineage_starts = [node for node, in_degree in gt_nxgraph.in_degree() if in_degree == 0]  # type: ignore
+        for lineage_start in lineage_starts:
+            tracklet_starts = [lineage_start]
+            curr_nodes = [lineage_start]
+            while len(curr_nodes) > 0:
+                next_succs = []
+                for succ in curr_nodes:
+                    daughters = list(gt_nxgraph.successors(succ))
+                    next_succs.extend(daughters)
+                    if len(daughters) == 2:
+                        tracklet_starts.extend(daughters)
+                curr_nodes = next_succs
 
-        gt_tracks = (
-            matched.gt_graph.get_lineages()
-            if self.lineage
-            else matched.gt_graph.get_tracklets(include_division_edges=False)
-        )
-        total_tracks = 0
-        tracks_correct = 0
-        for track in gt_tracks:
-            track_correct = True
-            for node in track.nodes:
-                node_correct = self._check_node_correct(node, matched, relax_skips_pred)
-                print(node, node_correct)
-                # stop as soon as one node is incorrect
-                if not node_correct:
-                    track_correct = False
-                    break
-
-            for edge in track.edges:
-                edge_correct = self._check_gt_edge_correct(
-                    edge, matched.gt_graph, relax_skips_gt, relax_skips_pred
+            subtracklets_correct = [
+                self._check_tracklet_correct(
+                    tracklet_start,
+                    matched,
+                    relax_skips_gt=relax_skips_gt,
+                    relax_skips_pred=relax_skips_pred,
                 )
-                print(edge, edge_correct)
-                # stop as soon as one edge is incorrect
-                if not edge_correct:
-                    track_correct = False
-                    break
-
-            total_tracks += 1
-            if track_correct:
-                tracks_correct += 1
+                for tracklet_start in tracklet_starts
+            ]
+            total_tracklets += len(tracklet_starts)
+            correct_tracklets += sum(subtracklets_correct)
+            total_lineages += 1
+            if all(subtracklets_correct):
+                correct_lineages += 1
 
         return {
-            "total_tracks": total_tracks,
-            "correct_tracks": tracks_correct,
-            "complete_tracks": tracks_correct / total_tracks if total_tracks > 0 else np.nan,
+            "total_lineages": total_lineages,
+            "total_tracklets": total_tracklets,
+            "correct_lineages": correct_lineages,
+            "correct_tracklets": correct_tracklets,
+            "complete_lineages": correct_lineages / total_lineages
+            if total_lineages > 0
+            else np.nan,
+            "complete_tracklets": correct_tracklets / total_tracklets
+            if total_tracklets > 0
+            else np.nan,
         }
 
-    def _check_node_correct(self, node: Hashable, matched: Matched, relax_skips_pred: bool) -> bool:
+    def _check_tracklet_correct(
+        self, start_node: Hashable, matched: Matched, relax_skips_gt: bool, relax_skips_pred: bool
+    ) -> bool:
+        if not self._check_gt_node_correct(start_node, matched, relax_skips_pred=relax_skips_pred):
+            return False
+        out_edges = list(matched.gt_graph.graph.out_edges(start_node))
+        while len(out_edges) == 1:
+            out_edge = out_edges[0]
+            if not self._check_gt_edge_correct(
+                out_edge, matched.gt_graph, relax_skips_gt, relax_skips_pred
+            ):
+                return False
+            curr_node = out_edge[1]
+            if not self._check_gt_node_correct(
+                curr_node, matched, relax_skips_pred=relax_skips_pred
+            ):
+                return False
+            out_edges = list(matched.gt_graph.graph.out_edges(curr_node))
+        return True
+
+    def _check_gt_node_correct(
+        self, node: Hashable, matched: Matched, relax_skips_pred: bool
+    ) -> bool:
         node_tp = NodeFlag.TRUE_POS if self.error_type == "basic" else NodeFlag.CTC_TRUE_POS
         gt_track = matched.gt_graph
         # check if this gt node is a true pos
