@@ -28,14 +28,13 @@ class CompleteTracks(Metric):
 
     If a False Positive Division occurs within the ground truth track (or, for the CTC
     errors, a wrong semantic edge), this IS counted as incorrect.
+
+    Args:
+        error_type (str, optional): Whether to use "basic" or "ctc" errors for
+            computing if tracks are correct or not. Defaults to "basic".
     """
 
     def __init__(self, error_type: str = "basic"):
-        """
-        Args:
-            error_type (str, optional): Whether to use "basic" or "ctc" errors for
-                computing if tracks are correct or not. Defaults to "basic".
-        """
         valid_matches = ["one-to-one", "many-to-one"]
         super().__init__(valid_matches)
         if error_type not in ["ctc", "basic"]:
