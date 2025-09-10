@@ -90,9 +90,13 @@ class CompleteTracks(Metric):
         total_lineages = 0
         correct_tracklets = 0
         correct_lineages = 0
+        # Only directly considering gt graph
+        # Entirely FP lineages are not penalized
+        # Nor are lineages continuing beyond gt lineage
         gt_nxgraph = matched.gt_graph.graph
         lineage_starts = [node for node, in_degree in gt_nxgraph.in_degree() if in_degree == 0]  # type: ignore
         for lineage_start in lineage_starts:
+            # Within each lineage, find all division edges and daughters that are the start of tracklets
             tracklet_starts = [lineage_start]
             div_edges = []
             curr_nodes = [lineage_start]
