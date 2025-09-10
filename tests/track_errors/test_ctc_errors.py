@@ -551,6 +551,21 @@ class TestEdgeDivisions:
         get_edge_errors(matched)
         return matched
 
+    def test_empty_gt_div(self):
+        matched = self.prep_matched(ex_graphs.empty_gt_div(1))
+        div_edges = [(2, 3), (2, 4)]
+        # FP nodes are removed from induced graph so edges aren't penalized as FP or WS
+        for edge in div_edges:
+            assert EdgeFlag.INTERTRACK_EDGE in matched.pred_graph.edges[edge]
+
+    def test_empty_pred_div(self):
+        matched = self.prep_matched(ex_graphs.empty_pred_div(1))
+        div_edges = [(2, 3), (2, 4)]
+        for edge, attrs in matched.gt_graph.edges.items():
+            if edge in div_edges:
+                assert EdgeFlag.INTERTRACK_EDGE in attrs
+            assert EdgeFlag.CTC_FALSE_NEG in attrs
+
     def test_good_div(self):
         # Check that intertrack edges have been identified
         # No wrong semantics
