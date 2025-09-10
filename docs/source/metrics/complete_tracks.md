@@ -1,10 +1,7 @@
 (complete-tracks)=
 # Complete Tracklets and Lineages
 
-Complete tracklets and lineages report the fraction of tracklets and lineages that are completely correctly reconstructed. 
-A lineage is defined as a connected component of the ground truth graph.
-A tracklet is defined as a connected component after removing all intertrack edges
-from the ground truth graph.
+Complete tracklets and lineages report the fraction of {term}`tracklets <tracklet>` and {term}`lineages <lineage>` that are completely correctly reconstructed. 
 
 This metric is an extension of the CTC-BIO metric "Complete Tracks" as defined in *Maška, M., Ulman, V., Delgado-Rodriguez, P. et al. The Cell Tracking Challenge: 10 years of objective benchmarking. Nat Methods 20, 1010–1020 (2023). https://doi.org/10.1038/s41592-023-01879-y*:
 > Complete tracks (CT) measures the fraction of reference cell tracks that a given method
