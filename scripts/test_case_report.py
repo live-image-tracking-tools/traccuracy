@@ -105,6 +105,7 @@ GROUPS = {
         ],
     },
 }
+GROUPS["metrics"] = GROUPS["track_errors"]
 
 
 def run_coverage(test_target: str, ex_module: str):
@@ -224,7 +225,7 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
 
 if __name__ == "__main__":
     output_name = sys.argv[1]
-    param_sets = [("track_errors", "graphs"), ("matchers", "segs")]
+    param_sets = [("track_errors", "graphs"), ("matchers", "segs"), ("metrics", "graphs")]
 
     dfs, maxcols, maxrows = [], [], []
     for name, target_mod in param_sets:
