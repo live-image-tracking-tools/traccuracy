@@ -52,6 +52,19 @@ expected_div_cases = [
     (ex_graphs.wrong_children, (0, 1), (1, 0, 0, 3, 1, 1 / 3)),
 ]
 
+expected_div_skip_cases = [
+    # matched, relax_gt, relax_pred, (total_lin, correct_lin, frac_lin,
+    #                                 total_tra, correct_tra, frac_tra)
+    (ex_graphs.div_daughter_gap, False, False, (1, 0, 0, 3, 2, 2 / 3)),
+    (ex_graphs.div_daughter_gap, False, True, (1, 1, 1, 3, 3, 1)),
+    (ex_graphs.div_daughter_gap, True, False, (1, 0, 0, 3, 2, 2 / 3)),
+    (ex_graphs.div_daughter_gap, True, True, (1, 1, 1, 3, 3, 1)),
+    (ex_graphs.div_daughter_dual_gap, False, False, (1, 0, 0, 3, 1, 1 / 3)),
+    (ex_graphs.div_daughter_dual_gap, False, True, (1, 1, 1, 3, 3, 1)),
+    (ex_graphs.div_daughter_dual_gap, True, False, (1, 0, 0, 3, 1, 1 / 3)),
+    (ex_graphs.div_daughter_dual_gap, True, True, (1, 1, 1, 3, 3, 1)),
+]
+
 
 @pytest.mark.filterwarnings(
     "ignore:Mapping is empty",
@@ -149,13 +162,8 @@ def test_skip_edges(matched_func, relax_gt, relax_pred, expected_result):
 def test_div_examples(error_type, matched_func, params, expected_result):
     complete_tracks = CompleteTracks(error_type=error_type)
     for param in params:
-        print(param)
         matched = matched_func(param)
         result = complete_tracks.compute(matched)
-        for edge in matched.gt_graph.edges:
-            print(edge, matched.gt_graph.graph.edges[edge])
-        for edge in matched.pred_graph.edges:
-            print(edge, matched.pred_graph.edges[edge])
         total_lin, correct_lin, fraction_lin, total_tra, correct_tra, fraction_tra = expected_result
 
         assert result.results["total_tracklets"] == total_tra
@@ -171,6 +179,36 @@ def test_div_examples(error_type, matched_func, params, expected_result):
             assert result.results["complete_lineages"] is np.nan
         else:
             assert result.results["complete_lineages"] == fraction_lin
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Mapping is empty",
+    "ignore:Node errors already calculated",
+    "ignore:Edge errors already calculated",
+)
+@pytest.mark.parametrize("error_type", ["basic"])  # can't relax skips for ctc
+@pytest.mark.parametrize(
+    "matched_func,relax_gt,relax_pred,expected_result", expected_div_skip_cases
+)
+def test_div_skip_examples(error_type, matched_func, relax_gt, relax_pred, expected_result):
+    complete_tracks = CompleteTracks(error_type=error_type)
+    matched = matched_func()
+    result = complete_tracks.compute(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
+    total_lin, correct_lin, fraction_lin, total_tra, correct_tra, fraction_tra = expected_result
+
+    assert result.results["total_tracklets"] == total_tra
+    assert result.results["correct_tracklets"] == correct_tra
+    if fraction_tra is np.nan:
+        assert result.results["complete_tracklets"] is np.nan
+    else:
+        assert result.results["complete_tracklets"] == fraction_tra
+
+    assert result.results["total_lineages"] == total_lin
+    assert result.results["correct_lineages"] == correct_lin
+    if fraction_lin is np.nan:
+        assert result.results["complete_lineages"] is np.nan
+    else:
+        assert result.results["complete_lineages"] == fraction_lin
 
 
 @pytest.mark.filterwarnings(
