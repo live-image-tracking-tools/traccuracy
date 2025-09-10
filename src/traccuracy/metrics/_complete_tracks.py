@@ -32,6 +32,21 @@ class CompleteTracks(Metric):
     Args:
         error_type (str, optional): Whether to use "basic" or "ctc" errors for
             computing if tracks are correct or not. Defaults to "basic".
+
+    The compute function returns a results dictionary with the following entries:
+
+        - `total_lineages` - the number of connected components in the ground truth graph
+        - `correct_lineages` - the number of fully correct connected components
+        - `complete_lineages` - `correct_lineages` / `total_lineages`, or np.nan if
+          `total_lineages` is 0
+        - `total_tracklets` - the number of tracklets in the ground truth graph,
+          defined as the connected components of the graph after division edges are removed.
+          Division edges are not included in the tracklets, or counted at all in the tracklet
+          metrics.
+        - `correct_tracklets` - the number of fully correct tracklets
+        - `complete_tracklets` - `correct_tracklets` / `total_tracklets`, or np.nan if
+          `total_tracklets` is 0
+
     """
 
     def __init__(self, error_type: str = "basic"):
