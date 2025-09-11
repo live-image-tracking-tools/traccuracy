@@ -3,6 +3,7 @@ file_format: mystnb
 mystnb:
     remove_code_source: True
 ---
+(basic-errors)=
 # Basic Errors
 
 This set of node and edge errors applies only to graphs with a one-to-one matching.
