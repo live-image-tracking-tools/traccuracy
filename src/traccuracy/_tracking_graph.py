@@ -219,6 +219,25 @@ class TrackingGraph:
 
         self.graph = graph
 
+        self._set_attrs(validate)
+
+        # Store first and last frames for reference
+        if len(self.nodes_by_frame) == 0:
+            self.start_frame = None
+            self.end_frame = None
+        else:
+            self.start_frame = min(self.nodes_by_frame.keys())
+            self.end_frame = max(self.nodes_by_frame.keys()) + 1
+
+    def _set_attrs(self, validate: bool) -> None:
+        """Set TrackingGraph attributes that are dependent on the input graph or potentially
+        changed during annotations
+
+        Args:
+            validate (bool): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided).
+        """
+
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
         self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
@@ -256,14 +275,6 @@ class TrackingGraph:
                 if attrs.get(edge_flag):
                     self.edges_by_flag[edge_flag].add(edge)
 
-        # Store first and last frames for reference
-        if len(self.nodes_by_frame) == 0:
-            self.start_frame = None
-            self.end_frame = None
-        else:
-            self.start_frame = min(self.nodes_by_frame.keys())
-            self.end_frame = max(self.nodes_by_frame.keys()) + 1
-
         # Record types of annotations that have been calculated
         self.division_annotations = False
         self.division_skip_gt_relaxed = False
@@ -272,6 +283,27 @@ class TrackingGraph:
         self.edge_errors = False
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
+
+    def clear_annotations(self) -> None:
+        """Resets a TrackingGraph by removing all traccuracy related annotations
+        from the networkx graph
+
+        Also resets any attributes on the TrackingGraph that are related to annotations
+        """
+        # Strip annotations from node
+        for attrs in self.graph.nodes.values():
+            for n_flag in NodeFlag:
+                attrs.pop(n_flag, None)
+
+        # Strip annotations from edges
+        for attrs in self.graph.edges.values():
+            for e_flag in EdgeFlag:
+                attrs.pop(e_flag, None)
+
+        # Reset attrs on graph
+        self._set_attrs(
+            validate=False,
+        )
 
     def _validate_node(self, node: int, attrs: dict) -> None:
         """Check that every node has the time frame, location and seg_id (if needed) specified
