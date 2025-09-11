@@ -336,7 +336,7 @@ class TestGapCloseEdge:
         assert EdgeFlag.SKIP_FALSE_POS in matched.pred_graph.edges[(6, 8)]
         assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[(6, 8)]
 
-    def test_gap_close_division_edges(self):
+    def test_div_parent_gap(self):
         matched = ex_graphs.div_parent_gap()
         _classify_edges(matched)
 
@@ -347,6 +347,14 @@ class TestGapCloseEdge:
         for edge in [(9, 11), (9, 12)]:
             assert EdgeFlag.FALSE_POS in matched.pred_graph.edges[edge]
 
+        _classify_edges(matched, relax_skips_pred=True)
+        # gt skp related edges become skip tp
+        for edge in [(2, 3), (3, 4), (3, 5)]:
+            assert EdgeFlag.SKIP_TRUE_POS in matched.gt_graph.edges[edge]
+        # pred skip also skip tp
+        for edge in [(9, 11), (9, 12)]:
+            assert EdgeFlag.SKIP_TRUE_POS in matched.pred_graph.edges[edge]
+
     def test_gap_close_daughter_edge(self):
         matched = ex_graphs.div_daughter_gap()
         _classify_edges(matched)
@@ -356,3 +364,43 @@ class TestGapCloseEdge:
         # two missing edges in gt
         assert EdgeFlag.FALSE_NEG in matched.gt_graph.edges[(3, 4)]
         assert EdgeFlag.FALSE_NEG in matched.gt_graph.edges[(4, 6)]
+
+        _classify_edges(matched, relax_skips_pred=True)
+        # skip edge and associated gt path now skip tp
+        assert EdgeFlag.SKIP_TRUE_POS in matched.pred_graph.edges[(10, 13)]
+        assert EdgeFlag.SKIP_TRUE_POS in matched.gt_graph.edges[(3, 4)]
+        assert EdgeFlag.SKIP_TRUE_POS in matched.gt_graph.edges[(4, 6)]
+
+    # Skipping ex_graphs.gap_close_two_to_one b/c not one-to-one
+
+    def test_div_daughter_dual_gap(self):
+        matched = ex_graphs.div_daughter_dual_gap()
+        _classify_edges(matched)
+
+        for edge, attrs in matched.pred_graph.edges.items():
+            if edge in [(8, 9), (9, 10)]:
+                assert EdgeFlag.TRUE_POS in attrs
+            elif edge in [(10, 13), (10, 14)]:
+                assert EdgeFlag.FALSE_POS in attrs
+
+        for edge, attrs in matched.gt_graph.edges.items():
+            if edge in [(1, 2), (2, 3)]:
+                assert EdgeFlag.TRUE_POS in attrs
+            elif edge in [(3, 4), (4, 6), (3, 5), (5, 7)]:
+                assert EdgeFlag.FALSE_NEG in attrs
+
+        # Relax skips
+        _classify_edges(matched, relax_skips_pred=True)
+        for edge, attrs in matched.pred_graph.edges.items():
+            if edge in [(8, 9), (9, 10)]:
+                assert EdgeFlag.TRUE_POS in attrs
+            elif edge in [(10, 13), (10, 14)]:
+                assert EdgeFlag.SKIP_TRUE_POS in attrs
+
+        for edge, attrs in matched.gt_graph.edges.items():
+            if edge in [(1, 2), (2, 3)]:
+                assert EdgeFlag.TRUE_POS in attrs
+            elif edge in [(3, 4), (4, 6), (3, 5), (5, 7)]:
+                assert EdgeFlag.SKIP_TRUE_POS in attrs
+
+    # Skipping div_parent_daughter_gap and div_shifted_one_side_skip b/c shifted case

@@ -24,7 +24,7 @@ def test_inconsistent_annotations_raises():
 
 
 class TestStandardNode:
-    def test_no_gt(self):
+    def test_empty_gt(self):
         matched = ex_graphs.empty_gt()
         # all pred nodes are false positives
         get_vertex_errors(matched)
@@ -33,7 +33,7 @@ class TestStandardNode:
             assert attrs.get(NodeFlag.CTC_FALSE_POS) is True
             assert NodeFlag.NON_SPLIT not in attrs
 
-    def test_no_pred(self):
+    def test_empty_pred(self):
         matched = ex_graphs.empty_pred()
         # All gt nodes are false negatives
         get_vertex_errors(matched)
@@ -119,10 +119,12 @@ class TestStandardNode:
                 assert NodeFlag.CTC_FALSE_NEG not in attrs
                 assert NodeFlag.NON_SPLIT not in attrs
 
-    # Not testing ex_graphs.one_to two b/c not supported by ctc matcher
+    # Not testing one-to-many ex_graphs.one_to_two b/c not supported by ctc matcher
+    # Skipping ex_graphs.node_one_to_two
 
     @pytest.mark.parametrize("t", [0, 1, 2])
-    def test_nonsplit(self, t):
+    def test_node_two_to_one(self, t):
+        # nonsplit
         matched = ex_graphs.node_two_to_one(t)
         get_vertex_errors(matched)
 
@@ -369,7 +371,7 @@ class TestStandardEdge:
         get_edge_errors(matched)
         return matched
 
-    def test_no_gt(self):
+    def test_empty_gt(self):
         matched = self.prep_matched(ex_graphs.empty_gt())
         for attrs in matched.pred_graph.edges.values():
             # Edges on FP nodes are not additionally penalized as FP edge
@@ -378,7 +380,7 @@ class TestStandardEdge:
             assert EdgeFlag.INTERTRACK_EDGE not in attrs
             assert EdgeFlag.WRONG_SEMANTIC not in attrs
 
-    def test_no_pred(self):
+    def test_empty_pred(self):
         matched = self.prep_matched(ex_graphs.empty_pred())
         for attrs in matched.gt_graph.edges.values():
             assert attrs.get(EdgeFlag.CTC_FALSE_NEG) is True
@@ -527,10 +529,44 @@ class TestStandardEdge:
         for attrs in matched.pred_graph.edges.values():
             assert EdgeFlag.CTC_FALSE_POS not in attrs
 
-    # CTCMatcher does not allow one gt to match multiple comp nodes.
-    # Skipping the one_to_two example
+    def test_edge_two_to_one(self):
+        matched = self.prep_matched(ex_graphs.edge_two_to_one(0))
 
-    def test_correct_division(self):
+        # All gt edges are false negatives
+        # Either not matched or two gt matched to one pred edge
+        for attrs in matched.gt_graph.edges.values():
+            assert EdgeFlag.CTC_FALSE_NEG in attrs
+
+        # Pred edges with NS nodes are not penalized (see comment thread above)
+        for attrs in matched.pred_graph.edges.values():
+            assert EdgeFlag.CTC_FALSE_POS not in attrs
+
+    # CTCMatcher does not allow one gt to match multiple comp nodes.
+    # Skipping ex_graphs.edge_one_to_two
+
+
+class TestEdgeDivisions:
+    def prep_matched(self, matched):
+        get_vertex_errors(matched)
+        get_edge_errors(matched)
+        return matched
+
+    def test_empty_gt_div(self):
+        matched = self.prep_matched(ex_graphs.empty_gt_div(1))
+        div_edges = [(2, 3), (2, 4)]
+        # FP nodes are removed from induced graph so edges aren't penalized as FP or WS
+        for edge in div_edges:
+            assert EdgeFlag.INTERTRACK_EDGE in matched.pred_graph.edges[edge]
+
+    def test_empty_pred_div(self):
+        matched = self.prep_matched(ex_graphs.empty_pred_div(1))
+        div_edges = [(2, 3), (2, 4)]
+        for edge, attrs in matched.gt_graph.edges.items():
+            if edge in div_edges:
+                assert EdgeFlag.INTERTRACK_EDGE in attrs
+            assert EdgeFlag.CTC_FALSE_NEG in attrs
+
+    def test_good_div(self):
         # Check that intertrack edges have been identified
         # No wrong semantics
         matched = self.prep_matched(ex_graphs.good_div(1))
@@ -568,7 +604,7 @@ class TestStandardEdge:
         assert EdgeFlag.WRONG_SEMANTIC not in attrs
         assert attrs.get(EdgeFlag.CTC_FALSE_POS) is True
 
-    def test_fn_division(self):
+    def test_one_child(self):
         # Intertrack and wrong semantic check
         matched = self.prep_matched(ex_graphs.one_child(1))
 
@@ -583,6 +619,15 @@ class TestStandardEdge:
         attrs = matched.gt_graph.edges[(2, 3)]
         assert attrs.get(EdgeFlag.INTERTRACK_EDGE) is True
         assert attrs.get(EdgeFlag.CTC_FALSE_NEG) is True
+
+    def test_no_children(self):
+        matched = self.prep_matched(ex_graphs.no_children(1))
+
+        # GT intertrack edges are false neg
+        for edge in [(2, 3), (2, 4)]:
+            attrs = matched.gt_graph.edges[edge]
+            assert attrs.get(EdgeFlag.INTERTRACK_EDGE) is True
+            assert attrs.get(EdgeFlag.CTC_FALSE_NEG) is True
 
     def test_wrong_child(self):
         # Intertrack and wrong semantic check
@@ -604,6 +649,26 @@ class TestStandardEdge:
         assert attrs.get(EdgeFlag.CTC_FALSE_NEG) is True
         attrs = matched.gt_graph.edges[(2, 3)]
         assert attrs.get(EdgeFlag.INTERTRACK_EDGE) is True
+
+    def test_wrong_children(self):
+        matched = self.prep_matched(ex_graphs.wrong_children(1))
+
+        # Gt edges are intertrack
+        # Not false neg because pred daughters are not in induced graph
+        for edge in [(2, 3), (2, 4)]:
+            attrs = matched.gt_graph.edges[edge]
+            assert attrs.get(EdgeFlag.INTERTRACK_EDGE) is True
+
+        # Pred edges not annotated b/c daughters are not in induced graph
+
+    # Testing of shifted divisions unnecessary for ctc errors
+
+
+class TestSkipEdge:
+    def prep_matched(self, matched):
+        get_vertex_errors(matched)
+        get_edge_errors(matched)
+        return matched
 
     def test_gap_close_gt_gap(self):
         matched = self.prep_matched(ex_graphs.gap_close_gt_gap())
@@ -661,3 +726,39 @@ class TestStandardEdge:
         # Two fn gt edges
         for edge in [(3, 4), (4, 6)]:
             assert EdgeFlag.CTC_FALSE_NEG in matched.gt_graph.edges[edge]
+
+    def test_gap_close_two_to_one(self):
+        matched = self.prep_matched(ex_graphs.gap_close_two_to_one())
+
+        # Skip pred edge with NS nodes are not penalized
+        assert EdgeFlag.CTC_FALSE_POS not in matched.pred_graph.edges[(13, 15)]
+
+        # Most remaining gt edges are false neg
+        for edge, attrs in matched.gt_graph.edges.items():
+            # Skip edges that were correct but not annotated as fp
+            if edge == (1, 2):
+                assert attrs == {}
+            else:
+                assert EdgeFlag.CTC_FALSE_NEG in attrs
+
+    def test_div_daughter_dual_gap(self):
+        matched = self.prep_matched(ex_graphs.div_daughter_dual_gap())
+
+        # correct edges not annotated
+        for edge in [(1, 2), (2, 3)]:
+            assert matched.gt_graph.edges[edge] == {}
+        for edge in [(8, 9), (9, 10)]:
+            assert matched.pred_graph.edges[edge] == {}
+
+        # Skip edges are false pos
+        for edge in [(10, 13), (10, 14)]:
+            attrs = matched.pred_graph.edges[edge]
+            assert EdgeFlag.CTC_FALSE_POS in attrs
+            assert EdgeFlag.INTERTRACK_EDGE in attrs
+
+        # Corresponding gt edges are false neg
+        for edge in [(3, 4), (4, 6), (3, 5), (5, 7)]:
+            attrs = matched.gt_graph.edges[edge]
+            assert EdgeFlag.CTC_FALSE_NEG in attrs
+
+    # Skipping gap close shifted div cases
