@@ -569,6 +569,16 @@ class TrackingGraph:
         else:
             self.edges_by_flag[flag] = set()
 
+    def get_lineages(self) -> list[nx.DiGraph]:
+        """Gets a list of new nx.DiGraph objects containing all lineages of the current graph.
+
+        Lineage is defined as all connected components.
+        """
+        # Extract lineage and return as new nx graphs
+        lineage_nodes = list(nx.weakly_connected_components(self.graph))
+        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
+        return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in lineage_nodes]
+
     def get_tracklets(self, include_division_edges: bool = False) -> list[nx.DiGraph]:
         """Gets a list of new nx.DiGraph objects containing all tracklets of the current graph.
 
@@ -618,9 +628,10 @@ class TrackingGraph:
             set of tuples: A set of edges that skip one or more frames.
                 Each edge is represented as a tuple of (source_node, target_node).
         """
-        return {
-            (source, target)
-            for source, target in self.graph.edges
-            if self.graph.nodes[source][self.frame_key] + 1
-            != self.graph.nodes[target][self.frame_key]
-        }
+        return {edge for edge in self.graph.edges if self.is_skip_edge(edge)}
+
+    def is_skip_edge(self, edge: tuple[Hashable, Hashable]) -> bool:
+        source, target = edge
+        return (
+            self.graph.nodes[source][self.frame_key] + 1 != self.graph.nodes[target][self.frame_key]
+        )
