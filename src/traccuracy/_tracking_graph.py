@@ -537,6 +537,16 @@ class TrackingGraph:
         else:
             self.edges_by_flag[flag] = set()
 
+    def get_lineages(self) -> list[nx.DiGraph]:
+        """Gets a list of new nx.DiGraph objects containing all lineages of the current graph.
+
+        Lineage is defined as all connected components.
+        """
+        # Extract lineage and return as new nx graphs
+        lineage_nodes = list(nx.weakly_connected_components(self.graph))
+        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
+        return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in lineage_nodes]
+
     def get_tracklets(self, include_division_edges: bool = False) -> list[nx.DiGraph]:
         """Gets a list of new nx.DiGraph objects containing all tracklets of the current graph.
 
@@ -554,6 +564,7 @@ class TrackingGraph:
         for edge in self.graph.edges:
             # New networkx typing issue that appeared in PR 305
             # TODO: maybe can remove the ignore in the future
+            # When passing in a single node, output will be int
             out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
@@ -565,7 +576,7 @@ class TrackingGraph:
         no_div_subgraph = cast("nx.DiGraph", no_div_subgraph)
 
         # Extract subgraphs (aka tracklets) and return as new track graphs
-        tracklets = list(nx.weakly_connected_components(no_div_subgraph))
+        tracklets = list(nx.weakly_connected_components(no_div_subgraph))  # type: ignore
 
         # if a daughter had no successors, it would not be part of the
         # subgraph, so we need to add it back in as its own lonely tracklet
@@ -590,9 +601,10 @@ class TrackingGraph:
             set of tuples: A set of edges that skip one or more frames.
                 Each edge is represented as a tuple of (source_node, target_node).
         """
-        return {
-            (source, target)
-            for source, target in self.graph.edges
-            if self.graph.nodes[source][self.frame_key] + 1
-            != self.graph.nodes[target][self.frame_key]
-        }
+        return {edge for edge in self.graph.edges if self.is_skip_edge(edge)}
+
+    def is_skip_edge(self, edge: tuple[Hashable, Hashable]) -> bool:
+        source, target = edge
+        return (
+            self.graph.nodes[source][self.frame_key] + 1 != self.graph.nodes[target][self.frame_key]
+        )

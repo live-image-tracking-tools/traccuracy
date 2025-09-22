@@ -3,6 +3,7 @@ file_format: mystnb
 mystnb:
     remove_code_source: True
 ---
+(ctc-errors)=
 # CTC Errors
 
 These node and edge error annotations are used to calculate the CTC metrics TRA and DET as well as the basic AOGM metric as described in {doc}`../metrics/ctc`.
