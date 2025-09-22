@@ -15,6 +15,8 @@ def run_metrics(
     pred_data: TrackingGraph,
     matcher: Matcher,
     metrics: list[Metric],
+    relax_skips_gt: bool = False,
+    relax_skips_pred: bool = False,
 ) -> tuple[list[dict], Matched]:
     """Compute given metrics on data using the given matcher.
 
@@ -28,6 +30,10 @@ def run_metrics(
         matcher (traccuracy.matchers._base.Matcher): instantiated matcher object
         metrics (List[traccuracy.metrics._base.Metric]): list of instantiated metrics objects
             to compute
+        relax_skips_gt (bool): If True, the metric will check if skips in the ground truth
+            graph have an equivalent multi-edge path in predicted graph
+        relax_skips_pred (bool): If True, the metric will check if skips in the predicted
+            graph have an equivalent multi-edge path in ground truth graph
 
     Returns:
         List[Dict]: List of dictionaries with one dictionary per Metric object
@@ -45,6 +51,8 @@ def run_metrics(
     matched = matcher.compute_mapping(gt_data, pred_data)
     results = []
     for _metric in metrics:
-        result = _metric.compute(matched)
+        result = _metric.compute(
+            matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
+        )
         results.append(result.to_dict())
     return results, matched
