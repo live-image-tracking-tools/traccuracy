@@ -21,7 +21,7 @@ from traccuracy.metrics import (
     DivisionMetrics,
     TrackOverlapMetrics,
 )
-from traccuracy.metrics._ctc import CellCycleAccuracy
+from traccuracy.metrics._cca import CellCycleAccuracy
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 TIMEOUT = 300

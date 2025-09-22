@@ -562,13 +562,18 @@ class TrackingGraph:
         non_div_edges = []
         div_edges = []
         for edge in self.graph.edges:
+            # New networkx typing issue that appeared in PR 305
+            # TODO: maybe can remove the ignore in the future
             # When passing in a single node, output will be int
             out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
                 div_edges.append(edge)
+
         no_div_subgraph = self.graph.edge_subgraph(non_div_edges)
+        # Cast to a more specific type to satisfy weakly_connected_components
+        no_div_subgraph = cast("nx.DiGraph", no_div_subgraph)
 
         # Extract subgraphs (aka tracklets) and return as new track graphs
         tracklets = list(nx.weakly_connected_components(no_div_subgraph))  # type: ignore
