@@ -191,7 +191,7 @@ class CompleteTracks(Metric):
             if self.error_type == "basic":
                 matched_nodes = matched.get_gt_pred_matches(node)
                 for pred_node in matched_nodes:
-                    if NodeFlag.FP_DIV.value in matched.pred_graph.nodes[pred_node]:
+                    if NodeFlag.FP_DIV in matched.pred_graph.nodes[pred_node]:
                         return False
             return True
         else:
@@ -199,7 +199,7 @@ class CompleteTracks(Metric):
             # (enough to check that one prev edge is a skip TP)
             if relax_skips_pred:
                 for prev_edge in gt_track.graph.in_edges(node):
-                    if EdgeFlag.SKIP_TRUE_POS.value in gt_track.edges[prev_edge]:
+                    if EdgeFlag.SKIP_TRUE_POS in gt_track.edges[prev_edge]:
                         return True
         # it's not a TP or between skip edges, so it's just wrong
         return False
