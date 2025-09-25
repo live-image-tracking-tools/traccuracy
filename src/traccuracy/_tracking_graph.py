@@ -27,27 +27,27 @@ class NodeFlag(str, enum.Enum):
     """
 
     # True positive nodes as defined by CTC. Valid on gt and computed graphs.
-    CTC_TRUE_POS = "is_ctc_tp"
+    CTC_TRUE_POS = "ctc_tp"
     # False positive nodes as defined by CTC. Valid on computed graph.
-    CTC_FALSE_POS = "is_ctc_fp"
+    CTC_FALSE_POS = "ctc_fp"
     # False negative nodes as defined by CTC. Valid on gt graph.
-    CTC_FALSE_NEG = "is_ctc_fn"
+    CTC_FALSE_NEG = "ctc_fn"
     # Non-split vertices as defined by CTC. Valid on computed graph
     # when many computed nodes can be matched to one gt node.
-    NON_SPLIT = "is_ns"
+    NON_SPLIT = "ns"
     # True positive divisions. Valid on gt and computed graphs.
-    TP_DIV = "is_tp_division"
-    TP_DIV_SKIP = "is_tp_division_skip"
+    TP_DIV = "tp_division"
+    TP_DIV_SKIP = "tp_division_skip"
     # False positive divisions. Valid on computed graph.
-    FP_DIV = "is_fp_division"
+    FP_DIV = "fp_division"
     # False negative divisions. Valid on gt graph.
-    FN_DIV = "is_fn_division"
+    FN_DIV = "fn_division"
     # Wrong child division. Valid on gt and computed graph.
-    WC_DIV = "is_wrong_child_division"
+    WC_DIV = "wrong_child_division"
 
-    TRUE_POS = "is_tp"
-    FALSE_POS = "is_fp"
-    FALSE_NEG = "is_fn"
+    TRUE_POS = "tp"
+    FALSE_POS = "fp"
+    FALSE_NEG = "fn"
 
     # Minimum buffer value that would correct a shifted division.
     MIN_BUFFER_CORRECT = "min_buffer_correct"
@@ -98,22 +98,22 @@ class EdgeFlag(str, enum.Enum):
     """
 
     # True positive edges. Valid on gt and computed graphs.
-    TRUE_POS = "is_tp"
+    TRUE_POS = "tp"
     # False positive edges as defined by CTC. Valid on computed graph.
-    CTC_FALSE_POS = "is_ctc_fp"
+    CTC_FALSE_POS = "ctc_fp"
     # False negative nodes as defined by CTC. Valid on gt graph.
-    CTC_FALSE_NEG = "is_ctc_fn"
+    CTC_FALSE_NEG = "ctc_fn"
     # Edges between tracks as defined by CTC. Valid on gt and computed graphs.
-    INTERTRACK_EDGE = "is_intertrack_edge"
+    INTERTRACK_EDGE = "intertrack_edge"
     # Edges with wrong semantic as defined by CTC. Valid on computed graph.
-    WRONG_SEMANTIC = "is_wrong_semantic"
+    WRONG_SEMANTIC = "wrong_semantic"
 
-    FALSE_POS = "is_fp"
-    FALSE_NEG = "is_fn"
+    FALSE_POS = "fp"
+    FALSE_NEG = "fn"
 
-    SKIP_FALSE_POS = "is_skip_fp"
-    SKIP_FALSE_NEG = "is_skip_fn"
-    SKIP_TRUE_POS = "is_skip_tp"
+    SKIP_FALSE_POS = "skip_fp"
+    SKIP_FALSE_NEG = "skip_fn"
+    SKIP_TRUE_POS = "skip_tp"
 
 
 class TrackingGraph:
