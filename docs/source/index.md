@@ -37,6 +37,7 @@ metrics/ctc
 metrics/track_overlap
 metrics/divisions
 metrics/chota
+metrics/complete_tracks
 ```
 
 ```{toctree}

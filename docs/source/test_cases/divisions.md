@@ -95,6 +95,10 @@ def plot_matched(examples, title):
 ```
 
 ```{code-cell} ipython3
+plot_matched([ex_graphs.empty_pred_div(1), ex_graphs.empty_gt_div(1)], "Empty Divisions")
+```
+
+```{code-cell} ipython3
 plot_matched([ex_graphs.good_div(t) for t in [0, 1, 2]], "Correct Divisions")
 ```
 

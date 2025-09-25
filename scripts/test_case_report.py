@@ -28,6 +28,8 @@ SKIP_FUNCTIONS = [
     "make_split_cell_3d",
     "nodes_from_segmentation",
     "sphere",
+    "SegmentationData.__init__",
+    "all_basic_errors",  # Used for testing metrics
 ]
 # Ungrouped functions will be displayed in a separate section, but should be added here eventually
 GROUPS = {
@@ -76,6 +78,10 @@ GROUPS = {
             "gap_close_offset",
             "div_parent_gap",
             "div_daughter_gap",
+            "gap_close_two_to_one",
+            "div_daughter_dual_gap",
+            "div_parent_daughter_gap",
+            "div_shifted_one_side_skip",
         ],
     },
     "matchers": {
@@ -99,6 +105,7 @@ GROUPS = {
         ],
     },
 }
+GROUPS["metrics"] = GROUPS["track_errors"]
 
 
 def run_coverage(test_target: str, ex_module: str):
@@ -218,7 +225,7 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
 
 if __name__ == "__main__":
     output_name = sys.argv[1]
-    param_sets = [("track_errors", "graphs"), ("matchers", "segs")]
+    param_sets = [("track_errors", "graphs"), ("matchers", "segs"), ("metrics", "graphs")]
 
     dfs, maxcols, maxrows = [], [], []
     for name, target_mod in param_sets:

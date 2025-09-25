@@ -219,6 +219,25 @@ class TrackingGraph:
 
         self.graph = graph
 
+        self._set_attrs(validate)
+
+        # Store first and last frames for reference
+        if len(self.nodes_by_frame) == 0:
+            self.start_frame = None
+            self.end_frame = None
+        else:
+            self.start_frame = min(self.nodes_by_frame.keys())
+            self.end_frame = max(self.nodes_by_frame.keys()) + 1
+
+    def _set_attrs(self, validate: bool) -> None:
+        """Set TrackingGraph attributes that are dependent on the input graph or potentially
+        changed during annotations
+
+        Args:
+            validate (bool): Validate that nodes have required attributes: frame_key,
+                location_key and label_key (if segmentation provided).
+        """
+
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
         self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
@@ -256,14 +275,6 @@ class TrackingGraph:
                 if attrs.get(edge_flag):
                     self.edges_by_flag[edge_flag].add(edge)
 
-        # Store first and last frames for reference
-        if len(self.nodes_by_frame) == 0:
-            self.start_frame = None
-            self.end_frame = None
-        else:
-            self.start_frame = min(self.nodes_by_frame.keys())
-            self.end_frame = max(self.nodes_by_frame.keys()) + 1
-
         # Record types of annotations that have been calculated
         self.division_annotations = False
         self.division_skip_gt_relaxed = False
@@ -272,6 +283,27 @@ class TrackingGraph:
         self.edge_errors = False
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
+
+    def clear_annotations(self) -> None:
+        """Resets a TrackingGraph by removing all traccuracy related annotations
+        from the networkx graph
+
+        Also resets any attributes on the TrackingGraph that are related to annotations
+        """
+        # Strip annotations from node
+        for attrs in self.graph.nodes.values():
+            for n_flag in NodeFlag:
+                attrs.pop(n_flag, None)
+
+        # Strip annotations from edges
+        for attrs in self.graph.edges.values():
+            for e_flag in EdgeFlag:
+                attrs.pop(e_flag, None)
+
+        # Reset attrs on graph
+        self._set_attrs(
+            validate=False,
+        )
 
     def _validate_node(self, node: int, attrs: dict) -> None:
         """Check that every node has the time frame, location and seg_id (if needed) specified
@@ -537,6 +569,16 @@ class TrackingGraph:
         else:
             self.edges_by_flag[flag] = set()
 
+    def get_lineages(self) -> list[nx.DiGraph]:
+        """Gets a list of new nx.DiGraph objects containing all lineages of the current graph.
+
+        Lineage is defined as all connected components.
+        """
+        # Extract lineage and return as new nx graphs
+        lineage_nodes = list(nx.weakly_connected_components(self.graph))
+        # nx.DiGraph.subgraph is typed as a nx.Graph so we need to cast to nx.DiGraph
+        return [cast("nx.DiGraph", self.graph.subgraph(g)) for g in lineage_nodes]
+
     def get_tracklets(self, include_division_edges: bool = False) -> list[nx.DiGraph]:
         """Gets a list of new nx.DiGraph objects containing all tracklets of the current graph.
 
@@ -552,16 +594,21 @@ class TrackingGraph:
         non_div_edges = []
         div_edges = []
         for edge in self.graph.edges:
+            # New networkx typing issue that appeared in PR 305
+            # TODO: maybe can remove the ignore in the future
             # When passing in a single node, output will be int
-            out_degree = cast("int", self.graph.out_degree(edge[0]))
+            out_degree = cast("int", self.graph.out_degree(edge[0]))  # type: ignore
             if not (out_degree > 1):
                 non_div_edges.append(edge)
             else:
                 div_edges.append(edge)
+
         no_div_subgraph = self.graph.edge_subgraph(non_div_edges)
+        # Cast to a more specific type to satisfy weakly_connected_components
+        no_div_subgraph = cast("nx.DiGraph", no_div_subgraph)
 
         # Extract subgraphs (aka tracklets) and return as new track graphs
-        tracklets = list(nx.weakly_connected_components(no_div_subgraph))
+        tracklets = list(nx.weakly_connected_components(no_div_subgraph))  # type: ignore
 
         # if a daughter had no successors, it would not be part of the
         # subgraph, so we need to add it back in as its own lonely tracklet
@@ -586,9 +633,10 @@ class TrackingGraph:
             set of tuples: A set of edges that skip one or more frames.
                 Each edge is represented as a tuple of (source_node, target_node).
         """
-        return {
-            (source, target)
-            for source, target in self.graph.edges
-            if self.graph.nodes[source][self.frame_key] + 1
-            != self.graph.nodes[target][self.frame_key]
-        }
+        return {edge for edge in self.graph.edges if self.is_skip_edge(edge)}
+
+    def is_skip_edge(self, edge: tuple[Hashable, Hashable]) -> bool:
+        source, target = edge
+        return (
+            self.graph.nodes[source][self.frame_key] + 1 != self.graph.nodes[target][self.frame_key]
+        )
