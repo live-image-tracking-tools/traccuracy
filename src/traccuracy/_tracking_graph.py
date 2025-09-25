@@ -27,27 +27,27 @@ class NodeFlag(str, enum.Enum):
     """
 
     # True positive nodes as defined by CTC. Valid on gt and computed graphs.
-    CTC_TRUE_POS = "is_ctc_tp"
+    CTC_TRUE_POS = "ctc_tp"
     # False positive nodes as defined by CTC. Valid on computed graph.
-    CTC_FALSE_POS = "is_ctc_fp"
+    CTC_FALSE_POS = "ctc_fp"
     # False negative nodes as defined by CTC. Valid on gt graph.
-    CTC_FALSE_NEG = "is_ctc_fn"
+    CTC_FALSE_NEG = "ctc_fn"
     # Non-split vertices as defined by CTC. Valid on computed graph
     # when many computed nodes can be matched to one gt node.
-    NON_SPLIT = "is_ns"
+    NON_SPLIT = "ns"
     # True positive divisions. Valid on gt and computed graphs.
-    TP_DIV = "is_tp_division"
-    TP_DIV_SKIP = "is_tp_division_skip"
+    TP_DIV = "tp_division"
+    TP_DIV_SKIP = "tp_division_skip"
     # False positive divisions. Valid on computed graph.
-    FP_DIV = "is_fp_division"
+    FP_DIV = "fp_division"
     # False negative divisions. Valid on gt graph.
-    FN_DIV = "is_fn_division"
+    FN_DIV = "fn_division"
     # Wrong child division. Valid on gt and computed graph.
-    WC_DIV = "is_wrong_child_division"
+    WC_DIV = "wrong_child_division"
 
-    TRUE_POS = "is_tp"
-    FALSE_POS = "is_fp"
-    FALSE_NEG = "is_fn"
+    TRUE_POS = "tp"
+    FALSE_POS = "fp"
+    FALSE_NEG = "fn"
 
     # Minimum buffer value that would correct a shifted division.
     MIN_BUFFER_CORRECT = "min_buffer_correct"
@@ -98,22 +98,22 @@ class EdgeFlag(str, enum.Enum):
     """
 
     # True positive edges. Valid on gt and computed graphs.
-    TRUE_POS = "is_tp"
+    TRUE_POS = "tp"
     # False positive edges as defined by CTC. Valid on computed graph.
-    CTC_FALSE_POS = "is_ctc_fp"
+    CTC_FALSE_POS = "ctc_fp"
     # False negative nodes as defined by CTC. Valid on gt graph.
-    CTC_FALSE_NEG = "is_ctc_fn"
+    CTC_FALSE_NEG = "ctc_fn"
     # Edges between tracks as defined by CTC. Valid on gt and computed graphs.
-    INTERTRACK_EDGE = "is_intertrack_edge"
+    INTERTRACK_EDGE = "intertrack_edge"
     # Edges with wrong semantic as defined by CTC. Valid on computed graph.
-    WRONG_SEMANTIC = "is_wrong_semantic"
+    WRONG_SEMANTIC = "wrong_semantic"
 
-    FALSE_POS = "is_fp"
-    FALSE_NEG = "is_fn"
+    FALSE_POS = "fp"
+    FALSE_NEG = "fn"
 
-    SKIP_FALSE_POS = "is_skip_fp"
-    SKIP_FALSE_NEG = "is_skip_fn"
-    SKIP_TRUE_POS = "is_skip_tp"
+    SKIP_FALSE_POS = "skip_fp"
+    SKIP_FALSE_NEG = "skip_fn"
+    SKIP_TRUE_POS = "skip_tp"
 
 
 class TrackingGraph:
@@ -240,17 +240,17 @@ class TrackingGraph:
 
         # construct dictionaries from attributes to nodes/edges for easy lookup
         self.nodes_by_frame: defaultdict[int, set[Hashable]] = defaultdict(set)
-        self.nodes_by_flag: dict[NodeFlag, set[Hashable]] = {
+        self.nodes_by_flag: dict[str, set[Hashable]] = {
             # We do not include MIN_BUFFER_CORRECT here, as it is not a boolean
             # "flag" but rather an integer. In future, if we decide to store
             # more "flags" that take on integer values, we may wish to make a
             # separate enum for them.
-            flag: set()
+            flag.value: set()
             for flag in NodeFlag
             if flag != NodeFlag.MIN_BUFFER_CORRECT
         }
-        self.edges_by_flag: dict[EdgeFlag, set[tuple[Hashable, Hashable]]] = {
-            flag: set() for flag in EdgeFlag
+        self.edges_by_flag: dict[str, set[tuple[Hashable, Hashable]]] = {
+            flag.value: set() for flag in EdgeFlag
         }
 
         for node, attrs in self.graph.nodes.items():
@@ -266,14 +266,14 @@ class TrackingGraph:
                 self.nodes_by_frame[frame].add(node)
             # store node id in nodes_by_flag mapping
             for node_flag in NodeFlag:
-                if attrs.get(node_flag):
-                    self.nodes_by_flag[node_flag].add(node)
+                if attrs.get(node_flag.value):
+                    self.nodes_by_flag[node_flag.value].add(node)
 
         # store edge id in edges_by_flag
         for edge, attrs in self.graph.edges.items():
             for edge_flag in EdgeFlag:
-                if attrs.get(edge_flag):
-                    self.edges_by_flag[edge_flag].add(edge)
+                if attrs.get(edge_flag.value):
+                    self.edges_by_flag[edge_flag.value].add(edge)
 
         # Record types of annotations that have been calculated
         self.division_annotations = False
@@ -293,12 +293,12 @@ class TrackingGraph:
         # Strip annotations from node
         for attrs in self.graph.nodes.values():
             for n_flag in NodeFlag:
-                attrs.pop(n_flag, None)
+                attrs.pop(n_flag.value, None)
 
         # Strip annotations from edges
         for attrs in self.graph.edges.values():
             for e_flag in EdgeFlag:
-                attrs.pop(e_flag, None)
+                attrs.pop(e_flag.value, None)
 
         # Reset attrs on graph
         self._set_attrs(
@@ -441,11 +441,11 @@ class TrackingGraph:
                 f"Provided  flag {flag} is not of type NodeFlag. "
                 "Please use the enum instead of passing string values."
             )
-        self.graph.nodes[_id][flag] = value
+        self.graph.nodes[_id][flag.value] = value
         if value:
-            self.nodes_by_flag[flag].add(_id)
+            self.nodes_by_flag[flag.value].add(_id)
         else:
-            self.nodes_by_flag[flag].discard(_id)
+            self.nodes_by_flag[flag.value].discard(_id)
 
     def remove_flag_from_node(self, _id: Hashable, flag: NodeFlag) -> None:
         """Removes a flag from a node
@@ -460,11 +460,11 @@ class TrackingGraph:
             KeyError if the flag is not present on the node.
         """
 
-        if flag not in self.graph.nodes[_id]:
+        if flag.value not in self.graph.nodes[_id]:
             raise KeyError(f"Provided {flag} is not present on node {_id}.")
 
-        del self.graph.nodes[_id][flag]
-        self.nodes_by_flag[flag].discard(_id)
+        del self.graph.nodes[_id][flag.value]
+        self.nodes_by_flag[flag.value].discard(_id)
 
     def set_flag_on_all_nodes(self, flag: NodeFlag, value: bool = True) -> None:
         """Set an attribute flag for all nodes in the graph.
@@ -486,11 +486,11 @@ class TrackingGraph:
                 "Please use the enum instead of passing string values."
             )
         # Networkx typing seems to be incorrect for this function
-        nx.set_node_attributes(self.graph, value, name=flag)  # type: ignore
+        nx.set_node_attributes(self.graph, value, name=flag.value)  # type: ignore
         if value:
-            self.nodes_by_flag[flag].update(self.graph.nodes)
+            self.nodes_by_flag[flag.value].update(self.graph.nodes)
         else:
-            self.nodes_by_flag[flag] = set()
+            self.nodes_by_flag[flag.value] = set()
 
     def set_flag_on_edge(
         self, _id: tuple[Hashable, Hashable], flag: EdgeFlag, value: bool = True
@@ -515,11 +515,11 @@ class TrackingGraph:
                 f"Provided attribute {flag} is not of type EdgeFlag. "
                 "Please use the enum instead of passing string values."
             )
-        self.graph.edges[_id][flag] = value
+        self.graph.edges[_id][flag.value] = value
         if value:
-            self.edges_by_flag[flag].add(_id)
+            self.edges_by_flag[flag.value].add(_id)
         else:
-            self.edges_by_flag[flag].discard(_id)
+            self.edges_by_flag[flag.value].discard(_id)
 
     def remove_flag_from_edge(self, _id: tuple[Hashable, Hashable], flag: EdgeFlag) -> None:
         """Removes flag from a given edge
@@ -539,8 +539,8 @@ class TrackingGraph:
         if flag not in self.graph.edges[_id]:
             raise KeyError(f"Flag {flag} not present on edge {_id}.")
 
-        del self.graph.edges[_id][flag]
-        self.edges_by_flag[flag].discard(_id)
+        del self.graph.edges[_id][flag.value]
+        self.edges_by_flag[flag.value].discard(_id)
 
     def set_flag_on_all_edges(self, flag: EdgeFlag, value: bool = True) -> None:
         """Set an attribute flag for all edges in the graph.
@@ -563,11 +563,11 @@ class TrackingGraph:
                 "and add new attributes to the class to avoid key collision."
             )
         # Networkx typing seems to be incorrect for this function
-        nx.set_edge_attributes(self.graph, value, name=flag)  # type: ignore
+        nx.set_edge_attributes(self.graph, value, name=flag.value)  # type: ignore
         if value:
-            self.edges_by_flag[flag].update(self.graph.edges)
+            self.edges_by_flag[flag.value].update(self.graph.edges)
         else:
-            self.edges_by_flag[flag] = set()
+            self.edges_by_flag[flag.value] = set()
 
     def get_lineages(self) -> list[nx.DiGraph]:
         """Gets a list of new nx.DiGraph objects containing all lineages of the current graph.
