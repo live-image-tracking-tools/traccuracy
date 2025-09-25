@@ -1,7 +1,8 @@
 import os
 
+import numpy as np
 import zarr
-from geff import GeffMetadata, read_nx
+from geff import GeffMetadata, read
 
 from traccuracy._tracking_graph import TrackingGraph
 
@@ -46,6 +47,8 @@ def load_geff_data(
     meta = GeffMetadata.read(geff_path)
     spatial_props = []
     temporal_prop = None
+    if meta.axes is None:
+        raise ValueError("No spatial or temporal axes were found in the input geff")
     for ax in meta.axes:
         if ax.type == "time":
             temporal_prop = ax.name
@@ -62,6 +65,8 @@ def load_geff_data(
     segmentation = None
     # Load segmentation from related objects
     if load_geff_seg:
+        if meta.related_objects is None:
+            raise ValueError("Did not find related_objects in geff")
         # Look for labels in related objects
         rel_obj_path = None
         for rel_obj in meta.related_objects:
@@ -72,13 +77,13 @@ def load_geff_data(
         if rel_obj_path is None:
             raise ValueError('Did not find related_object of type "labels" in geff related objects')
         else:
-            load_props.append(label_key)
-            segmentation = zarr.open_array(rel_obj_path)
+            load_props.append(label_key)  # type: ignore
+            segmentation = np.asarray(zarr.open_array(rel_obj_path)[:])
 
     # Load segmentation from stand alone zarr
     if seg_path is not None:
-        segmentation = zarr.open_array(seg_path)[:]
-        load_props.append(seg_property)
+        segmentation = np.asarray(zarr.open_array(seg_path)[:])
+        load_props.append(seg_property)  # type: ignore
 
     # Check dimensionality of segmentation if loaded
     if segmentation is not None and len(segmentation.shape) != 1 + len(spatial_props):
@@ -88,9 +93,9 @@ def load_geff_data(
         )
 
     if load_all_props:
-        G, _ = read_nx(geff_path)
+        G, _ = read(geff_path, backend="networkx")
     else:
-        G, _ = read_nx(geff_path, node_props=load_props, edge_props=[])
+        G, _ = read(geff_path, node_props=load_props, edge_props=[], backend="networkx")
 
     return TrackingGraph(
         graph=G,
