@@ -241,7 +241,8 @@ class Test_export_graphs_to_geff:
         # Check that frame buffer metadata is recorded
         for reader in [gt_reader, pred_reader]:
             for prop in reader.metadata.node_props_metadata.values():
-                assert prop.description == "Target frame buffer 2"
+                if "div" in prop.identifier:
+                    assert prop.description == "Target frame buffer 2"
 
         # Test with bad frame buffer
         with pytest.raises(

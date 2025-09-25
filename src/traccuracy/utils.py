@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 import networkx as nx
 import numpy as np
 from geff import GeffMetadata, write
-from geff_spec import PropMetadata
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
@@ -248,7 +247,6 @@ def export_graphs_to_geff(
         # Update metadata for division flags with buffer
         if reannotate_div:
             meta = GeffMetadata.read(geff_path)
-            props_meta = {}
             for flag in [
                 NodeFlag.TP_DIV,
                 NodeFlag.TP_DIV_SKIP,
@@ -256,13 +254,10 @@ def export_graphs_to_geff(
                 NodeFlag.FN_DIV,
                 NodeFlag.WC_DIV,
             ]:
-                # TODO: test that this overwrite actually works as expected
-                props_meta[str(flag)] = PropMetadata(
-                    identifier=str(flag),
-                    dtype="bool",
-                    description=f"Target frame buffer {target_frame_buffer}",
-                )
-            meta.node_props_metadata = props_meta
+                if flag in meta.node_props_metadata:  # type: ignore
+                    meta.node_props_metadata[  # type: ignore
+                        flag
+                    ].description = f"Target frame buffer {target_frame_buffer}"
             meta.write(geff_path)
 
     # Write results json
