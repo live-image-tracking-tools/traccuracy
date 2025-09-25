@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import networkx as nx
 import numpy as np
 from geff import GeffMetadata, write
+from geff_spec import PropMetadata
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
@@ -244,11 +245,12 @@ def export_graphs_to_geff(
                 NodeFlag.FN_DIV,
                 NodeFlag.WC_DIV,
             ]:
-                props_meta[str(flag)] = {
-                    "identifier": str(flag),
-                    "dtype": "bool",
-                    "description": f"Target frame buffer {target_frame_buffer}",
-                }
+                # TODO: test that this overwrite actually works as expected
+                props_meta[str(flag)] = PropMetadata(
+                    identifier=str(flag),
+                    dtype="bool",
+                    description=f"Target frame buffer {target_frame_buffer}",
+                )
             meta.node_props_metadata = props_meta
             meta.write(geff_path)
 

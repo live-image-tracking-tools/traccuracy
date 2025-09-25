@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import zarr
 from geff import GeffMetadata, read
 
@@ -64,6 +65,8 @@ def load_geff_data(
     segmentation = None
     # Load segmentation from related objects
     if load_geff_seg:
+        if meta.related_objects is None:
+            raise ValueError("Did not find related_objects in geff")
         # Look for labels in related objects
         rel_obj_path = None
         for rel_obj in meta.related_objects:
@@ -74,13 +77,13 @@ def load_geff_data(
         if rel_obj_path is None:
             raise ValueError('Did not find related_object of type "labels" in geff related objects')
         else:
-            load_props.append(label_key)
-            segmentation = zarr.open_array(rel_obj_path)
+            load_props.append(label_key)  # type: ignore
+            segmentation = np.asarray(zarr.open_array(rel_obj_path)[:])
 
     # Load segmentation from stand alone zarr
     if seg_path is not None:
-        segmentation = zarr.open_array(seg_path)[:]
-        load_props.append(seg_property)
+        segmentation = np.asarray(zarr.open_array(seg_path)[:])
+        load_props.append(seg_property)  # type: ignore
 
     # Check dimensionality of segmentation if loaded
     if segmentation is not None and len(segmentation.shape) != 1 + len(spatial_props):
