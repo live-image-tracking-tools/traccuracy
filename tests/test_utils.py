@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 import pytest
 import skimage as sk
-from geff.geff_reader import GeffReader
+from geff import GeffReader
 
 from tests.examples.larger_examples import larger_example_1
 from tests.examples.segs import nodes_from_segmentation

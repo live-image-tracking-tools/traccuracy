@@ -1,7 +1,7 @@
 import os
 
 import zarr
-from geff import GeffMetadata, read_nx
+from geff import GeffMetadata, read
 
 from traccuracy._tracking_graph import TrackingGraph
 
@@ -90,9 +90,9 @@ def load_geff_data(
         )
 
     if load_all_props:
-        G, _ = read_nx(geff_path)
+        G, _ = read(geff_path, backend="networkx")
     else:
-        G, _ = read_nx(geff_path, node_props=load_props, edge_props=[])
+        G, _ = read(geff_path, node_props=load_props, edge_props=[], backend="networkx")
 
     return TrackingGraph(
         graph=G,

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 import numpy as np
-from geff import GeffMetadata, write_nx
+from geff import GeffMetadata, write
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
@@ -227,7 +227,7 @@ def export_graphs_to_geff(
         axis_names = [tg.frame_key]
         if tg.location_keys is not None:
             axis_names.extend(tg.location_keys)
-        write_nx(
+        write(
             graph=tg.graph,
             store=geff_path,
             axis_names=axis_names,
