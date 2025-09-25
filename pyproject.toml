@@ -111,7 +111,7 @@ test = "pytest"
 benchmark = { cmd = "pytest tests/bench.py", depends-on = ["getdata"] }
 
 [tool.pixi.feature.covreport.tasks]
-test-case-report = "python scripts/test_case_report.py test-case-report && rm matchers*.json track_errors*.json"
+test-case-report = "python scripts/test_case_report.py test-case-report && rm matchers*.json track_errors*.json metrics*.json"
 
 [tool.pixi.feature.docs.tasks]
 kernel-config = { cmd = "python -m ipykernel install --user --name=\"traccuracy-docs\""}

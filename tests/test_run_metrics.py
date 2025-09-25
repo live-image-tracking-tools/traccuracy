@@ -73,3 +73,10 @@ def test_run_metrics():
     assert results[0]["metric"].get("param") == "param1"
     assert results[1]["metric"]["name"] == "DummyMetricParam"
     assert results[1]["metric"].get("param") == "param2"
+
+    # Check that relaxing skips works
+    results, matched = run_metrics(
+        graph, graph, matcher, [metric], relax_skips_gt=True, relax_skips_pred=True
+    )
+    assert results[0]["metric"]["relax_skips_pred"] is True
+    assert results[0]["metric"]["relax_skips_gt"] is True
