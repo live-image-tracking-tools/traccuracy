@@ -3,9 +3,9 @@ import re
 
 import networkx as nx
 import pytest
+from examples.segs import SegmentationData
 
 import tests.examples.segs as ex_segs
-from examples.segs import SegmentationData
 from tests.test_utils import get_movie_with_graph
 from traccuracy import TrackingGraph
 from traccuracy.matchers._point import PointMatcher
