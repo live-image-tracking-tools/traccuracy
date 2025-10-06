@@ -29,31 +29,31 @@ class Test_load_point_data:
 
         # Bad parent column
         data = {}
-        with pytest.raises(ValueError, match="Specified parent_column *"):
+        with pytest.raises(ValueError, match=r"Specified parent_column *"):
             load_point_data(df=pd.DataFrame(data))
 
         # Bad id column
         data = {"parent": range(nrows)}
-        with pytest.raises(ValueError, match="Specified id_column *"):
+        with pytest.raises(ValueError, match=r"Specified id_column *"):
             load_point_data(df=pd.DataFrame(data))
 
         # All pos columns missing
         data = {**data, "node_id": range(nrows)}
-        with pytest.raises(ValueError, match="Specified pos_columns *"):
+        with pytest.raises(ValueError, match=r"Specified pos_columns *"):
             load_point_data(df=pd.DataFrame(data))
 
         # One pos column missing
         data = {**data, "x": range(nrows), "y": range(nrows)}
-        with pytest.raises(ValueError, match="Specified pos_columns *"):
+        with pytest.raises(ValueError, match=r"Specified pos_columns *"):
             load_point_data(df=pd.DataFrame(data))
 
         # Time missing
         data = {**data, "z": range(nrows)}
-        with pytest.raises(ValueError, match="Specified time_column *"):
+        with pytest.raises(ValueError, match=r"Specified time_column *"):
             load_point_data(df=pd.DataFrame(data))
 
         data = {**data, "t": range(nrows)}
-        with pytest.raises(ValueError, match="Specified seg_id_column *"):
+        with pytest.raises(ValueError, match=r"Specified seg_id_column *"):
             load_point_data(df=pd.DataFrame(data), seg_id_column="seg_label")
 
     def test_invalid_id_column(self):
