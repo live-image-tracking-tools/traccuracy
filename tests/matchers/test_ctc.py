@@ -3,9 +3,9 @@ from collections import Counter
 import networkx as nx
 import numpy as np
 import pytest
+from examples.segs import SegmentationData
 
 import tests.examples.segs as ex_segs
-from examples.segs import SegmentationData
 from tests.test_utils import get_annotated_movie
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.matchers._compute_overlap import get_labels_with_overlap
