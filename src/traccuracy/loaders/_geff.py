@@ -1,10 +1,16 @@
 import os
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import zarr
 from geff import GeffMetadata, read
 
 from traccuracy._tracking_graph import TrackingGraph
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    import networkx as nx
 
 
 def load_geff_data(
@@ -43,8 +49,14 @@ def load_geff_data(
             "segmentations to a segmentation label property on the graph"
         )
 
-    # Collect names of axes so that we only load spatial properties
     meta = GeffMetadata.read(geff_path)
+
+    if meta.directed is False:
+        raise ValueError(
+            f"traccuracy only supports directed graphs. Found undirected graph at {geff_path}"
+        )
+
+    # Collect names of axes so that we only load spatial properties
     spatial_props = []
     temporal_prop = None
     if meta.axes is None:
@@ -96,6 +108,9 @@ def load_geff_data(
         G, _ = read(geff_path, backend="networkx")
     else:
         G, _ = read(geff_path, node_props=load_props, edge_props=[], backend="networkx")
+
+    # We checked earlier that the graph is directed
+    G = cast("nx.DiGraph[Hashable]", G)
 
     return TrackingGraph(
         graph=G,

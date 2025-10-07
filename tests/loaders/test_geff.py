@@ -30,6 +30,15 @@ class Test_load_geff_data:
         tg = load_geff_data(zarr_path, load_all_props=True)
         assert "score" in tg.graph.edges[(0, 1)]
 
+    def test_undirected(self, tmp_path):
+        zarr_path = tmp_path / "test.zarr"
+        store, _ = create_simple_2d_geff(directed=False)
+        self.geff_to_disk(store, zarr_path)
+        with pytest.raises(
+            ValueError, match=r"traccuracy only supports directed graphs. Found undirected graph at"
+        ):
+            load_geff_data(zarr_path)
+
     def test_no_time(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
         store, _ = create_mock_geff(
