@@ -43,7 +43,7 @@ dependencies = [
     "pyarrow",
     "scipy",
     "skan>=0.13",
-    "geff>=0.5.0,<1.0"
+    "geff>=1.0"
 ]
 
 # extras
@@ -207,6 +207,7 @@ disallow_subclassing_any = false
 show_error_codes = true
 pretty = true
 disallow_untyped_defs = true
+plugins = ['pydantic.mypy']
 
 [[tool.mypy.overrides]]
 module = ["numba"]

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 import numpy as np
-from geff import GeffMetadata, write_nx
+from geff import GeffMetadata, write
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
@@ -238,16 +238,15 @@ def export_graphs_to_geff(
         axis_names = [tg.frame_key]
         if tg.location_keys is not None:
             axis_names.extend(tg.location_keys)
-        write_nx(
+        write(
             graph=tg.graph,
             store=geff_path,
             axis_names=axis_names,
-            axis_types=["time"] + ["space"] * (len(axis_names) - 1),
+            axis_types=["time"] + ["space"] * (len(axis_names) - 1),  # type: ignore
         )
         # Update metadata for division flags with buffer
         if reannotate_div:
             meta = GeffMetadata.read(geff_path)
-            props_meta = {}
             for flag in [
                 NodeFlag.TP_DIV,
                 NodeFlag.TP_DIV_SKIP,
@@ -255,12 +254,10 @@ def export_graphs_to_geff(
                 NodeFlag.FN_DIV,
                 NodeFlag.WC_DIV,
             ]:
-                props_meta[str(flag)] = {
-                    "identifier": str(flag),
-                    "dtype": "bool",
-                    "description": f"Target frame buffer {target_frame_buffer}",
-                }
-            meta.node_props_metadata = props_meta
+                if flag in meta.node_props_metadata:  # type: ignore
+                    meta.node_props_metadata[  # type: ignore
+                        flag
+                    ].description = f"Target frame buffer {target_frame_buffer}"
             meta.write(geff_path)
 
     # Write results json
