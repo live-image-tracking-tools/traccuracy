@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 import zarr
-from geff import read_nx, write_nx
+from geff import read, write
 from geff.testing.data import (
-    create_memory_mock_geff,
+    create_mock_geff,
     create_simple_2d_geff,
     create_simple_temporal_geff,
 )
@@ -13,8 +13,8 @@ from traccuracy.loaders._geff import load_geff_data
 
 class Test_load_geff_data:
     def geff_to_disk(self, store, path):
-        graph, meta = read_nx(store)
-        write_nx(graph, path, meta)
+        graph, meta = read(store, backend="networkx")
+        write(graph, path, meta)
 
     def test_simple_2d(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
@@ -30,10 +30,19 @@ class Test_load_geff_data:
         tg = load_geff_data(zarr_path, load_all_props=True)
         assert "score" in tg.graph.edges[(0, 1)]
 
+    def test_undirected(self, tmp_path):
+        zarr_path = tmp_path / "test.zarr"
+        store, _ = create_simple_2d_geff(directed=False)
+        self.geff_to_disk(store, zarr_path)
+        with pytest.raises(
+            ValueError, match=r"traccuracy only supports directed graphs. Found undirected graph at"
+        ):
+            load_geff_data(zarr_path)
+
     def test_no_time(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
-        store, _ = create_memory_mock_geff(
-            node_id_dtype="int",
+        store, _ = create_mock_geff(
+            node_id_dtype="uint",
             node_axis_dtypes={"position": "float64", "time": "float64"},
             include_t=False,
             directed=True,
@@ -59,14 +68,14 @@ class Test_load_geff_data:
         seg_group = "seg"
         seg_prop = "segmentation_id"
 
-        geff_store, attrs = create_memory_mock_geff(
-            node_id_dtype="int",
+        geff_store, attrs = create_mock_geff(
+            node_id_dtype="uint",
             node_axis_dtypes={"position": "float64", "time": "float64"},
             directed=True,
             extra_node_props={seg_prop: "int"},
         )
         self.geff_to_disk(geff_store, geff_path)
-        t_len = int(max(attrs["t"]))
+        t_len = int(max(attrs["node_props"]["t"]["values"]))
 
         store = zarr.open(zarr_path)
         store[seg_group] = np.zeros((t_len, 20, 20, 10), dtype="int")
@@ -88,14 +97,14 @@ class Test_load_geff_data:
         seg_group = "seg"
         seg_prop = "segmentation_id"
 
-        geff_store, attrs = create_memory_mock_geff(
-            node_id_dtype="int",
+        geff_store, attrs = create_mock_geff(
+            node_id_dtype="uint",
             node_axis_dtypes={"position": "float64", "time": "float64"},
             directed=True,
             extra_node_props={seg_prop: "int"},
         )
         self.geff_to_disk(geff_store, geff_path)
-        t_len = int(max(attrs["t"]))
+        t_len = int(max(attrs["node_props"]["t"]["values"]))
 
         store = zarr.open(seg_path)
         store[seg_group] = np.zeros((t_len, 20, 20), dtype="int")
@@ -109,19 +118,19 @@ class Test_load_geff_data:
         seg_group = "seg"
         seg_prop = "segmentation_id"
 
-        geff_store, attrs = create_memory_mock_geff(
-            node_id_dtype="int",
+        geff_store, attrs = create_mock_geff(
+            node_id_dtype="uint",
             node_axis_dtypes={"position": "float64", "time": "float64"},
             directed=True,
             extra_node_props={seg_prop: "int"},
         )
-        graph, meta = read_nx(geff_store)
+        graph, meta = read(geff_store, backend="networkx")
         meta.related_objects = [
             {"type": "labels", "path": f"../{seg_group}", "label_prop": seg_prop}
         ]
-        write_nx(graph=graph, metadata=meta, store=geff_path)
+        write(graph=graph, metadata=meta, store=geff_path)
 
-        t_len = int(max(attrs["t"]))
+        t_len = int(max(attrs["node_props"]["t"]["values"]))
         store = zarr.open(zarr_path)
         store[seg_group] = np.zeros((t_len, 20, 20, 10), dtype="int")
 
@@ -131,6 +140,6 @@ class Test_load_geff_data:
     def test_no_double_seg_args(self):
         with pytest.raises(
             ValueError,
-            match='Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"',
+            match=r'Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"',
         ):
             load_geff_data("geff_path.zarr", seg_path="seg_path.zarr", load_geff_seg=True)

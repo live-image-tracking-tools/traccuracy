@@ -1,6 +1,6 @@
+import examples.graphs as ex_graphs
 import pytest
 
-import examples.graphs as ex_graphs
 from traccuracy.metrics._basic import BasicMetrics
 from traccuracy.track_errors._basic import classify_basic_errors
 

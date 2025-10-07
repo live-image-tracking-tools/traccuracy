@@ -71,7 +71,9 @@ class TestMatched:
 
         # Test empty mapping
         matched = Matched(graph, graph, [], {})
-        with pytest.raises(UserWarning, match="Mapping is empty. Defaulting to type of one-to-one"):
+        with pytest.raises(
+            UserWarning, match=r"Mapping is empty. Defaulting to type of one-to-one"
+        ):
             assert matched.matching_type == "one-to-one"
 
         # One to one
