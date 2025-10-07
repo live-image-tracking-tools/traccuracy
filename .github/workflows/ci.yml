@@ -54,7 +54,7 @@ jobs:
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache-dependency-path: "pyproject.toml"
@@ -101,7 +101,7 @@ jobs:
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache-dependency-path: "pyproject.toml"
@@ -148,7 +148,7 @@ jobs:
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13
           cache-dependency-path: "pyproject.toml"
@@ -203,7 +203,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache-dependency-path: "pyproject.toml"
@@ -252,7 +252,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
