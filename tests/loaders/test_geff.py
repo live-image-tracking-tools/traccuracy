@@ -131,6 +131,6 @@ class Test_load_geff_data:
     def test_no_double_seg_args(self):
         with pytest.raises(
             ValueError,
-            match='Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"',
+            match=r'Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"',
         ):
             load_geff_data("geff_path.zarr", seg_path="seg_path.zarr", load_geff_seg=True)

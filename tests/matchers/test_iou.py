@@ -236,7 +236,7 @@ class TestStandards:
             ValueError, match="Threshold of 0 is not valid unless one_to_one is True"
         ):
             # Test that threshold 0 is not valid when not one-to-one
-            gtcells, rescells = _match_nodes(
+            _match_nodes(
                 im,
                 im,
                 gt_boxes=np.array([[0, 0, 10, 10]]),
