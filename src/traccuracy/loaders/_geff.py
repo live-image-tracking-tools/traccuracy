@@ -114,20 +114,11 @@ def load_geff_data(
     # We checked earlier that the graph is directed
     G = cast("nx.DiGraph[Hashable]", G)
 
-    if label_key:
-        return TrackingGraph(
-            graph=G,
-            segmentation=segmentation,
-            label_key=label_key,
-            frame_key=temporal_prop,
-            location_keys=tuple(spatial_props),
-            name=name,
-        )
-    else:
-        return TrackingGraph(
-            graph=G,
-            segmentation=segmentation,
-            frame_key=temporal_prop,
-            location_keys=tuple(spatial_props),
-            name=name,
-        )
+    return TrackingGraph(
+        graph=G,
+        segmentation=segmentation,
+        label_key=label_key,
+        frame_key=temporal_prop,
+        location_keys=tuple(spatial_props),
+        name=name,
+    )

@@ -154,7 +154,7 @@ class TrackingGraph:
         graph: nx.DiGraph[Hashable],
         segmentation: np.ndarray | None = None,
         frame_key: str = "t",
-        label_key: str = "segmentation_id",
+        label_key: str | None = "segmentation_id",
         location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
         validate: bool = True,
@@ -196,6 +196,9 @@ class TrackingGraph:
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
         self.segmentation = segmentation
+
+        if segmentation is not None and label_key is None:
+            raise ValueError("`label_key` must be set if `segmentation` is provided")
 
         if NodeFlag.has_value(frame_key):
             raise ValueError(
