@@ -75,6 +75,7 @@ def load_geff_data(
     load_props = [*spatial_props, temporal_prop]
 
     segmentation = None
+    label_key = None
     # Load segmentation from related objects
     if load_geff_seg:
         if meta.related_objects is None:
@@ -96,6 +97,7 @@ def load_geff_data(
     if seg_path is not None:
         segmentation = np.asarray(zarr.open_array(seg_path)[:])
         load_props.append(seg_property)  # type: ignore
+        label_key = seg_property
 
     # Check dimensionality of segmentation if loaded
     if segmentation is not None and len(segmentation.shape) != 1 + len(spatial_props):
@@ -112,10 +114,20 @@ def load_geff_data(
     # We checked earlier that the graph is directed
     G = cast("nx.DiGraph[Hashable]", G)
 
-    return TrackingGraph(
-        graph=G,
-        segmentation=segmentation,
-        frame_key=temporal_prop,
-        location_keys=tuple(spatial_props),
-        name=name,
-    )
+    if label_key:
+        return TrackingGraph(
+            graph=G,
+            segmentation=segmentation,
+            label_key=label_key,
+            frame_key=temporal_prop,
+            location_keys=tuple(spatial_props),
+            name=name,
+        )
+    else:
+        return TrackingGraph(
+            graph=G,
+            segmentation=segmentation,
+            frame_key=temporal_prop,
+            location_keys=tuple(spatial_props),
+            name=name,
+        )
