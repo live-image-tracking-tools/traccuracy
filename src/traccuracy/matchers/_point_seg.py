@@ -43,8 +43,9 @@ class PointSegMatcher(Matcher):
         else:
             raise ValueError("Data provided does not contain segmentations.")
 
-        # Cast s_graph.segmentation to ndarray to eliminate none possibility
+        # Cast s_graph.segmentation and s_graph.label_key to eliminate none possibility
         s_graph.segmentation = cast("np.ndarray", s_graph.segmentation)
+        s_graph.label_key = cast("str", s_graph.label_key)
 
         mapping: list[tuple[Any, Any]] = []
         if s_graph.start_frame is None or s_graph.end_frame is None:

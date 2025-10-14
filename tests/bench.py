@@ -245,7 +245,7 @@ def test_point_matcher(benchmark, gt_data, pred_data, request):
 def test_point_seg_matcher(benchmark, gt_data, pred_data, request):
     gt_data = request.getfixturevalue(gt_data)
     pred_data = request.getfixturevalue(pred_data)
-    # Remove segementations from pred data
+    # Remove segmentations from pred data
     pred_data = TrackingGraph(pred_data.graph, location_keys=gt_data.location_keys)
 
     benchmark.pedantic(

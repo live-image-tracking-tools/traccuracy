@@ -66,7 +66,7 @@ class Test_load_geff_data:
         zarr_path = tmp_path / "test.zarr"
         geff_path = zarr_path / "tracks"
         seg_group = "seg"
-        seg_prop = "segmentation_id"
+        seg_prop = "seg_id"  # not the default value segmentation_id
 
         geff_store, attrs = create_mock_geff(
             node_id_dtype="uint",

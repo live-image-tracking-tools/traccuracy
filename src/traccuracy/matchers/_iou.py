@@ -249,7 +249,7 @@ class IOUMatcher(Matcher):
     def _compute_mapping(
         self, gt_graph: TrackingGraph, pred_graph: TrackingGraph
     ) -> list[tuple[Hashable, Hashable]]:
-        """Computes IOU mapping for a set of grpahs
+        """Computes IOU mapping for a set of graphs
 
         Args:
             gt_graph (TrackingGraph): Tracking graph object for the gt with segmentation data

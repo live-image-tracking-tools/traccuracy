@@ -242,6 +242,10 @@ def test_constructor_seg(nx_comp1_seg):
         3: {4},
     }
 
+    # fails is label_key not specified
+    with pytest.raises(ValueError, match="`label_key` must be set if `segmentation` is provided"):
+        TrackingGraph(nx_comp1, segmentation=segmentation, label_key=None)
+
     # check that it fails on non-int values
     segmentation = segmentation.astype(np.float32)
     with pytest.raises(TypeError, match="Segmentation must have integer dtype, found float32"):
