@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from scipy.spatial import KDTree
 import pylapy
+from scipy.spatial import KDTree
 
 from ._base import Matcher
 
@@ -45,10 +45,7 @@ class PointMatcher(Matcher):
         self._matching_type = "one-to-one"
 
         # Lap solver using scipy
-        self._solver = pylapy.LapSolver(
-            implementation="scipy", sparse_implementation="csgraph"
-        )
-
+        self._solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
 
     def _compute_mapping(
         self, gt_graph: TrackingGraph, pred_graph: TrackingGraph
@@ -103,7 +100,7 @@ class PointMatcher(Matcher):
             pred_kdtree, max_distance=self.threshold, output_type="coo_matrix"
         )
 
-        # Let's keep treshold * 4 for compatibility. But one could probably do
+        # Let's keep threshold * 4 for compatibility. But one could probably do
         # hard thresholding instead (using hard=True) which is indeed what we want to do
         links = self._solver.sparse_solve(sdm, self.threshold).T
 
