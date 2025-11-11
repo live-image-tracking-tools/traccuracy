@@ -44,7 +44,7 @@ dependencies = [
     "scipy",
     "skan>=0.13",
     "geff>=1.0",
-    "pylapy>=1.0"
+    "pylapy[sparse]>=1.0"
 ]
 
 # extras
