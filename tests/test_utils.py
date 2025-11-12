@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import urllib.request
 import zipfile
 
@@ -188,6 +189,23 @@ def get_division_graphs():
     mapped_g2 = [7, 8, 11, 14]
 
     return G1, G2, mapped_g1, mapped_g2
+
+
+def shuffle_graph(graph: TrackingGraph):
+    """Shuffle the nodes in a TrackingGraph"""
+    # Now, let's create a random mapping to relabel our gt graph
+    nodes = list(graph.graph.nodes)
+    random.shuffle(nodes)
+
+    random_mapping = {node: nodes[i] for i, node in enumerate(graph.graph.nodes)}
+    return TrackingGraph(
+        nx.relabel_nodes(graph.graph, random_mapping, copy=True),
+        segmentation=graph.segmentation,
+        frame_key=graph.frame_key,
+        label_key=graph.label_key,
+        location_keys=graph.location_keys,
+        name=f"Shuffled-{graph.name}",
+    ), random_mapping
 
 
 class Test_export_graphs_to_geff:

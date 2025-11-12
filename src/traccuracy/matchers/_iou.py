@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment
+import pylapy
 from tqdm import tqdm
 
 from traccuracy._tracking_graph import TrackingGraph
@@ -92,43 +92,19 @@ def _one_to_one_assignment(
     Returns:
         tuple: Tuple of two arrays, one for indices of each axis
     """
-    # Determine number of objects in zeroth and first axis
+    # Lap solver using scipy
+    solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
+
     # Exclude the background which is currently included in iou matrix
-    n0 = iou.shape[0] - 1
-    n1 = iou.shape[1] - 1
-    n_obj = n0 + n1
-    matrix = np.ones((n_obj, n_obj))
-
-    # Assign 1 - iou to top left and bottom right
     cost = 1 - iou[1:, 1:]
-    # increase the cost for those with no IOU to higher than the unmapped cost
-    cost[cost == 1] = unmapped_cost + 1
-    matrix[:n0, :n1] = cost
-    matrix[n_obj - n1 :, n_obj - n0 :] = cost.T
+    cost[cost == 1] = np.inf
 
-    # Calculate unassigned corners, with base cost of 10*unmapped cost
-    # Diagonals are set to unmapped_cost
-    bl = np.full((n1, n1), unmapped_cost * 10)
-    np.fill_diagonal(bl, unmapped_cost)
-    tr = np.full((n0, n0), unmapped_cost * 10)
-    np.fill_diagonal(tr, unmapped_cost)
+    # Let's keep eta = unmapped_cost + 1 for compatibility. But one could probably do
+    # hard thresholding instead (using hard=True) which is indeed what we want to do
+    # Add 1 to all indices to correct for the removed background
+    rows, cols = (solver.sparse_solve(cost, eta=unmapped_cost + 1) + 1).T
 
-    # Assign diagonals to cm
-    matrix[n_obj - n1 :, :n1] = bl
-    matrix[:n0, n_obj - n0 :] = tr
-
-    results = linear_sum_assignment(matrix)
-
-    # Map results back to cost matrix
-    assignment_matrix = np.zeros_like(matrix)
-    assignment_matrix[results] = 1
-
-    # Pull out only the direct matches from the top left corner
-    matches = np.nonzero(assignment_matrix[:n0, :n1])
-
-    # Add 1 to all indices to correct for removing the background previously
-    matches = (matches[0] + 1, matches[1] + 1)
-    return matches
+    return rows, cols
 
 
 def _construct_time_to_seg_id_map(
