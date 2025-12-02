@@ -35,15 +35,15 @@ def get_vertex_errors(matched_data: Matched) -> None:
     gt_graph = matched_data.gt_graph
     dict_mapping = matched_data.pred_gt_map
 
-    if comp_graph.node_errors + gt_graph.node_errors == 1:
-        graph_with_errors = "pred graph" if comp_graph.node_errors else "GT graph"
+    if comp_graph.ctc_node_errors + gt_graph.ctc_node_errors == 1:
+        graph_with_errors = "pred graph" if comp_graph.ctc_node_errors else "GT graph"
         raise ValueError(
             f"Only {graph_with_errors} has node errors annotated. "
             "Please ensure either both or neither "
             + "of the graphs have traccuracy annotations before running metrics."
         )
 
-    if comp_graph.node_errors and gt_graph.node_errors:
+    if comp_graph.ctc_node_errors and gt_graph.ctc_node_errors:
         warnings.warn("Node errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
@@ -69,8 +69,8 @@ def get_vertex_errors(matched_data: Matched) -> None:
                 gt_graph.remove_flag_from_node(gt_id, NodeFlag.CTC_FALSE_NEG)
 
     # Record presence of annotations on the TrackingGraph
-    comp_graph.node_errors = True
-    gt_graph.node_errors = True
+    comp_graph.ctc_node_errors = True
+    gt_graph.ctc_node_errors = True
 
 
 def get_edge_errors(matched_data: Matched) -> None:
@@ -78,20 +78,20 @@ def get_edge_errors(matched_data: Matched) -> None:
     gt_graph = matched_data.gt_graph
     node_mapping = matched_data.mapping
 
-    if comp_graph.edge_errors + gt_graph.edge_errors == 1:
-        graph_with_errors = "pred graph" if comp_graph.edge_errors else "GT graph"
+    if comp_graph.ctc_edge_errors + gt_graph.ctc_edge_errors == 1:
+        graph_with_errors = "pred graph" if comp_graph.ctc_edge_errors else "GT graph"
         raise ValueError(
             f"Only {graph_with_errors} has edge errors annotated. "
             "Please ensure either both or neither "
             + "of the graphs have traccuracy annotations before running metrics."
         )
 
-    if comp_graph.edge_errors and gt_graph.edge_errors:
+    if comp_graph.ctc_edge_errors and gt_graph.ctc_edge_errors:
         warnings.warn("Edge errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
     # Node errors must already be annotated
-    if not comp_graph.node_errors and not gt_graph.node_errors:
+    if not comp_graph.ctc_node_errors and not gt_graph.ctc_node_errors:
         logger.info("Node errors have not been annotated. Running node annotation.", stacklevel=2)
         get_vertex_errors(matched_data)
 
@@ -148,5 +148,5 @@ def get_edge_errors(matched_data: Matched) -> None:
             if expected_comp_edge not in induced_graph.edges:
                 gt_graph.set_flag_on_edge(edge, EdgeFlag.CTC_FALSE_NEG, True)
 
-    gt_graph.edge_errors = True
-    comp_graph.edge_errors = True
+    gt_graph.ctc_edge_errors = True
+    comp_graph.ctc_edge_errors = True
