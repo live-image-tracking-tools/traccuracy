@@ -181,8 +181,8 @@ def match_iou(
         gt_nodes = gt.nodes_by_frame[t]
         pred_nodes = pred.nodes_by_frame[t]
 
-        gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_nodes)
-        pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_nodes)
+        gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_nodes, gt.label_key)
+        pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_nodes, pred.label_key)
 
         matches = _match_nodes(
             gt.segmentation[i],

@@ -119,7 +119,7 @@ def get_annotated_movie(img_size=256, labels_per_frame=3, frames=3, mov_type="se
     return y.astype("int32")
 
 
-def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
+def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, label_key="segmentation_id"):
     movie = get_annotated_movie(labels_per_frame=n_labels, frames=n_frames, mov_type="repeated")
 
     # Extend to 3d if needed
@@ -132,7 +132,9 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
     # We can assume each object is present and connected across each frame
     G = nx.DiGraph()
     for t in range(n_frames):
-        nodes = nodes_from_segmentation(movie[t], frame=t, _id="label_time", pos_keys=pos_keys)
+        nodes = nodes_from_segmentation(
+            movie[t], frame=t, _id="label_time", pos_keys=pos_keys, label_key=label_key
+        )
         G.add_nodes_from([(_id, data) for _id, data in nodes.items()])
         if t > 0:
             for i in range(1, n_labels + 1):
@@ -142,7 +144,7 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
     # Preserve the option for string ids because it makes a few tests impossible otherwise
     G = nx.convert_node_labels_to_integers(G, first_label=1, label_attribute="string_id")
 
-    return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
+    return TrackingGraph(G, segmentation=movie, location_keys=pos_keys, label_key=label_key)
 
 
 def get_division_graphs():
