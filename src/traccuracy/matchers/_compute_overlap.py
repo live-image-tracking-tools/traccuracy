@@ -30,7 +30,7 @@ def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
 def graph_bbox_and_labels(
     graph: nx.DiGraph,
     nodes: Iterable[Hashable],
-    label_key: str = "segmentation_id",
+    label_key: str | None = "segmentation_id",
 ) -> tuple[np.ndarray | None, np.ndarray | None]:
     """
     Get bounding boxes and labels for a list of nodes in a graph.
@@ -47,7 +47,9 @@ def graph_bbox_and_labels(
     """
     try:
         gt_boxes = np.asarray([graph.nodes[node]["bbox"] for node in nodes])
-        gt_labels = np.asarray([graph.nodes[node][label_key] for node in nodes])
+        gt_labels = np.asarray(
+            [graph.nodes[node][label_key] for node in nodes if label_key is not None]
+        )
     except KeyError:
         gt_boxes, gt_labels = None, None
     return gt_boxes, gt_labels
