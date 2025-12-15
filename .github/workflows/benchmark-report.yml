@@ -17,7 +17,7 @@ jobs:
     name: Report benchmarks on gh-pages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Retrieve cached data
         uses: actions/cache/restore@v5
