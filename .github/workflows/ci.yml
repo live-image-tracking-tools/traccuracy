@@ -34,7 +34,7 @@ jobs:
 
       # downloading data, required for CHOTA metric test
       - name: Retrieve cached data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache_data
         with:
           path: downloads
@@ -47,7 +47,7 @@ jobs:
           python scripts/download_test_data.py
 
       - name: Cache sample data
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.cache_data.outputs.cache-hit != 'true'
         with:
           path: downloads
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Retrieve cached data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache_data
         with:
           path: downloads
@@ -94,7 +94,7 @@ jobs:
           python scripts/download_test_data.py
 
       - name: Cache sample data
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.cache_data.outputs.cache-hit != 'true'
         with:
           path: downloads
@@ -128,7 +128,7 @@ jobs:
           fetch-depth: 50 # this is to make sure we obtain the target base commit
 
       - name: Retrieve cached data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache_data
         with:
           path: downloads
@@ -141,7 +141,7 @@ jobs:
           python scripts/download_test_data.py
 
       - name: Cache sample data
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.cache_data.outputs.cache-hit != 'true'
         with:
           path: downloads
@@ -161,7 +161,7 @@ jobs:
           python -m pip install tabulate
 
       - name: Retrieve cached baseline if available
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache_baseline
         with:
           path: baseline.json
@@ -174,7 +174,7 @@ jobs:
           pytest tests/bench.py -v --benchmark-json baseline.json
 
       - name: Cache baseline results
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.cache_baseline.outputs.cache-hit != 'true'
         with:
           path: baseline.json
