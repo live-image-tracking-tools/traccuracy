@@ -14,7 +14,7 @@ import numpy as np
 from skimage.measure import regionprops
 
 
-def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
+def _union_slice(a: tuple[slice, ...], b: tuple[slice, ...]) -> tuple[slice, ...]:
     """returns the union of slice tuples a and b"""
     starts = tuple(min(_a.start, _b.start) for _a, _b in zip(a, b, strict=True))
     stops = tuple(max(_a.stop, _b.stop) for _a, _b in zip(a, b, strict=True))
