@@ -216,7 +216,7 @@ class DivisionMetrics(Metric):
             recall = self._get_recall(total_tp_div, gt_div_count)
             precision = self._get_precision(total_tp_div, pred_div_count)
             f1 = self._get_f1(recall, precision)
-            mbc = self._get_mbc(gt_div_count, tp_division_count, total_tp_div)
+            mbc = self._get_mbc(gt_div_count, tp_division_count, fp_division_count)
 
             res_dict[f"Frame Buffer {fb}"] = {
                 "Division Recall": recall,
