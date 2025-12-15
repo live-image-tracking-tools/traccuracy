@@ -73,6 +73,26 @@ def test_DivisionMetrics():
             assert r["False Negative Divisions"] == 0
 
 
+def test_division_metrics_perfect():
+    _, g_pred, _, _ = get_division_graphs()
+    mapper = list(zip(list(g_pred.nodes), list(g_pred.nodes), strict=False))
+    matched = Matched(
+        TrackingGraph(g_pred), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"}
+    )
+    frame_buffer = 2
+
+    results = DivisionMetrics(max_frame_buffer=frame_buffer)._compute(matched)
+    for _, r in results.items():
+        # All correct regardless of frame buffer
+        assert r["True Positive Divisions"] == 1
+        assert r["False Positive Divisions"] == 0
+        assert r["False Negative Divisions"] == 0
+        assert r["Mitotic Branching Correctness"] == 1.0
+        assert r["Division Precision"] == 1.0
+        assert r["Division Recall"] == 1.0
+        assert r["Division F1"] == 1.0
+
+
 class TestDivisionMetrics:
     def test_no_divisions(self, caplog):
         matched = ex_graphs.good_matched()
