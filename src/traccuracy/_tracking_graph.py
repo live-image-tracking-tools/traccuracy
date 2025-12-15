@@ -282,8 +282,10 @@ class TrackingGraph:
         self.division_annotations = False
         self.division_skip_gt_relaxed = False
         self.division_skip_pred_relaxed = False
-        self.node_errors = False
-        self.edge_errors = False
+        self.basic_node_errors = False
+        self.basic_edge_errors = False
+        self.ctc_node_errors = False
+        self.ctc_edge_errors = False
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
 

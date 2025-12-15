@@ -7,7 +7,7 @@ import pytest
 from tests.test_utils import get_movie_with_graph, gt_data
 from traccuracy.loaders import load_ctc_data
 from traccuracy.matchers import CTCMatcher
-from traccuracy.metrics import CTCMetrics
+from traccuracy.metrics import BasicMetrics, CTCMetrics
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -38,6 +38,23 @@ def test_ctc_metrics(gt_hela, pred_hela):
     assert ctc_results.results["fp_nodes"] == 0
     assert ctc_results.results["ns_nodes"] == 0
     assert ctc_results.results["ws_edges"] == 47
+
+    # ensure basic errors haven't been annotated
+    assert not ctc_matched.gt_graph.basic_edge_errors
+    assert not ctc_matched.pred_graph.basic_edge_errors
+    assert not ctc_matched.gt_graph.basic_node_errors
+    assert not ctc_matched.pred_graph.basic_node_errors
+
+    # run another metric to ensure separate errors are stored
+    basic_results = BasicMetrics().compute(ctc_matched)
+    assert ctc_matched.gt_graph.basic_edge_errors
+    assert ctc_matched.pred_graph.basic_edge_errors
+    assert ctc_matched.gt_graph.basic_node_errors
+    assert ctc_matched.pred_graph.basic_node_errors
+
+    # the number of FN/FP nodes actually matches since there are no NS nodes
+    assert basic_results.results["False Negative Nodes"] == 39
+    assert basic_results.results["False Positive Nodes"] == 0
 
 
 def test_compute_mapping():

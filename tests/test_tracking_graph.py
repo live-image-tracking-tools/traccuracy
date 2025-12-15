@@ -477,8 +477,8 @@ def test_clear_annotations():
     tg = ex_graphs.basic_graph()
     tg.set_flag_on_all_nodes(NodeFlag.TRUE_POS)
     tg.set_flag_on_all_edges(EdgeFlag.TRUE_POS)
-    tg.node_errors = True
-    tg.edge_errors = True
+    tg.basic_node_errors = True
+    tg.basic_edge_errors = True
 
     tg.clear_annotations()
     # Check node and edge attributes
@@ -488,8 +488,8 @@ def test_clear_annotations():
         assert set(attrs.keys()) == set()
 
     # Check that annotation flags have been reset
-    assert tg.node_errors is False
-    assert tg.edge_errors is False
+    assert tg.basic_node_errors is False
+    assert tg.basic_edge_errors is False
 
     # Check that the flag dictionaries are reset
     assert len(tg.nodes_by_flag[NodeFlag.TRUE_POS]) == 0

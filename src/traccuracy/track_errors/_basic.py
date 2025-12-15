@@ -54,14 +54,14 @@ def _classify_nodes(matched: Matched) -> None:
     pred_graph = matched.pred_graph
     gt_graph = matched.gt_graph
 
-    if pred_graph.node_errors + gt_graph.node_errors == 1:
-        graph_with_errors = "pred graph" if pred_graph.node_errors else "GT graph"
+    if pred_graph.basic_node_errors + gt_graph.basic_node_errors == 1:
+        graph_with_errors = "pred graph" if pred_graph.basic_node_errors else "GT graph"
         raise ValueError(
             f"Only {graph_with_errors} has node errors annotated. Please ensure either both "
             + "or neither of the graphs have traccuracy annotations before running metrics."
         )
 
-    if pred_graph.node_errors and gt_graph.node_errors:
+    if pred_graph.basic_node_errors and gt_graph.basic_node_errors:
         warnings.warn("Node errors already calculated. Skipping graph annotation", stacklevel=2)
         return
 
@@ -80,8 +80,8 @@ def _classify_nodes(matched: Matched) -> None:
     for node in fn_nodes:
         gt_graph.set_flag_on_node(node, NodeFlag.FALSE_NEG)
 
-    gt_graph.node_errors = True
-    pred_graph.node_errors = True
+    gt_graph.basic_node_errors = True
+    pred_graph.basic_node_errors = True
 
 
 def _classify_edges(
@@ -107,16 +107,16 @@ def _classify_edges(
 
     # if only one of the graphs has been annotated, we raise
     # because we'll likely leave things in an inconsistent state
-    if pred_graph.edge_errors + gt_graph.edge_errors == 1:
-        graph_with_errors = "pred graph" if pred_graph.edge_errors else "GT graph"
+    if pred_graph.basic_edge_errors + gt_graph.basic_edge_errors == 1:
+        graph_with_errors = "pred graph" if pred_graph.basic_edge_errors else "GT graph"
         raise ValueError(
             f"Only {graph_with_errors} has edge errors annotated. Please ensure either both or"
             " neither of the graphs have traccuracy annotations before running metrics."
         )
 
     if (
-        pred_graph.edge_errors
-        and gt_graph.edge_errors
+        pred_graph.basic_edge_errors
+        and gt_graph.basic_edge_errors
         # if we're not requiring relaxation OR it's already been computed,
         # we can skip edge classification
         and (not relax_skips_gt or gt_graph.skip_edges_gt_relaxed)
@@ -126,7 +126,7 @@ def _classify_edges(
         return
 
     # Node errors are needed for edge annotation
-    if not pred_graph.node_errors and not gt_graph.node_errors:
+    if not pred_graph.basic_node_errors and not gt_graph.basic_node_errors:
         logger.info("Node errors have not been annotated. Running node annotation.", stacklevel=2)
         _classify_nodes(matched)
 
@@ -199,7 +199,7 @@ def _classify_edges(
         for edge in fp_skips:
             pred_graph.set_flag_on_edge(edge, EdgeFlag.SKIP_FALSE_POS)
 
-    pred_graph.edge_errors = True
-    gt_graph.edge_errors = True
+    pred_graph.basic_edge_errors = True
+    gt_graph.basic_edge_errors = True
     gt_graph.skip_edges_gt_relaxed = relax_skips_gt
     pred_graph.skip_edges_pred_relaxed = relax_skips_pred
