@@ -86,8 +86,10 @@ class CTCMatcher(Matcher):
                 if pred_label_key in G_pred.graph.nodes[node]
             }
 
-            gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_frame_nodes)
-            pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_frame_nodes)
+            gt_boxes, gt_labels = graph_bbox_and_labels(gt.graph, gt_frame_nodes, gt_label_key)
+            pred_boxes, pred_labels = graph_bbox_and_labels(
+                pred.graph, pred_frame_nodes, pred_label_key
+            )
 
             overlaps = get_labels_with_overlap(
                 gt_frame,
