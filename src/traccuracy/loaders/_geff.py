@@ -24,7 +24,8 @@ def load_geff_data(
     """Load a graph into memory from a geff file
 
     Segmentations can be optionally loaded either from a related object specified in
-    the geff (`load_geff_seg=True`) or with a path to a zarr array `seg_path` and `seg_property`
+    the geff (`load_geff_seg=True`) or with a path to a zarr array `seg_path` and `seg_property`.
+    If loading already-computed graphs with flags, e.g. for visualization, pass `load_all_props=True`.
 
     Args:
         geff_path (str): Path to a geff group inside of a zarr,
@@ -40,6 +41,7 @@ def load_geff_data(
             Defaults to None.
         load_all_props (bool, optional): If True, load all node and edge properties on the graph.
             Defaults to False and only spatiotemporal and segmentation node properties are loaded.
+            Set to True to get already annotated error flags, e.g. for visualization.
     """
     if load_geff_seg and seg_path is not None:
         raise ValueError('Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"')
