@@ -271,7 +271,7 @@ class TrackingGraph:
             for node_flag in NodeFlag:
                 # explicitly excluding min buffer correct again
                 if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
-                    if attrs.get(str(node_flag.value)):
+                    if attrs.get(node_flag.value):
                         self.nodes_by_flag[node_flag.value].add(node)
 
         # store edge id in edges_by_flag
