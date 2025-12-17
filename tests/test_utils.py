@@ -12,8 +12,9 @@ from geff import GeffReader
 
 from tests.examples.larger_examples import larger_example_1
 from tests.examples.segs import nodes_from_segmentation
-from traccuracy._tracking_graph import NodeFlag, TrackingGraph
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.loaders import load_ctc_data
+from traccuracy.loaders._geff import load_geff_data
 from traccuracy.metrics._basic import BasicMetrics
 from traccuracy.metrics._divisions import DivisionMetrics
 from traccuracy.utils import export_graphs_to_geff, save_results_json
@@ -286,6 +287,44 @@ class Test_export_graphs_to_geff:
             res_dict = json.load(f)
         assert "traccuracy" in res_dict
         assert len(res_dict["traccuracy"]) == len(results)
+
+    def test_reload_graphs_with_flags(self, tmp_path):
+        """Test that graphs with flags can be exported and reloaded correctly."""
+        matched = larger_example_1()
+        results = [BasicMetrics().compute(matched)]
+        out_zarr = tmp_path / "test.zarr"
+
+        # Store original flag counts
+        gt_orig = matched.gt_graph
+        pred_orig = matched.pred_graph
+
+        gt_tp_nodes_orig = len(gt_orig.get_nodes_with_flag(NodeFlag.TRUE_POS))
+        gt_fn_nodes_orig = len(gt_orig.get_nodes_with_flag(NodeFlag.FALSE_NEG))
+        gt_tp_edges_orig = len(gt_orig.get_edges_with_flag(EdgeFlag.TRUE_POS))
+
+        pred_tp_nodes_orig = len(pred_orig.get_nodes_with_flag(NodeFlag.TRUE_POS))
+        pred_fp_nodes_orig = len(pred_orig.get_nodes_with_flag(NodeFlag.FALSE_POS))
+        pred_tp_edges_orig = len(pred_orig.get_edges_with_flag(EdgeFlag.TRUE_POS))
+
+        export_graphs_to_geff(out_zarr, matched, results)
+
+        # Reload the graphs with all properties including flags
+        gt_reloaded = load_geff_data(out_zarr / "gt.geff", load_all_props=True)
+        pred_reloaded = load_geff_data(out_zarr / "pred.geff", load_all_props=True)
+
+        # Verify node flag counts match original
+        assert len(gt_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS)) == gt_tp_nodes_orig
+        assert len(gt_reloaded.get_nodes_with_flag(NodeFlag.FALSE_NEG)) == gt_fn_nodes_orig
+        assert len(pred_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS)) == pred_tp_nodes_orig
+        assert len(pred_reloaded.get_nodes_with_flag(NodeFlag.FALSE_POS)) == pred_fp_nodes_orig
+
+        # Verify edge flag counts match original
+        assert len(gt_reloaded.get_edges_with_flag(EdgeFlag.TRUE_POS)) == gt_tp_edges_orig
+        assert len(pred_reloaded.get_edges_with_flag(EdgeFlag.TRUE_POS)) == pred_tp_edges_orig
+
+        # Verify that the node attributes still have the flags
+        for node in gt_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS):
+            assert NodeFlag.TRUE_POS.value in gt_reloaded.graph.nodes[node]
 
     def test_bad_inputs(self, tmp_path):
         with pytest.raises(ValueError, match="matched argument must be an instance of `Matched`"):
