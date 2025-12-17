@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
+import tests.examples.graphs as ex_graphs
 from traccuracy import EdgeFlag, NodeFlag, TrackingGraph
 
 
@@ -21,15 +22,15 @@ def nx_comp1():
     """
     cells = [
         {"id": 1, "t": 0, "y": 1, "x": 1},
-        {"id": 2, "t": 1, "y": 1, "x": 1, "is_tp_division": True},
+        {"id": 2, "t": 1, "y": 1, "x": 1, "tp_division": True},
         {"id": 5, "t": 2, "y": 1, "x": 0},
         {"id": 3, "t": 2, "y": 1, "x": 2},
         {"id": 4, "t": 3, "y": 1, "x": 2},
     ]
 
     edges = [
-        {"source": 1, "target": 2, "is_tp": True},
-        {"source": 2, "target": 5, "is_tp": False},
+        {"source": 1, "target": 2, "tp": True},
+        {"source": 2, "target": 5, "tp": False},
         {"source": 2, "target": 3},
         {"source": 3, "target": 4},
     ]
@@ -52,15 +53,15 @@ def nx_comp1_seg():
     """
     cells = [
         {"id": 1, "t": 0, "y": 1, "x": 1, "segmentation_id": 1},
-        {"id": 2, "t": 1, "y": 1, "x": 1, "is_tp_division": True, "segmentation_id": 2},
+        {"id": 2, "t": 1, "y": 1, "x": 1, "tp_division": True, "segmentation_id": 2},
         {"id": 5, "t": 2, "y": 1, "x": 0, "segmentation_id": 3},
         {"id": 3, "t": 2, "y": 1, "x": 2, "segmentation_id": 4},
         {"id": 4, "t": 3, "y": 1, "x": 2, "segmentation_id": 5},
     ]
 
     edges = [
-        {"source": 1, "target": 2, "is_tp": True},
-        {"source": 2, "target": 5, "is_tp": False},
+        {"source": 1, "target": 2, "tp": True},
+        {"source": 2, "target": 5, "tp": False},
         {"source": 2, "target": 3},
         {"source": 3, "target": 4},
     ]
@@ -83,15 +84,15 @@ def nx_comp1_pos_list():
     """
     cells = [
         {"id": 1, "t": 0, "pos": [1, 1]},
-        {"id": 2, "t": 1, "pos": [1, 1], "is_tp_division": True},
+        {"id": 2, "t": 1, "pos": [1, 1], "tp_division": True},
         {"id": 5, "t": 2, "pos": [1, 0]},
         {"id": 3, "t": 2, "pos": [1, 2]},
         {"id": 4, "t": 3, "pos": [1, 2]},
     ]
 
     edges = [
-        {"source": 1, "target": 3, "is_tp": True},
-        {"source": 3, "target": 5, "is_tp": False},
+        {"source": 1, "target": 3, "tp": True},
+        {"source": 3, "target": 5, "tp": False},
         {"source": 3, "target": 3},
         {"source": 3, "target": 4},
     ]
@@ -116,7 +117,7 @@ def nx_comp2():
     cells = [
         {"id": 6, "t": 0, "y": 2, "x": 1},
         {"id": 7, "t": 1, "y": 2, "x": 1},
-        {"id": 8, "t": 2, "y": 2, "x": 1, "is_tp_division": True},
+        {"id": 8, "t": 2, "y": 2, "x": 1, "tp_division": True},
         {"id": 10, "t": 3, "y": 1, "x": 1},
         {"id": 9, "t": 3, "y": 3, "x": 1},
     ]
@@ -241,6 +242,10 @@ def test_constructor_seg(nx_comp1_seg):
         3: {4},
     }
 
+    # fails is label_key not specified
+    with pytest.raises(ValueError, match="`label_key` must be set if `segmentation` is provided"):
+        TrackingGraph(nx_comp1, segmentation=segmentation, label_key=None)
+
     # check that it fails on non-int values
     segmentation = segmentation.astype(np.float32)
     with pytest.raises(TypeError, match="Segmentation must have integer dtype, found float32"):
@@ -302,14 +307,14 @@ def test_get_nodes_with_flag(simple_graph):
     assert Counter(simple_graph.get_nodes_with_flag(NodeFlag.TP_DIV)) == Counter([2])
     assert Counter(simple_graph.get_nodes_with_flag(NodeFlag.FP_DIV)) == Counter([])
     with pytest.raises(ValueError):
-        assert simple_graph.get_nodes_with_flag("is_tp_division")
+        assert simple_graph.get_nodes_with_flag("tp_division")
 
 
 def test_get_edges_with_flag(simple_graph):
     assert Counter(simple_graph.get_edges_with_flag(EdgeFlag.TRUE_POS)) == Counter([(1, 2)])
     assert Counter(simple_graph.get_edges_with_flag(EdgeFlag.CTC_FALSE_NEG)) == Counter([])
     with pytest.raises(ValueError):
-        assert simple_graph.get_nodes_with_flag("is_tp")
+        assert simple_graph.get_nodes_with_flag("tp")
 
 
 def test_get_divisions(complex_graph):
@@ -327,7 +332,7 @@ def test_set_flag_on_node(simple_graph):
         "t": 1,
         "y": 1,
         "x": 1,
-        "is_tp_division": True,
+        "tp_division": True,
     }
 
     simple_graph.set_flag_on_node(1, NodeFlag.CTC_FALSE_POS, value=True)
@@ -465,3 +470,27 @@ def test_get_skip_edges(complex_graph):
     skip_edges = complex_graph.get_skip_edges()
     assert len(skip_edges) == 2
     assert (2, 4) in skip_edges
+
+
+def test_clear_annotations():
+    # Set up an annotated tracking graph
+    tg = ex_graphs.basic_graph()
+    tg.set_flag_on_all_nodes(NodeFlag.TRUE_POS)
+    tg.set_flag_on_all_edges(EdgeFlag.TRUE_POS)
+    tg.basic_node_errors = True
+    tg.basic_edge_errors = True
+
+    tg.clear_annotations()
+    # Check node and edge attributes
+    for attrs in tg.graph.nodes.values():
+        assert set(attrs.keys()) == {"t", "y"}
+    for attrs in tg.graph.edges.values():
+        assert set(attrs.keys()) == set()
+
+    # Check that annotation flags have been reset
+    assert tg.basic_node_errors is False
+    assert tg.basic_edge_errors is False
+
+    # Check that the flag dictionaries are reset
+    assert len(tg.nodes_by_flag[NodeFlag.TRUE_POS]) == 0
+    assert len(tg.edges_by_flag[EdgeFlag.TRUE_POS]) == 0

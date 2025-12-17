@@ -14,7 +14,7 @@ import numpy as np
 from skimage.measure import regionprops
 
 
-def _union_slice(a: tuple[slice], b: tuple[slice]) -> tuple[slice, ...]:
+def _union_slice(a: tuple[slice, ...], b: tuple[slice, ...]) -> tuple[slice, ...]:
     """returns the union of slice tuples a and b"""
     starts = tuple(min(_a.start, _b.start) for _a, _b in zip(a, b, strict=True))
     stops = tuple(max(_a.stop, _b.stop) for _a, _b in zip(a, b, strict=True))
@@ -30,6 +30,7 @@ def _bbox_to_slice(bbox: tuple[int, int, int, int]) -> tuple[slice, ...]:
 def graph_bbox_and_labels(
     graph: nx.DiGraph,
     nodes: Iterable[Hashable],
+    label_key: str | None = "segmentation_id",
 ) -> tuple[np.ndarray | None, np.ndarray | None]:
     """
     Get bounding boxes and labels for a list of nodes in a graph.
@@ -39,13 +40,16 @@ def graph_bbox_and_labels(
     Args:
         graph (nx.DiGraph): The graph to get the bounding boxes and labels from.
         nodes (list[Hashable]): The nodes to get the bounding boxes and labels for.
+        label_key (str, optional): The key to use for the labels. Defaults to 'segmentation_id'.
 
     Returns:
         tuple[np.ndarray | None, np.ndarray | None]: The bounding boxes and labels for the nodes.
     """
     try:
         gt_boxes = np.asarray([graph.nodes[node]["bbox"] for node in nodes])
-        gt_labels = np.asarray([graph.nodes[node]["segmentation_id"] for node in nodes])
+        gt_labels = np.asarray(
+            [graph.nodes[node][label_key] for node in nodes if label_key is not None]
+        )
     except KeyError:
         gt_boxes, gt_labels = None, None
     return gt_boxes, gt_labels

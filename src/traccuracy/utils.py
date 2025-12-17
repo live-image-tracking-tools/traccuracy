@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 import numpy as np
-from geff import GeffMetadata, write_nx
+from geff import GeffMetadata, write
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
@@ -116,28 +116,39 @@ def get_corrected_division_graphs_with_delta(
     corrected_gt_graph = copy.deepcopy(matched.gt_graph)
     corrected_pred_graph = copy.deepcopy(matched.pred_graph)
 
-    for node in corrected_gt_graph.get_nodes_with_flag(NodeFlag.FN_DIV):
-        if corrected_gt_graph.graph.nodes[node].get("min_buffer_correct", np.nan) <= frame_buffer:
-            corrected_gt_graph.graph.nodes[node].pop(NodeFlag.FN_DIV)
-            corrected_gt_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
-        elif (
-            relax_skip_edges
-            and corrected_gt_graph.graph.nodes[node].get("min_buffer_skip_correct", np.nan)
+    # Need to copy to avoid issues with the set changing as we loop over it
+    for node in copy.copy(corrected_gt_graph.get_nodes_with_flag(NodeFlag.FN_DIV)):
+        if (
+            corrected_gt_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
             <= frame_buffer
         ):
-            corrected_gt_graph.graph.nodes[node].pop(NodeFlag.FN_DIV)
-            corrected_gt_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
-    for node in corrected_pred_graph.get_nodes_with_flag(NodeFlag.FP_DIV):
-        if corrected_pred_graph.graph.nodes[node].get("min_buffer_correct", np.nan) <= frame_buffer:
-            corrected_pred_graph.graph.nodes[node].pop(NodeFlag.FP_DIV)
-            corrected_pred_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
+            corrected_gt_graph.remove_flag_from_node(node, NodeFlag.FN_DIV)
+            corrected_gt_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
         elif (
             relax_skip_edges
-            and corrected_pred_graph.graph.nodes[node].get("min_buffer_skip_correct", np.nan)
+            and corrected_gt_graph.graph.nodes[node].get(
+                NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan
+            )
             <= frame_buffer
         ):
-            corrected_pred_graph.graph.nodes[node].pop(NodeFlag.FP_DIV)
-            corrected_pred_graph.graph.nodes[node][NodeFlag.TP_DIV] = True
+            corrected_gt_graph.remove_flag_from_node(node, NodeFlag.FN_DIV)
+            corrected_gt_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
+    for node in copy.copy(corrected_pred_graph.get_nodes_with_flag(NodeFlag.FP_DIV)):
+        if (
+            corrected_pred_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
+            <= frame_buffer
+        ):
+            corrected_pred_graph.remove_flag_from_node(node, NodeFlag.FP_DIV)
+            corrected_pred_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
+        elif (
+            relax_skip_edges
+            and corrected_pred_graph.graph.nodes[node].get(
+                NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan
+            )
+            <= frame_buffer
+        ):
+            corrected_pred_graph.remove_flag_from_node(node, NodeFlag.FP_DIV)
+            corrected_pred_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
 
     return corrected_gt_graph, corrected_pred_graph
 
@@ -227,16 +238,15 @@ def export_graphs_to_geff(
         axis_names = [tg.frame_key]
         if tg.location_keys is not None:
             axis_names.extend(tg.location_keys)
-        write_nx(
+        write(
             graph=tg.graph,
             store=geff_path,
             axis_names=axis_names,
-            axis_types=["time"] + ["space"] * (len(axis_names) - 1),
+            axis_types=["time"] + ["space"] * (len(axis_names) - 1),  # type: ignore
         )
         # Update metadata for division flags with buffer
         if reannotate_div:
             meta = GeffMetadata.read(geff_path)
-            props_meta = {}
             for flag in [
                 NodeFlag.TP_DIV,
                 NodeFlag.TP_DIV_SKIP,
@@ -244,12 +254,10 @@ def export_graphs_to_geff(
                 NodeFlag.FN_DIV,
                 NodeFlag.WC_DIV,
             ]:
-                props_meta[str(flag)] = {
-                    "identifier": str(flag),
-                    "dtype": "bool",
-                    "description": f"Target frame buffer {target_frame_buffer}",
-                }
-            meta.node_props_metadata = props_meta
+                if flag in meta.node_props_metadata:  # type: ignore
+                    meta.node_props_metadata[  # type: ignore
+                        flag
+                    ].description = f"Target frame buffer {target_frame_buffer}"
             meta.write(geff_path)
 
     # Write results json

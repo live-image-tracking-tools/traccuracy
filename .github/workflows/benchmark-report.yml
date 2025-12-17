@@ -17,10 +17,10 @@ jobs:
     name: Report benchmarks on gh-pages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Retrieve cached data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache_data
         with:
           path: downloads
@@ -33,14 +33,14 @@ jobs:
           python scripts/download_test_data.py
 
       - name: Cache sample data
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.cache_data.outputs.cache-hit != 'true'
         with:
           path: downloads
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13
           cache-dependency-path: "pyproject.toml"

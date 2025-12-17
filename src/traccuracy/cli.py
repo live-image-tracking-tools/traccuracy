@@ -55,7 +55,7 @@ def run_ctc(
     from traccuracy.metrics import CTCMetrics
 
     gt_data, pred_data = _load_all_ctc(gt_dir, pred_dir, gt_track_path, pred_track_path)
-    result, matched = run_metrics(gt_data, pred_data, CTCMatcher(), [CTCMetrics()])
+    result, _ = run_metrics(gt_data, pred_data, CTCMatcher(), [CTCMetrics()])
     with open(out_path, "w") as fp:
         json.dump(result, fp)
     logger.info(f"TRA: {result[0]['results']['TRA']}")

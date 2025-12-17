@@ -236,7 +236,7 @@ class TestStandards:
             ValueError, match="Threshold of 0 is not valid unless one_to_one is True"
         ):
             # Test that threshold 0 is not valid when not one-to-one
-            gtcells, rescells = _match_nodes(
+            _match_nodes(
                 im,
                 im,
                 gt_boxes=np.array([[0, 0, 10, 10]]),
@@ -337,11 +337,14 @@ class Test_match_iou:
                 TrackingGraph(nx.DiGraph()),
             )
 
-    def test_end_to_end_2d(self):
+    @pytest.mark.parametrize("label_key", ["segmentation_id", "label"])
+    def test_end_to_end_2d(self, label_key):
         # Test 2d data
         n_frames = 3
         n_labels = 3
-        track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
+        track_graph = get_movie_with_graph(
+            ndims=3, n_frames=n_frames, n_labels=n_labels, label_key=label_key
+        )
         mapper = match_iou(
             track_graph,
             track_graph,

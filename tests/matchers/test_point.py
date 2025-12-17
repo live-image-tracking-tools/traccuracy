@@ -3,10 +3,10 @@ import re
 
 import networkx as nx
 import pytest
+from examples.segs import SegmentationData
 
 import tests.examples.segs as ex_segs
-from examples.segs import SegmentationData
-from tests.test_utils import get_movie_with_graph
+from tests.test_utils import get_movie_with_graph, shuffle_graph
 from traccuracy import TrackingGraph
 from traccuracy.matchers._point import PointMatcher
 
@@ -376,3 +376,28 @@ class TestPointMatcher:
         # gt and pred node should be the same
         for pair in matched.mapping:
             assert pair[0] == pair[1]
+
+    def test_shuffle(self):
+        """Test shuffling the graph as in #319"""
+        gt_data = self.track_graph
+        pred_data = get_movie_with_graph(ndims=3, n_frames=self.n_frames, n_labels=self.n_labels)
+        gt_random, random_mapping = shuffle_graph(gt_data)
+
+        # Use a large threshold to get matches
+        matcher = PointMatcher(threshold=200)
+        mapping_gt_pred = dict(matcher._compute_mapping(gt_data, pred_data))
+        mapping_rand_pred = dict(matcher._compute_mapping(gt_random, pred_data))
+
+        # Should be the same matches after 'random_mapping'
+        assert len(mapping_gt_pred) == len(mapping_rand_pred)
+
+        # Let's re-order mapping_rand_pred to gt_data node ids
+        reversed_mapping_rand_pred = {}
+        for key, value in random_mapping.items():
+            if value in mapping_rand_pred:
+                reversed_mapping_rand_pred[key] = mapping_rand_pred[value]
+
+        # Let's test all matches
+        for key, value in mapping_gt_pred.items():
+            other_value = reversed_mapping_rand_pred.get(key)
+            assert value == other_value
