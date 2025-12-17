@@ -25,7 +25,7 @@ def load_geff_data(
 
     Segmentations can be optionally loaded either from a related object specified in
     the geff (`load_geff_seg=True`) or with a path to a zarr array `seg_path` and `seg_property`.
-    If loading already-computed graphs with flags, e.g. for visualization, pass `load_all_props=True`.
+    If loading graphs with flags, e.g. for visualization, pass `load_all_props=True`.
 
     Args:
         geff_path (str): Path to a geff group inside of a zarr,
