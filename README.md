@@ -94,4 +94,5 @@ If you use `traccuracy` in your own work, please let us know so that we can feat
 - [Bragantini, J. et al. (2024). Ultrack: pushing the limits of cell tracking across biological scales. bioRxiv.](https://doi.org/10.1101/2024.09.02.610652)
 - [Gallusser, B., & Weigert, M. (2024). Trackastra: Transformer-based cell tracking for live-cell microscopy. In European Conference on Computer Vision.](https://doi.org/10.1007/978-3-031-73116-7_27)
 - [Toma, T. T., Wang, Y., Gahlmann, A., & Acton, S. T. (2024). Deep Temporal Sequence Classification and Mathematical Modeling for Cell Tracking in Dense 3D Microscopy Videos of Bacterial Biofilms. arXiv preprint.](https://doi.org/10.48550/arXiv.2406.19574)
+- [Lalit, M. & Funke, J. (2025) An Investigation of Unsupervised Cell Tracking and Interactive Fine-Tuning. In International Conference on Computer Vision (ICCV) Workshops](https://openaccess.thecvf.com/content/ICCV2025W/BIC/html/Lalit_An_Investigation_of_Unsupervised_Cell_Tracking_and_Interactive_Fine-Tuning_ICCVW_2025_paper.html)
 
