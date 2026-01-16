@@ -269,8 +269,10 @@ class TrackingGraph:
                 self.nodes_by_frame[frame].add(node)
             # store node id in nodes_by_flag mapping
             for node_flag in NodeFlag:
-                if attrs.get(node_flag.value):
-                    self.nodes_by_flag[node_flag.value].add(node)
+                # explicitly excluding min buffer correct again
+                if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
+                    if attrs.get(node_flag.value):
+                        self.nodes_by_flag[node_flag.value].add(node)
 
         # store edge id in edges_by_flag
         for edge, attrs in self.graph.edges.items():
