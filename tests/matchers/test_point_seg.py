@@ -160,14 +160,14 @@ class TestPointSegMatcher:
 
     def test_no_seg(self):
         data = TrackingGraph(self.track_graph.graph, location_keys=self.track_graph.location_keys)
-        with pytest.raises(ValueError, match="Data provided does not contain segmentations."):
+        with pytest.raises(ValueError, match=r"Data provided does not contain segmentations."):
             self.matcher._compute_mapping(data, data)
 
     def test_both_seg(self):
         with pytest.raises(
             ValueError,
-            match="Both datasets have segmentations. "
-            "Please provide only one dataset with segmentations.",
+            match=r"Both datasets have segmentations. "
+            r"Please provide only one dataset with segmentations.",
         ):
             self.matcher._compute_mapping(self.track_graph, self.track_graph)
 

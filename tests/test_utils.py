@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import urllib.request
 import zipfile
 
@@ -7,12 +8,13 @@ import networkx as nx
 import numpy as np
 import pytest
 import skimage as sk
-from geff.geff_reader import GeffReader
+from geff import GeffReader
 
 from tests.examples.larger_examples import larger_example_1
 from tests.examples.segs import nodes_from_segmentation
-from traccuracy._tracking_graph import NodeFlag, TrackingGraph
+from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.loaders import load_ctc_data
+from traccuracy.loaders._geff import load_geff_data
 from traccuracy.metrics._basic import BasicMetrics
 from traccuracy.metrics._divisions import DivisionMetrics
 from traccuracy.utils import export_graphs_to_geff, save_results_json
@@ -118,7 +120,7 @@ def get_annotated_movie(img_size=256, labels_per_frame=3, frames=3, mov_type="se
     return y.astype("int32")
 
 
-def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
+def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3, label_key="segmentation_id"):
     movie = get_annotated_movie(labels_per_frame=n_labels, frames=n_frames, mov_type="repeated")
 
     # Extend to 3d if needed
@@ -131,7 +133,9 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
     # We can assume each object is present and connected across each frame
     G = nx.DiGraph()
     for t in range(n_frames):
-        nodes = nodes_from_segmentation(movie[t], frame=t, _id="label_time", pos_keys=pos_keys)
+        nodes = nodes_from_segmentation(
+            movie[t], frame=t, _id="label_time", pos_keys=pos_keys, label_key=label_key
+        )
         G.add_nodes_from([(_id, data) for _id, data in nodes.items()])
         if t > 0:
             for i in range(1, n_labels + 1):
@@ -141,7 +145,7 @@ def get_movie_with_graph(ndims=3, n_frames=3, n_labels=3):
     # Preserve the option for string ids because it makes a few tests impossible otherwise
     G = nx.convert_node_labels_to_integers(G, first_label=1, label_attribute="string_id")
 
-    return TrackingGraph(G, segmentation=movie, location_keys=pos_keys)
+    return TrackingGraph(G, segmentation=movie, location_keys=pos_keys, label_key=label_key)
 
 
 def get_division_graphs():
@@ -188,6 +192,23 @@ def get_division_graphs():
     mapped_g2 = [7, 8, 11, 14]
 
     return G1, G2, mapped_g1, mapped_g2
+
+
+def shuffle_graph(graph: TrackingGraph):
+    """Shuffle the nodes in a TrackingGraph"""
+    # Now, let's create a random mapping to relabel our gt graph
+    nodes = list(graph.graph.nodes)
+    random.shuffle(nodes)
+
+    random_mapping = {node: nodes[i] for i, node in enumerate(graph.graph.nodes)}
+    return TrackingGraph(
+        nx.relabel_nodes(graph.graph, random_mapping, copy=True),
+        segmentation=graph.segmentation,
+        frame_key=graph.frame_key,
+        label_key=graph.label_key,
+        location_keys=graph.location_keys,
+        name=f"Shuffled-{graph.name}",
+    ), random_mapping
 
 
 class Test_export_graphs_to_geff:
@@ -241,7 +262,8 @@ class Test_export_graphs_to_geff:
         # Check that frame buffer metadata is recorded
         for reader in [gt_reader, pred_reader]:
             for prop in reader.metadata.node_props_metadata.values():
-                assert prop.description == "Target frame buffer 2"
+                if "div" in prop.identifier:
+                    assert prop.description == "Target frame buffer 2"
 
         # Test with bad frame buffer
         with pytest.raises(
@@ -265,6 +287,44 @@ class Test_export_graphs_to_geff:
             res_dict = json.load(f)
         assert "traccuracy" in res_dict
         assert len(res_dict["traccuracy"]) == len(results)
+
+    def test_reload_graphs_with_flags(self, tmp_path):
+        """Test that graphs with flags can be exported and reloaded correctly."""
+        matched = larger_example_1()
+        results = [BasicMetrics().compute(matched)]
+        out_zarr = tmp_path / "test.zarr"
+
+        # Store original flag counts
+        gt_orig = matched.gt_graph
+        pred_orig = matched.pred_graph
+
+        gt_tp_nodes_orig = len(gt_orig.get_nodes_with_flag(NodeFlag.TRUE_POS))
+        gt_fn_nodes_orig = len(gt_orig.get_nodes_with_flag(NodeFlag.FALSE_NEG))
+        gt_tp_edges_orig = len(gt_orig.get_edges_with_flag(EdgeFlag.TRUE_POS))
+
+        pred_tp_nodes_orig = len(pred_orig.get_nodes_with_flag(NodeFlag.TRUE_POS))
+        pred_fp_nodes_orig = len(pred_orig.get_nodes_with_flag(NodeFlag.FALSE_POS))
+        pred_tp_edges_orig = len(pred_orig.get_edges_with_flag(EdgeFlag.TRUE_POS))
+
+        export_graphs_to_geff(out_zarr, matched, results)
+
+        # Reload the graphs with all properties including flags
+        gt_reloaded = load_geff_data(out_zarr / "gt.geff", load_all_props=True)
+        pred_reloaded = load_geff_data(out_zarr / "pred.geff", load_all_props=True)
+
+        # Verify node flag counts match original
+        assert len(gt_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS)) == gt_tp_nodes_orig
+        assert len(gt_reloaded.get_nodes_with_flag(NodeFlag.FALSE_NEG)) == gt_fn_nodes_orig
+        assert len(pred_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS)) == pred_tp_nodes_orig
+        assert len(pred_reloaded.get_nodes_with_flag(NodeFlag.FALSE_POS)) == pred_fp_nodes_orig
+
+        # Verify edge flag counts match original
+        assert len(gt_reloaded.get_edges_with_flag(EdgeFlag.TRUE_POS)) == gt_tp_edges_orig
+        assert len(pred_reloaded.get_edges_with_flag(EdgeFlag.TRUE_POS)) == pred_tp_edges_orig
+
+        # Verify that the node attributes still have the flags
+        for node in gt_reloaded.get_nodes_with_flag(NodeFlag.TRUE_POS):
+            assert NodeFlag.TRUE_POS.value in gt_reloaded.graph.nodes[node]
 
     def test_bad_inputs(self, tmp_path):
         with pytest.raises(ValueError, match="matched argument must be an instance of `Matched`"):

@@ -3,9 +3,9 @@ from collections import Counter
 import networkx as nx
 import numpy as np
 import pytest
+from examples.segs import SegmentationData
 
 import tests.examples.segs as ex_segs
-from examples.segs import SegmentationData
 from tests.test_utils import get_annotated_movie
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.matchers._compute_overlap import get_labels_with_overlap
@@ -47,7 +47,8 @@ class TestCTCMatcher:
                 TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 10, 5), dtype=np.uint16)),
             )
 
-    def test_end_to_end(self):
+    @pytest.mark.parametrize("label_key", ["segmentation_id", "custom_label"])
+    def test_end_to_end(self, label_key):
         n_labels = 3
         n_frames = 3
         movie = get_annotated_movie(
@@ -67,7 +68,7 @@ class TestCTCMatcher:
                     "t": t,
                     "y": 0,
                     "x": 0,
-                    "segmentation_id": i,
+                    label_key: i,
                     "bbox": np.array([0, 0, 256, 256]),
                 }
         nx.set_node_attributes(g, attrs)
@@ -76,8 +77,8 @@ class TestCTCMatcher:
         g = nx.convert_node_labels_to_integers(g, first_label=1)
 
         matched = self.matcher.compute_mapping(
-            TrackingGraph(g, segmentation=movie),
-            TrackingGraph(g, segmentation=movie),
+            TrackingGraph(g, segmentation=movie, label_key=label_key),
+            TrackingGraph(g, segmentation=movie, label_key=label_key),
         )
 
         # Check for correct number of pairs

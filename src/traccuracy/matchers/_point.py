@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-from scipy.optimize import linear_sum_assignment
+import pylapy
 from scipy.spatial import KDTree
 
 from ._base import Matcher
@@ -11,6 +10,9 @@ from ._base import Matcher
 if TYPE_CHECKING:
     from collections.abc import Hashable
     from typing import Any
+
+    import numpy as np
+    from scipy.sparse import coo_matrix
 
     from traccuracy._tracking_graph import TrackingGraph
 
@@ -41,6 +43,9 @@ class PointMatcher(Matcher):
         self.scale_factor = scale_factor
         # this matching is always one-to-one
         self._matching_type = "one-to-one"
+
+        # Lap solver using scipy
+        self._solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
 
     def _compute_mapping(
         self, gt_graph: TrackingGraph, pred_graph: TrackingGraph
@@ -89,52 +94,18 @@ class PointMatcher(Matcher):
             return mapping
         gt_kdtree = KDTree(gt_locations)
         pred_kdtree = KDTree(pred_locations)
+
         # indices correspond to indices in the gt_nodes, pred_nodes lists
-        sdm: dict[tuple[Any, Any], float] = gt_kdtree.sparse_distance_matrix(
-            pred_kdtree, max_distance=self.threshold, output_type="dict"
-        )
-        # unmapped cost has to be higher than the max distance so if something can
-        # be matched it will
-        unmapped_cost = self.threshold * 4
-        # indices in this matrix correspond to indices in the concatenated gt_nodes
-        # + pred_nodes list
-        num_gt = len(gt_nodes)
-        num_pred = len(pred_nodes)
-        total_objects = num_gt + num_pred
-        # initialize to unmapped cost + 1
-        cost_matrix: np.ndarray = np.ones(shape=(total_objects, total_objects)) * (
-            unmapped_cost + 1
+        sdm: coo_matrix = gt_kdtree.sparse_distance_matrix(
+            pred_kdtree, max_distance=self.threshold, output_type="coo_matrix"
         )
 
-        # update costs for those pairs below threshold
-        for pair, dist in sdm.items():
-            gt_idx, pred_idx = pair
-            # put it in the top left corner
-            cost_matrix[gt_idx, pred_idx] = dist
-            # put the transpose in the bottom right corner
-            cost_matrix[-1 * pred_idx, -1 * gt_idx] = dist
+        # Let's keep threshold * 4 for compatibility. But one could probably do
+        # hard thresholding instead (using hard=True) which is indeed what we want to do
+        links = self._solver.sparse_solve(sdm, self.threshold).T
 
-        # Calculate unassigned corners, with base cost of 10*unmapped cost
-        # Diagonals are set to unmapped_cost
-        bot_left = np.full((num_pred, num_pred), unmapped_cost * 10)
-        np.fill_diagonal(bot_left, unmapped_cost)
-        top_right = np.full((num_gt, num_gt), unmapped_cost * 10)
-        np.fill_diagonal(top_right, unmapped_cost)
-
-        # Assign diagonals to cm
-        cost_matrix[total_objects - num_pred :, :num_pred] = bot_left
-        cost_matrix[:num_gt, total_objects - num_gt :] = top_right
-
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        # go back to matched node ids from matrix indices
-        for row, col in zip(row_ind, col_ind, strict=True):
-            # it said they were sorted by row index, so we only want the top left corner
-            if row >= num_gt:
-                break
-            if (
-                col >= num_pred
-            ):  # the gt was unmatched (matched to the unmatched cost in the top right)
-                continue
+        # Go back to matched node ids from matrix indices
+        for row, col in links.T.tolist():
             gt_id = gt_nodes[row]
             pred_id = pred_nodes[col]
             mapping.append((gt_id, pred_id))
