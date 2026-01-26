@@ -47,3 +47,11 @@ print(f"Window 50: {result.results['window_50_accuracy']:.2%}")
 tracklet_metric = TrackAccuracyOverTime(max_window=50, lineages=False)
 tracklet_result = tracklet_metric.compute(matched)
 ```
+
+## References
+
+This metric is based on the track accuracy evaluation from linajea:
+
+- **Paper:** Malin-Mayor, C., Hirsch, P., Guber, L. et al. Automated reconstruction of whole-embryo cell lineages by learning from sparse annotations. *Nat Biotechnol* 41, 44–49 (2023). [https://doi.org/10.1038/s41587-022-01427-7](https://www.nature.com/articles/s41587-022-01427-7)
+
+- **Original implementation:** [`linajea.evaluation.evaluator.get_perfect_segments`](https://github.com/funkelab/linajea/blob/master/linajea/evaluation/evaluator.py#L409)
