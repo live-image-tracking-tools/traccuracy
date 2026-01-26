@@ -23,9 +23,14 @@ def compute_track_accuracy(
     Uses a sliding window approach: for each window size from 1 to `window`,
     counts how many GT track segments of that length are correctly reconstructed.
 
+    Window size is measured in frames (time difference), not edge count.
+    A skip edge spanning multiple frames counts toward the window size based
+    on the actual frame difference. For example, a skip edge from t=0 to t=3
+    contributes a segment of window size 3.
+
     Args:
         matched: Matched data object with annotated errors
-        window: Maximum window size to evaluate
+        window: Maximum window size to evaluate (in frames)
         lineages: If True, evaluate on full lineages. If False, on tracklets.
         error_type: "basic" or "ctc" - which error classification was used
         relax_skips_gt: If True, SKIP_TRUE_POS edges in GT count as correct
@@ -53,12 +58,13 @@ def compute_track_accuracy(
 
     gt_graph = matched.gt_graph
     pred_graph = matched.pred_graph
+    frame_key = gt_graph.frame_key
 
     for gt_track in components:
         # Build nodes_by_frame for temporal ordering
         nodes_by_frame: dict[int, list] = defaultdict(list)
         for node, data in gt_track.nodes(data=True):
-            nodes_by_frame[data[gt_graph.frame_key]].append(node)
+            nodes_by_frame[data[frame_key]].append(node)
 
         sorted_frames = sorted(nodes_by_frame.keys())
         for start_frame in sorted_frames:
@@ -66,7 +72,6 @@ def compute_track_accuracy(
             for gt_start_node in gt_start_nodes:
                 start_edges = list(gt_track.out_edges(gt_start_node))
                 for start_edge in start_edges:
-                    window_size = 1
                     correct = True
                     current_nodes = [gt_start_node]
                     next_edges = [start_edge]
@@ -104,21 +109,28 @@ def compute_track_accuracy(
                                         correct = False
                                         break
 
-                        # Update segment counts
-                        total_segments[window_size] += 1
-                        if correct:
-                            correct_segments[window_size] += 1
+                        # Get target nodes from current edges (v from (u, v))
+                        target_nodes = [v for _, v in next_edges]
+
+                        # Compute window size based on frame difference
+                        # Use max frame of targets (should typically be same frame)
+                        target_frame = max(gt_graph.nodes[n][frame_key] for n in target_nodes)
+                        window_size = target_frame - start_frame
+
+                        # Update segment counts for this window size
+                        if window_size <= window:
+                            total_segments[window_size] += 1
+                            if correct:
+                                correct_segments[window_size] += 1
 
                         # Update loop variables
-                        window_size += 1
-                        # Get target nodes from current edges (v from (u, v))
-                        current_nodes = [v for _, v in next_edges]
-                        # Get outgoing edges from those nodes
+                        current_nodes = target_nodes
+                        # Get outgoing edges from target nodes
                         next_edges = []
                         for node in current_nodes:
                             next_edges.extend(gt_track.out_edges(node))
 
-                        if window_size > window:
+                        if window_size >= window:
                             break
 
     result = {}

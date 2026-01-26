@@ -22,37 +22,43 @@ class TrackAccuracyOverTime(Metric):
     For each window size from 1 to max_window, computes the fraction of
     ground truth track segments that are correctly reconstructed.
 
-    A segment of size N consists of a starting node and N-1 edges following
-    all outgoing paths. For example, a segment of size 1 is a single node with
-    one outgoing edge, and a segment of size 2 is a node followed by two edges
-    (including both branches if there is a division). At division points, all
-    branches are included in the same segment - a segment is only correct if
-    all branches are correct.
+    Window size is measured in frames (time difference), not edge count.
+    A segment of size N spans N frames from start to end. For example:
+    - A segment of size 1 spans 1 frame (node at t=0 to node at t=1)
+    - A segment of size 2 spans 2 frames (node at t=0 to node at t=2)
+
+    Skip edges that span multiple frames count toward their actual frame
+    difference. For example, a skip edge from t=0 to t=3 contributes a
+    segment of size 3, not size 1.
+
+    At division points, all branches are included in the same segment -
+    a segment is only correct if all branches are correct.
 
     A segment is counted as correct if:
     - The starting node is a true positive
-    - All N-1 edges are true positives (edge TP implies endpoint nodes are TP)
+    - All edges along the path are true positives
 
     Important counting rules:
-    - Isolated nodes (nodes with no outgoing edges) are NOT counted as segments
-    - A track with M edges contributes segments of sizes 1 through M only
+    - Isolated nodes (nodes with no outgoing edges) are NOT counted
+    - Segments only exist at their actual frame spans (no intermediate sizes
+      for skip edges)
     - Tracks shorter than window size N do not contribute to the total for
-      window N (they only count toward their actual length)
+      window N
 
     This metric helps identify whether tracking errors occur more frequently
     in short or long tracks, providing granular insight into tracking quality
     at different temporal scales.
 
     Args:
-        max_window: Maximum window size to evaluate (default: 50)
+        max_window: Maximum window size in frames to evaluate (default: 50)
         lineages: If True, evaluate on full lineages (connected components).
             If False, evaluate on tracklets (segments between divisions).
         error_type: "basic" or "ctc" error classification scheme
 
     The compute function returns a results dictionary with entries for each
     window size from 1 to max_window:
-        - `window_{N}_correct` - number of correct segments of size N
-        - `window_{N}_total` - total number of segments of size N
+        - `window_{N}_correct` - number of correct segments of size N frames
+        - `window_{N}_total` - total number of segments of size N frames
         - `window_{N}_accuracy` - correct/total, or np.nan if total is 0
 
     """

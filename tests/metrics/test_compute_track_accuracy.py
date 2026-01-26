@@ -164,16 +164,17 @@ class TestSkipEdges:
     @pytest.mark.parametrize(
         ("relax_gt", "relax_pred", "window", "acc"),
         [
-            # gap_close_gt_gap: GT has skip edge 1->3, pred has full path
-            # GT edges: 1->3 (skip), 3->4. Total: w1=2, w2=1
+            # gap_close_gt_gap: GT has skip edge t=0->t=2, pred has full path
+            # GT edges: 1->3 (skip spanning 2 frames), 3->4 (1 frame)
+            # Time-based windows: w1 has only 3->4, w2 has only 1->3
             # Without relax: edge 1->3 not TRUE_POS, edge 3->4 is TRUE_POS
-            (False, False, 1, 0.5),
-            (False, False, 2, 0.0),
+            (False, False, 1, 1.0),  # w1: 1/1 (only 3->4, which is correct)
+            (False, False, 2, 0.0),  # w2: 0/1 (only 1->3, skip not relaxed)
             # With relax_skips_gt: edge 1->3 becomes SKIP_TRUE_POS
             (True, False, 1, 1.0),
-            (True, False, 2, 1.0),
+            (True, False, 2, 1.0),  # w2: 1/1 (skip edge now correct)
             # relax_skips_pred doesn't help (skip is in GT, not pred)
-            (False, True, 1, 0.5),
+            (False, True, 1, 1.0),
             (False, True, 2, 0.0),
         ],
     )
