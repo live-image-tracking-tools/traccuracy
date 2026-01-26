@@ -63,10 +63,10 @@ class TrackAccuracyOverTime(Metric):
         lineages: bool = True,
         error_type: str = "basic",
     ):
-        # Only one-to-one matches supported for now because division error
-        # classification requires one-to-one mapping. TODO: implement many-to-one
-        # division classification where any many-to-one matches are counted as wrong.
-        valid_matches = ["one-to-one"]
+        # CTC supports many-to-one because it doesn't use division error classification
+        # (divisions handled via WRONG_SEMANTIC edge flags instead)
+        # Basic errors require one-to-one for proper division error classification
+        valid_matches = ["one-to-one", "many-to-one"]
         super().__init__(valid_matches)
 
         if error_type not in ["ctc", "basic"]:
@@ -97,7 +97,20 @@ class TrackAccuracyOverTime(Metric):
         """
         # Run error classification
         if self.error_type == "basic":
+            # Warn if using many-to-one matching with basic errors
+            if matched.matcher_info.get("type") == "many-to-one":
+                warnings.warn(
+                    "Using basic errors with many-to-one matching. "
+                    "Division error classification may not work correctly. "
+                    "Consider using error_type='ctc' for many-to-one matching.",
+                    stacklevel=2,
+                )
             classify_basic_errors(
+                matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
+            )
+            # Run division error classification (only for basic errors)
+            # CTC handles division errors via WRONG_SEMANTIC edge flags
+            evaluate_division_events(
                 matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
             )
         else:
@@ -108,11 +121,6 @@ class TrackAccuracyOverTime(Metric):
                     stacklevel=2,
                 )
             evaluate_ctc_events(matched)
-
-        # Run division error classification (requires one-to-one mapping)
-        evaluate_division_events(
-            matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
-        )
 
         # Compute segment counts
         segment_counts = compute_track_accuracy(

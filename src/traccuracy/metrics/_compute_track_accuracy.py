@@ -146,30 +146,32 @@ def _is_node_correct(
 
     For CTC errors:
     - GT node must have the CTC_TRUE_POS flag
-    - GT node must not have FN_DIV flag
-    - Matched pred nodes must not have FP_DIV flag
+    - Division errors (FN_DIV/FP_DIV) are NOT checked - CTC handles divisions
+      via WRONG_SEMANTIC edge flags instead
 
     If relax_skips_pred is True, nodes between SKIP_TRUE_POS edges are also correct.
     """
     gt_node_data = gt_graph.nodes[gt_node]
 
-    # Check for division errors on GT node (FN_DIV means missed division)
-    if NodeFlag.FN_DIV in gt_node_data:
-        return False
-
-    # Check if GT node is a TP
-    if node_tp in gt_node_data:
-        # Check matched pred nodes for FP_DIV (false positive division)
-        pred_nodes = matched.get_gt_pred_matches(gt_node)
-        for on in pred_nodes:
-            if NodeFlag.FP_DIV in pred_graph.nodes[on]:
-                return False
-
-        if is_ctc:
-            # CTC only checks GT node, not pred node TP flags
+    if is_ctc:
+        # CTC only checks GT node TP flag - division errors handled via WRONG_SEMANTIC
+        if node_tp in gt_node_data:
             return True
-        else:
-            # Basic errors: also check that all matched pred nodes are TP
+    else:
+        # Basic errors: check division errors and pred node TP flags
+        # Check for division errors on GT node (FN_DIV means missed division)
+        if NodeFlag.FN_DIV in gt_node_data:
+            return False
+
+        # Check if GT node is a TP
+        if node_tp in gt_node_data:
+            # Check matched pred nodes for FP_DIV (false positive division)
+            pred_nodes = matched.get_gt_pred_matches(gt_node)
+            for on in pred_nodes:
+                if NodeFlag.FP_DIV in pred_graph.nodes[on]:
+                    return False
+
+            # Also check that all matched pred nodes are TP
             for on in pred_nodes:
                 if node_tp not in pred_graph.nodes[on]:
                     return False
@@ -198,7 +200,7 @@ def _is_edge_correct(
 
     For basic errors: edge is correct if it has the TRUE_POS flag.
     For CTC errors: edge is correct if it does NOT have CTC_FALSE_NEG flag,
-        and matched pred edges don't have WRONG_SEMANTIC or INTERTRACK_EDGE.
+        and matched pred edges don't have WRONG_SEMANTIC.
     If skip relaxation is enabled, SKIP_TRUE_POS also counts as correct.
     """
     edge_data = gt_graph.edges[gt_edge]
@@ -209,6 +211,7 @@ def _is_edge_correct(
             return False
 
         # Also check matched pred edges for CTC error flags
+        # Note: INTERTRACK_EDGE just marks division edges, not errors
         matched_sources = matched.get_gt_pred_matches(gt_edge[0])
         matched_targets = matched.get_gt_pred_matches(gt_edge[1])
         for src in matched_sources:
@@ -216,8 +219,6 @@ def _is_edge_correct(
                 if pred_graph.graph.has_edge(src, tgt):
                     pred_edge_data = pred_graph.edges[(src, tgt)]
                     if EdgeFlag.WRONG_SEMANTIC in pred_edge_data:
-                        return False
-                    if EdgeFlag.INTERTRACK_EDGE in pred_edge_data:
                         return False
         return True
     else:
