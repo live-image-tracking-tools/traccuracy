@@ -94,7 +94,7 @@ class TestMetric:
 
     def test_precision(self):
         m = ValidMetric()
-        assert np.isnan(m._get_precision(numerator=0, denominator=0))
+        assert m._get_precision(numerator=0, denominator=0) == 0
         assert m._get_precision(numerator=10, denominator=10) == 1
         assert m._get_precision(numerator=0, denominator=10) == 0
 
@@ -106,9 +106,11 @@ class TestMetric:
 
     def test_f1(self):
         m = ValidMetric()
-        assert np.isnan(m._get_f1(precision=0, recall=0))
+        assert m._get_f1(precision=0, recall=0) == 0
         assert m._get_f1(precision=0, recall=1) == 0
         assert m._get_f1(precision=1, recall=1) == 1
+        assert np.isnan(m._get_f1(precision=0, recall=np.nan))
+        assert np.isnan(m._get_f1(precision=1, recall=np.nan))
 
     def test_relax_info(self):
         m = ValidMetric()

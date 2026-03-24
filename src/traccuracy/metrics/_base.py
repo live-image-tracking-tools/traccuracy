@@ -126,7 +126,7 @@ class Metric(ABC):
         return {"name": self.__class__.__name__, **self.__dict__}
 
     def _get_precision(self, numerator: int, denominator: int) -> float:
-        """Compute precision and return np.nan if denominator is 0
+        """Compute precision and return 0 if denominator is 0
 
         Args:
             numerator (int): Typically TP
@@ -136,7 +136,7 @@ class Metric(ABC):
             float: Precision
         """
         if denominator == 0:
-            return np.nan
+            return 0.0
         return numerator / denominator
 
     def _get_recall(self, numerator: int, denominator: int) -> float:
@@ -154,7 +154,8 @@ class Metric(ABC):
         return numerator / denominator
 
     def _get_f1(self, precision: float, recall: float) -> float:
-        """Compute F1 and return np.nan if precision and recall both equal 0
+        """Compute F1 and return np.nan if either input is nan,
+        or 0 if either input is 0
 
         Args:
             precision (float): Precision score
@@ -163,6 +164,8 @@ class Metric(ABC):
         Returns:
             float: F1
         """
-        if precision + recall == 0:
+        if np.isnan(precision) or np.isnan(recall):
             return np.nan
+        if precision == 0 or recall == 0:
+            return 0.0
         return 2 * (recall * precision) / (recall + precision)
