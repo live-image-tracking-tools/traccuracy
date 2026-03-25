@@ -122,6 +122,59 @@ class TestBorderMarginFiltering:
         assert 2 in tg.nodes_by_frame[0]
         assert 3 in tg.nodes_by_frame[1]
 
+    def test_segmentation_zeroed_for_removed_nodes(self):
+        # Build a segmentation where node 1 (near border) has a multi-pixel mask
+        seg = np.zeros((1, 10, 10), dtype=np.uint16)
+        seg[0, 0, 3:7] = 1  # node 1: row 0, several pixels
+        seg[0, 5, 3:7] = 2  # node 2: row 5, interior
+
+        g = nx.DiGraph()
+        g.add_node(1, t=0, y=0.0, x=5.0, segmentation_id=1)
+        g.add_node(2, t=0, y=5.0, x=5.0, segmentation_id=2)
+        tg = TrackingGraph(g, segmentation=seg, location_keys=("y", "x"), border_margin=1.0)
+        # Node 1 removed, its segmentation label zeroed
+        assert 1 not in tg.graph.nodes
+        assert np.count_nonzero(tg.segmentation[0] == 1) == 0
+        # Node 2 interior, segmentation intact
+        assert 2 in tg.graph.nodes
+        assert np.count_nonzero(tg.segmentation[0] == 2) == 4
+
+    def test_segmentation_zeroing_prevents_matcher_overlap(self):
+        # Scenario: GT cell near border removed, pred cell interior overlaps it.
+        # Without seg zeroing, the matcher would find an overlap with a non-existent
+        # GT node. With zeroing, no overlap is found.
+        from traccuracy.matchers._compute_overlap import get_labels_with_overlap
+
+        seg_gt = np.zeros((1, 10, 10), dtype=np.uint16)
+        seg_pred = np.zeros((1, 10, 10), dtype=np.uint16)
+        # GT cell 1: near top border, spans rows 0-2
+        seg_gt[0, 0:3, 4:6] = 1
+        # GT cell 2: interior
+        seg_gt[0, 5, 5] = 2
+        # Pred cell 10: overlaps GT cell 1's area but centroid is at row 2
+        seg_pred[0, 1:4, 4:6] = 10
+        # Pred cell 20: interior
+        seg_pred[0, 5, 5] = 20
+
+        g_gt = nx.DiGraph()
+        g_gt.add_node(1, t=0, y=1.0, x=4.5, segmentation_id=1)
+        g_gt.add_node(2, t=0, y=5.0, x=5.0, segmentation_id=2)
+
+        tg_gt = TrackingGraph(
+            g_gt, segmentation=seg_gt, location_keys=("y", "x"), border_margin=2.0
+        )
+
+        # GT node 1 should be removed and its seg zeroed
+        assert 1 not in tg_gt.graph.nodes
+        # Verify no overlap between removed GT label and pred label
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            overlaps = get_labels_with_overlap(tg_gt.segmentation[0], seg_pred[0])
+        gt_labels_in_overlaps = {gt_label for gt_label, _, _ in overlaps}
+        assert 1 not in gt_labels_in_overlaps
+
 
 class TestBorderMarginValidation:
     def test_raises_without_segmentation(self):
