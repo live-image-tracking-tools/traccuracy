@@ -17,6 +17,8 @@ def load_point_data(
     seg_id_column: str | None = None,
     name: str | None = None,
     sep: str | None = None,
+    segmentation: np.ndarray | None = None,
+    border_margin: float | None = None,
 ) -> TrackingGraph:
     """Load point-based tracking data into a TrackingGraph from a csv-like file
 
@@ -43,6 +45,11 @@ def load_point_data(
             label id. Defaults to None.
         name (str | None, optional): Optional string to name/describe the dataset. Defaults to None.
         sep (str | None, optional): Passed to pd.read_csv to set the sep kwarg. Defaults to None.
+        segmentation (numpy-like array, optional): Dense segmentation masks. Required if
+            ``border_margin`` is set. Defaults to None.
+        border_margin (float, optional): If set, nodes whose centroid is within this
+            distance (in pixels) of the spatial border will be excluded from the graph.
+            Requires ``segmentation`` to be provided. Defaults to None (no filtering).
 
     Raises:
         ValueError: Must provide either a path or a dataframe
@@ -108,6 +115,19 @@ def load_point_data(
 
     if seg_id_column:
         return TrackingGraph(
-            G, frame_key=time_column, location_keys=pos_columns, label_key=seg_id_column, name=name
+            G,
+            frame_key=time_column,
+            location_keys=pos_columns,
+            label_key=seg_id_column,
+            name=name,
+            segmentation=segmentation,
+            border_margin=border_margin,
         )
-    return TrackingGraph(G, frame_key=time_column, location_keys=pos_columns, name=name)
+    return TrackingGraph(
+        G,
+        frame_key=time_column,
+        location_keys=pos_columns,
+        name=name,
+        segmentation=segmentation,
+        border_margin=border_margin,
+    )

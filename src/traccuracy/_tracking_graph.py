@@ -158,6 +158,7 @@ class TrackingGraph:
         location_keys: str | tuple[str, ...] | None = None,
         name: str | None = None,
         validate: bool = True,
+        border_margin: float | None = None,
     ):
         """A directed graph representing a tracking solution where edges go
         forward in time.
@@ -192,6 +193,11 @@ class TrackingGraph:
                 outputs associated with this object
             validate (bool, optional): Validate that nodes have required attributes: frame_key,
                 location_key and label_key (if segmentation provided). Default = True.
+            border_margin (float, optional): If set, nodes whose centroid is within this
+                Euclidean distance (in pixels) of the spatial border of the segmentation
+                will be excluded from the graph, along with their edges. Requires
+                ``segmentation`` and ``location_keys`` (as a tuple) to be provided.
+                Defaults to None (no filtering).
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -221,6 +227,9 @@ class TrackingGraph:
         self.name = name
 
         self.graph = graph
+
+        if border_margin is not None:
+            self._remove_border_nodes(border_margin)
 
         self._set_attrs(validate)
 
@@ -290,6 +299,47 @@ class TrackingGraph:
         self.ctc_edge_errors = False
         self.skip_edges_gt_relaxed = False
         self.skip_edges_pred_relaxed = False
+
+    def _remove_border_nodes(self, border_margin: float) -> None:
+        """Remove nodes whose centroid is within border_margin of the spatial border.
+
+        The minimum distance to the border for a point inside a rectangular domain
+        is the minimum over all spatial dimensions of ``min(loc, size - 1 - loc)``.
+
+        Args:
+            border_margin (float): Distance threshold in pixels.
+
+        Raises:
+            ValueError: If segmentation or location_keys (as tuple) are not provided.
+        """
+        if self.segmentation is None:
+            raise ValueError("`segmentation` is required when `border_margin` is set")
+        if self.location_keys is None or isinstance(self.location_keys, str):
+            raise ValueError(
+                "`location_keys` must be a tuple of strings when `border_margin` is set"
+            )
+
+        spatial_shape = self.segmentation.shape[1:]  # drop time dimension
+        if len(spatial_shape) != len(self.location_keys):
+            raise ValueError(
+                f"Number of spatial dimensions in segmentation ({len(spatial_shape)}) "
+                f"does not match number of location_keys ({len(self.location_keys)})"
+            )
+
+        nodes_to_remove = []
+        for node, attrs in self.graph.nodes.items():
+            loc = [attrs[key] for key in self.location_keys]
+            min_dist = min(min(c, s - 1 - c) for c, s in zip(loc, spatial_shape, strict=True))
+            if min_dist < border_margin:
+                nodes_to_remove.append(node)
+
+        if nodes_to_remove:
+            self.graph.remove_nodes_from(nodes_to_remove)
+            logger.info(
+                "Removed %d nodes within %g pixels of the border",
+                len(nodes_to_remove),
+                border_margin,
+            )
 
     def clear_annotations(self) -> None:
         """Resets a TrackingGraph by removing all traccuracy related annotations
