@@ -66,6 +66,10 @@ class PointSegMatcher(Matcher):
 
             # Convert s_seg_ids to s_nodes
             for p_node, seg_id in frame_map.items():
+                # Skip if seg label has no corresponding graph node
+                # (e.g. node removed by border_margin filtering)
+                if seg_id not in seg_to_snode:
+                    continue
                 map_p_nodes.append(p_node)
                 map_s_nodes.append(seg_to_snode[seg_id])
 

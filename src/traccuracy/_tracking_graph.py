@@ -303,9 +303,9 @@ class TrackingGraph:
     def _remove_border_nodes(self, border_margin: float) -> None:
         """Remove nodes whose centroid is within border_margin of the spatial border.
 
-        Also zeros out the corresponding segmentation labels so that matchers
-        operating on the raw segmentation array don't compute overlaps with
-        removed objects.
+        Nodes are removed from the graph but the segmentation array is left
+        unmodified.  Matchers must handle the case where a segmentation label
+        in the dense array has no corresponding node in the graph.
 
         The minimum distance to the border for a point inside a rectangular domain
         is the minimum over all spatial dimensions of ``min(loc, size - 1 - loc)``.
@@ -338,14 +338,6 @@ class TrackingGraph:
                 nodes_to_remove.append(node)
 
         if nodes_to_remove:
-            # Zero out segmentation labels for removed nodes so matchers
-            # don't find overlaps with objects no longer in the graph
-            for node in nodes_to_remove:
-                attrs = self.graph.nodes[node]
-                t = attrs[self.frame_key]
-                seg_label = attrs[self.label_key]
-                self.segmentation[t][self.segmentation[t] == seg_label] = 0
-
             self.graph.remove_nodes_from(nodes_to_remove)
             logger.info(
                 "Removed %d nodes within %g pixels of the border",

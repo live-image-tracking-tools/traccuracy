@@ -122,58 +122,58 @@ class TestBorderMarginFiltering:
         assert 2 in tg.nodes_by_frame[0]
         assert 3 in tg.nodes_by_frame[1]
 
-    def test_segmentation_zeroed_for_removed_nodes(self):
-        # Build a segmentation where node 1 (near border) has a multi-pixel mask
+    def test_segmentation_not_modified(self):
+        # Verify that border_margin does NOT modify the segmentation array
         seg = np.zeros((1, 10, 10), dtype=np.uint16)
-        seg[0, 0, 3:7] = 1  # node 1: row 0, several pixels
+        seg[0, 0, 3:7] = 1  # node 1: row 0, near border
         seg[0, 5, 3:7] = 2  # node 2: row 5, interior
 
         g = nx.DiGraph()
         g.add_node(1, t=0, y=0.0, x=5.0, segmentation_id=1)
         g.add_node(2, t=0, y=5.0, x=5.0, segmentation_id=2)
         tg = TrackingGraph(g, segmentation=seg, location_keys=("y", "x"), border_margin=1.0)
-        # Node 1 removed, its segmentation label zeroed
+        # Node 1 removed from graph but segmentation pixels are unchanged
         assert 1 not in tg.graph.nodes
-        assert np.count_nonzero(tg.segmentation[0] == 1) == 0
-        # Node 2 interior, segmentation intact
-        assert 2 in tg.graph.nodes
+        assert np.count_nonzero(tg.segmentation[0] == 1) == 4
         assert np.count_nonzero(tg.segmentation[0] == 2) == 4
 
-    def test_segmentation_zeroing_prevents_matcher_overlap(self):
-        # Scenario: GT cell near border removed, pred cell interior overlaps it.
-        # Without seg zeroing, the matcher would find an overlap with a non-existent
-        # GT node. With zeroing, no overlap is found.
-        from traccuracy.matchers._compute_overlap import get_labels_with_overlap
+    def test_iou_matcher_skips_removed_nodes(self):
+        # GT cell 1 near border (removed), GT cell 2 interior (kept).
+        # Pred cell 10 overlaps GT cell 1 in the segmentation but GT node 1
+        # is gone. The matcher must skip this overlap, not crash.
+        from traccuracy.matchers._iou import match_iou
 
-        seg_gt = np.zeros((1, 10, 10), dtype=np.uint16)
-        seg_pred = np.zeros((1, 10, 10), dtype=np.uint16)
-        # GT cell 1: near top border, spans rows 0-2
-        seg_gt[0, 0:3, 4:6] = 1
-        # GT cell 2: interior
-        seg_gt[0, 5, 5] = 2
-        # Pred cell 10: overlaps GT cell 1's area but centroid is at row 2
-        seg_pred[0, 1:4, 4:6] = 10
-        # Pred cell 20: interior
-        seg_pred[0, 5, 5] = 20
+        seg = np.zeros((1, 20, 20), dtype=np.uint16)
+        seg[0, 0:3, 8:12] = 1  # GT cell 1: near top border
+        seg[0, 10:13, 8:12] = 2  # GT cell 2: interior
+
+        seg_pred = np.zeros((1, 20, 20), dtype=np.uint16)
+        seg_pred[0, 1:4, 8:12] = 10  # pred overlaps GT cell 1
+        seg_pred[0, 10:13, 8:12] = 20  # pred overlaps GT cell 2
 
         g_gt = nx.DiGraph()
-        g_gt.add_node(1, t=0, y=1.0, x=4.5, segmentation_id=1)
-        g_gt.add_node(2, t=0, y=5.0, x=5.0, segmentation_id=2)
+        g_gt.add_node(1, t=0, y=1.0, x=10.0, segmentation_id=1, bbox=[0, 8, 3, 12])
+        g_gt.add_node(2, t=0, y=11.0, x=10.0, segmentation_id=2, bbox=[10, 8, 13, 12])
 
-        tg_gt = TrackingGraph(
-            g_gt, segmentation=seg_gt, location_keys=("y", "x"), border_margin=2.0
-        )
+        g_pred = nx.DiGraph()
+        g_pred.add_node(10, t=0, y=2.0, x=10.0, segmentation_id=10, bbox=[1, 8, 4, 12])
+        g_pred.add_node(20, t=0, y=11.0, x=10.0, segmentation_id=20, bbox=[10, 8, 13, 12])
 
-        # GT node 1 should be removed and its seg zeroed
-        assert 1 not in tg_gt.graph.nodes
-        # Verify no overlap between removed GT label and pred label
-        import warnings
+        gt = TrackingGraph(g_gt, segmentation=seg, location_keys=("y", "x"), border_margin=3.0)
+        pred = TrackingGraph(g_pred, segmentation=seg_pred, location_keys=("y", "x"))
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            overlaps = get_labels_with_overlap(tg_gt.segmentation[0], seg_pred[0])
-        gt_labels_in_overlaps = {gt_label for gt_label, _, _ in overlaps}
-        assert 1 not in gt_labels_in_overlaps
+        # GT node 1 removed, GT node 2 kept
+        assert 1 not in gt.graph.nodes
+        assert 2 in gt.graph.nodes
+
+        mapping = match_iou(gt, pred, threshold=0.1)
+        matched_gt_nodes = {m[0] for m in mapping}
+        matched_pred_nodes = {m[1] for m in mapping}
+        # GT node 1 must not appear; pred 10 must not match
+        assert 1 not in matched_gt_nodes
+        assert 10 not in matched_pred_nodes
+        # Interior match works
+        assert (2, 20) in mapping
 
 
 class TestBorderMarginValidation:
