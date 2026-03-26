@@ -453,12 +453,12 @@ def test_iou_match_with_border_margin():
     n_labels = 3
     graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
 
-    kwargs = dict(
-        segmentation=graph.segmentation,
-        location_keys=graph.location_keys,
-        label_key=graph.label_key,
-        border_margin=30.0,
-    )
+    kwargs = {
+        "segmentation": graph.segmentation,
+        "location_keys": graph.location_keys,
+        "label_key": graph.label_key,
+        "border_margin": 30.0,
+    }
     gt = TrackingGraph(graph.graph.copy(), **kwargs)
     pred = TrackingGraph(graph.graph.copy(), **kwargs)
     assert len(gt.graph.nodes) < len(graph.graph.nodes)

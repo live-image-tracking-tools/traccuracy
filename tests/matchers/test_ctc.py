@@ -93,12 +93,12 @@ class TestCTCMatcher:
         from tests.test_utils import get_movie_with_graph
 
         graph = get_movie_with_graph(ndims=3, n_frames=3, n_labels=3)
-        kwargs = dict(
-            segmentation=graph.segmentation,
-            location_keys=graph.location_keys,
-            label_key=graph.label_key,
-            border_margin=30.0,
-        )
+        kwargs = {
+            "segmentation": graph.segmentation,
+            "location_keys": graph.location_keys,
+            "label_key": graph.label_key,
+            "border_margin": 30.0,
+        }
         gt = TrackingGraph(graph.graph.copy(), **kwargs)
         pred = TrackingGraph(graph.graph.copy(), **kwargs)
         assert len(gt.graph.nodes) < len(graph.graph.nodes)
