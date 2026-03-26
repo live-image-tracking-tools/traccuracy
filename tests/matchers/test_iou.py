@@ -14,6 +14,7 @@ from traccuracy.matchers._iou import (
     IOUMatcher,
     _construct_time_to_seg_id_map,
     _match_nodes,
+    _one_to_one_assignment,
     match_iou,
 )
 
@@ -230,6 +231,23 @@ class TestStandards:
         )
         assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
+    @pytest.mark.parametrize(
+        "data", [ex_segs.no_overlap_2d(), ex_segs.no_overlap_3d()], ids=["2D", "3D"]
+    )
+    def test_no_overlap_one_to_one(self, data):
+        gtcells, rescells = _match_nodes(
+            gt=data[0].segmentation,
+            res=data[1].segmentation,
+            gt_boxes=data[0].boxes,
+            res_boxes=data[1].boxes,
+            gt_labels=data[0].labels,
+            res_labels=data[1].labels,
+            threshold=0.5,
+            one_to_one=True,
+        )
+        assert len(gtcells) == 0
+        assert len(rescells) == 0
+
     def test_input_error(self):
         im = np.zeros((10, 10))
         with pytest.raises(
@@ -281,6 +299,12 @@ class TestStandards:
             res_labels=data[1].labels,
         )
         assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
+
+
+def test_one_to_one_assignment_empty():
+    rows, cols = _one_to_one_assignment([], 0.5)
+    assert len(rows) == 0
+    assert len(cols) == 0
 
 
 def test__construct_time_to_seg_id_map():
@@ -336,6 +360,14 @@ class Test_match_iou:
                 TrackingGraph(nx.DiGraph()),
                 TrackingGraph(nx.DiGraph()),
             )
+
+    def test_empty_graph(self):
+        seg = np.zeros((5, 10, 10), dtype=np.uint16)
+        result = match_iou(
+            TrackingGraph(nx.DiGraph(), segmentation=seg),
+            TrackingGraph(nx.DiGraph(), segmentation=seg),
+        )
+        assert result == []
 
     @pytest.mark.parametrize("label_key", ["segmentation_id", "label"])
     def test_end_to_end_2d(self, label_key):
