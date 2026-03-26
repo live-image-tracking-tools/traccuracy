@@ -93,20 +93,15 @@ class TestCTCMatcher:
         from tests.test_utils import get_movie_with_graph
 
         graph = get_movie_with_graph(ndims=3, n_frames=3, n_labels=3)
-        gt = TrackingGraph(
-            graph.graph.copy(),
+        kwargs = dict(
             segmentation=graph.segmentation,
             location_keys=graph.location_keys,
             label_key=graph.label_key,
             border_margin=30.0,
         )
-        pred = TrackingGraph(
-            graph.graph.copy(),
-            segmentation=graph.segmentation,
-            location_keys=graph.location_keys,
-            label_key=graph.label_key,
-        )
-        assert len(gt.graph.nodes) < len(pred.graph.nodes)
+        gt = TrackingGraph(graph.graph.copy(), **kwargs)
+        pred = TrackingGraph(graph.graph.copy(), **kwargs)
+        assert len(gt.graph.nodes) < len(graph.graph.nodes)
         matched = self.matcher.compute_mapping(gt, pred)
         for gt_node, pred_node in matched.mapping:
             assert gt_node in gt.graph.nodes

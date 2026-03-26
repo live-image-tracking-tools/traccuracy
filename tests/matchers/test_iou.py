@@ -453,28 +453,18 @@ def test_iou_match_with_border_margin():
     n_labels = 3
     graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
 
-    # Reuse the same movie/graph, but apply a border margin to the gt copy
-    gt = TrackingGraph(
-        graph.graph.copy(),
+    kwargs = dict(
         segmentation=graph.segmentation,
         location_keys=graph.location_keys,
         label_key=graph.label_key,
         border_margin=30.0,
     )
-    pred = TrackingGraph(
-        graph.graph.copy(),
-        segmentation=graph.segmentation,
-        location_keys=graph.location_keys,
-        label_key=graph.label_key,
-    )
-    gt_n = len(gt.graph.nodes)
-    pred_n = len(pred.graph.nodes)
-    assert gt_n < pred_n  # some gt nodes removed
+    gt = TrackingGraph(graph.graph.copy(), **kwargs)
+    pred = TrackingGraph(graph.graph.copy(), **kwargs)
+    assert len(gt.graph.nodes) < len(graph.graph.nodes)
 
     mapping = match_iou(gt, pred)
-    # Every match must reference a node that exists in both graphs
     for gt_node, pred_node in mapping:
         assert gt_node in gt.graph.nodes
         assert pred_node in pred.graph.nodes
-    # Should have at most as many matches as remaining gt nodes
-    assert len(mapping) <= gt_n
+    assert len(mapping) <= len(gt.graph.nodes)
