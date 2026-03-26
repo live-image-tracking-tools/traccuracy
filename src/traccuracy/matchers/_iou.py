@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pylapy
@@ -27,8 +27,6 @@ def _match_nodes(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Identify overlapping objects according to IoU and a threshold for minimum overlap.
 
-    QUESTION: Does this rely on sequential segmentation labels
-
     Args:
         gt (np.ndarray): labeled frame
         res (np.ndarray): labeled frame
@@ -48,8 +46,6 @@ def _match_nodes(
     """
     if threshold == 0.0 and not one_to_one:
         raise ValueError("Threshold of 0 is not valid unless one_to_one is True")
-    # casting to int to avoid issue #152 (result is float with numpy<2, dtype=uint64)
-    iou = np.zeros((int(np.max(gt) + 1), int(np.max(res) + 1)))
 
     ious = get_labels_with_overlap(
         gt,
@@ -61,48 +57,65 @@ def _match_nodes(
         overlap="iou",
     )
 
+    if one_to_one:
+        pairs = _one_to_one_assignment(ious, threshold)
+        return pairs[0], pairs[1]
+
+    gt_matched = []
+    res_matched = []
     for gt_label, res_label, iou_val in ious:
         if iou_val >= threshold:
-            iou[gt_label, res_label] = iou_val
-
-    if one_to_one:
-        pairs = _one_to_one_assignment(iou)
-    else:
-        # np.where returns tuple[ndarray[Any, dtype[signedinteger[Any]]], ...]
-        # this is functionally equivalent to a normal tuple of arrays so we need
-        # to cast to match the return type of _one_to_one_assignment
-        pairs = cast("tuple[np.ndarray, np.ndarray]", np.where(iou))
-
-    gtcells, rescells = pairs[0], pairs[1]
-
-    return gtcells, rescells
+            gt_matched.append(gt_label)
+            res_matched.append(res_label)
+    return np.array(gt_matched, dtype=np.intp), np.array(res_matched, dtype=np.intp)
 
 
 def _one_to_one_assignment(
-    iou: np.ndarray, unmapped_cost: int = 4
+    ious: list[tuple[int, int, float]],
+    threshold: float = 0.5,
+    unmapped_cost: int = 4,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Perform linear assignment on the iou matrix to create a one-to-one
-    mapping
+    """Perform linear assignment on IoU overlaps to create a one-to-one mapping.
+
+    Builds a compact cost matrix using only the labels that appear in the overlaps,
+    avoiding allocation of a large dense matrix indexed by max label value.
 
     Args:
-        iou (np.array): Array containing thresholded iou values
+        ious: List of (gt_label, res_label, iou_value) tuples from get_labels_with_overlap.
+        threshold: Minimum IoU to consider a match. Default 0.5.
         unmapped_cost (float, optional): Cost of an unassigned cell.
             Lower values leads to more unassigned cells. Defaults to 4.
 
     Returns:
-        tuple: Tuple of two arrays, one for indices of each axis
+        tuple: Tuple of two arrays containing matched gt and res label indices.
     """
-    # Lap solver using scipy
-    solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
+    gt_labels_set: set[int] = set()
+    res_labels_set: set[int] = set()
+    for gt_label, res_label, iou_val in ious:
+        if iou_val >= threshold:
+            gt_labels_set.add(gt_label)
+            res_labels_set.add(res_label)
 
-    # Exclude the background which is currently included in iou matrix
-    cost = 1 - iou[1:, 1:]
+    if not gt_labels_set or not res_labels_set:
+        return np.array([], dtype=np.intp), np.array([], dtype=np.intp)
+
+    gt_label_list = sorted(gt_labels_set)
+    res_label_list = sorted(res_labels_set)
+    gt_idx = {label: i for i, label in enumerate(gt_label_list)}
+    res_idx = {label: i for i, label in enumerate(res_label_list)}
+
+    cost = np.ones((len(gt_label_list), len(res_label_list)))
+    for gt_label, res_label, iou_val in ious:
+        if iou_val >= threshold and gt_label in gt_idx and res_label in res_idx:
+            cost[gt_idx[gt_label], res_idx[res_label]] = 1 - iou_val
+
     cost[cost == 1] = np.inf
 
-    # Let's keep eta = unmapped_cost + 1 for compatibility. But one could probably do
-    # hard thresholding instead (using hard=True) which is indeed what we want to do
-    # Add 1 to all indices to correct for the removed background
-    rows, cols = (solver.sparse_solve(cost, eta=unmapped_cost + 1) + 1).T
+    solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
+    assignments = solver.sparse_solve(cost, eta=unmapped_cost + 1)
+
+    rows = np.array([gt_label_list[r] for r, _ in assignments], dtype=np.intp)
+    cols = np.array([res_label_list[c] for _, c in assignments], dtype=np.intp)
 
     return rows, cols
 
@@ -168,16 +181,23 @@ def match_iou(
     if gt.segmentation.shape != pred.segmentation.shape:
         raise ValueError("Segmentation shapes must match between gt and pred")
 
-    mapper = []
+    gt_seg = gt.segmentation
+    pred_seg = pred.segmentation
 
-    # Get overlaps for each frame
-    frame_range = range(gt.segmentation.shape[0])
-    total = len(list(frame_range))
+    mapper: list[tuple[Hashable, Hashable]] = []
+
+    if gt.start_frame is None or gt.end_frame is None:
+        return mapper
 
     gt_time_to_seg_id_map = _construct_time_to_seg_id_map(gt)
     pred_time_to_seg_id_map = _construct_time_to_seg_id_map(pred)
 
-    for i, t in tqdm(enumerate(frame_range), desc="Matching frames", total=total):
+    for i, t in enumerate(
+        tqdm(
+            range(gt.start_frame, gt.end_frame),
+            desc="Matching frames",
+        )
+    ):
         gt_nodes = gt.nodes_by_frame[t]
         pred_nodes = pred.nodes_by_frame[t]
 
@@ -185,8 +205,8 @@ def match_iou(
         pred_boxes, pred_labels = graph_bbox_and_labels(pred.graph, pred_nodes, pred.label_key)
 
         matches = _match_nodes(
-            gt.segmentation[i],
-            pred.segmentation[i],
+            gt_seg[i],
+            pred_seg[i],
             gt_boxes=gt_boxes,
             res_boxes=pred_boxes,
             gt_labels=gt_labels,
@@ -194,12 +214,11 @@ def match_iou(
             threshold=threshold,
             one_to_one=one_to_one,
         )
-        # Construct node id tuple for each match
-        for gt_seg_id, pred_seg_id in zip(*matches, strict=True):
-            # Find node id based on time and segmentation label
+        for gt_seg_id, pred_seg_id in zip(matches[0], matches[1], strict=True):
             gt_node = gt_time_to_seg_id_map[t][gt_seg_id]
             pred_node = pred_time_to_seg_id_map[t][pred_seg_id]
             mapper.append((gt_node, pred_node))
+
     return mapper
 
 
