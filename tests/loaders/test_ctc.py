@@ -158,3 +158,22 @@ def test_3d_data(tmpdir):
 
     # Check that when we get the location we get all 3 dims
     assert len(track_graph.get_location(1)) == 3
+
+
+def test_load_data_with_border_margin():
+    test_dir = os.path.abspath(__file__)
+    data_dir = os.path.abspath(
+        os.path.join(test_dir, "../../../examples/sample-data/Fluo-N2DL-HeLa/01_RES/")
+    )
+    without = _ctc.load_ctc_data(data_dir)
+    with_margin = _ctc.load_ctc_data(data_dir, border_margin=20.0)
+    # Some nodes should be removed
+    assert len(with_margin.graph.nodes) < len(without.graph.nodes)
+    # Segmentation array should be unchanged
+    assert_array_equal(with_margin.segmentation, without.segmentation)
+    # Remaining nodes should all be far enough from the border
+    spatial_shape = with_margin.segmentation.shape[1:]
+    for node in with_margin.graph.nodes:
+        loc = with_margin.get_location(node)
+        min_dist = min(min(c, s - 1 - c) for c, s in zip(loc, spatial_shape, strict=True))
+        assert min_dist >= 20.0

@@ -88,6 +88,30 @@ class TestCTCMatcher:
         for pair in matched.mapping:
             assert pair[0] == pair[1]
 
+    def test_with_border_margin(self):
+        """Matching should skip seg labels not represented in the graph."""
+        from tests.test_utils import get_movie_with_graph
+
+        graph = get_movie_with_graph(ndims=3, n_frames=3, n_labels=3)
+        gt = TrackingGraph(
+            graph.graph.copy(),
+            segmentation=graph.segmentation,
+            location_keys=graph.location_keys,
+            label_key=graph.label_key,
+            border_margin=30.0,
+        )
+        pred = TrackingGraph(
+            graph.graph.copy(),
+            segmentation=graph.segmentation,
+            location_keys=graph.location_keys,
+            label_key=graph.label_key,
+        )
+        assert len(gt.graph.nodes) < len(pred.graph.nodes)
+        matched = self.matcher.compute_mapping(gt, pred)
+        for gt_node, pred_node in matched.mapping:
+            assert gt_node in gt.graph.nodes
+            assert pred_node in pred.graph.nodes
+
 
 class TestStandards:
     """Test match_frame_majority against standard test cases"""
