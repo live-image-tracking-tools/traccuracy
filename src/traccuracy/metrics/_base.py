@@ -115,10 +115,14 @@ class Metric(ABC):
             results=res_dict,
             matcher_info=matched.matcher_info,
             metric_info=run_info,
-            gt_name=matched.gt_graph.name,
-            pred_name=matched.pred_graph.name,
-            gt_border_margin=matched.gt_graph.border_margin,
-            pred_border_margin=matched.pred_graph.border_margin,
+            gt_info={
+                "name": matched.gt_graph.name,
+                "border_margin": matched.gt_graph.border_margin,
+            },
+            pred_info={
+                "name": matched.pred_graph.name,
+                "border_margin": matched.pred_graph.border_margin,
+            },
         )
         return results
 

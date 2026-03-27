@@ -110,5 +110,5 @@ def test_run_metrics_with_border_margin():
     # All remaining nodes should match (same data)
     assert len(matched.mapping) == len(gt.graph.nodes)
     # border_margin should be recorded in Results
-    assert results[0]["gt_border_margin"] == 30.0
-    assert results[0]["pred_border_margin"] == 30.0
+    assert results[0]["gt"]["border_margin"] == 30.0
+    assert results[0]["pred"]["border_margin"] == 30.0
