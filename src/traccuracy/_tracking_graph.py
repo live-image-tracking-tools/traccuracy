@@ -225,6 +225,7 @@ class TrackingGraph:
                     _check_valid_key_name(loc_key, "location")
         self.location_keys = location_keys
         self.name = name
+        self.border_margin = border_margin
 
         self.graph = graph
 

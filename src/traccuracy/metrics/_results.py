@@ -12,6 +12,8 @@ class Results:
         metric_info (dict): Dictionary with metric name and parameters
         gt_name (optional, str): Name of the ground truth data
         pred_name (optional, str): Name of the predicted data
+        gt_border_margin (optional, float): Border margin used for the ground truth graph
+        pred_border_margin (optional, float): Border margin used for the predicted graph
     """
 
     def __init__(
@@ -21,12 +23,16 @@ class Results:
         metric_info: dict,
         gt_name: str | None = None,
         pred_name: str | None = None,
+        gt_border_margin: float | None = None,
+        pred_border_margin: float | None = None,
     ):
         self.results = results
         self.matcher_info = matcher_info
         self.metric_info = metric_info
         self.gt_name = gt_name
         self.pred_name = pred_name
+        self.gt_border_margin = gt_border_margin
+        self.pred_border_margin = pred_border_margin
 
     @property
     def version(self) -> str:
@@ -49,5 +55,9 @@ class Results:
             output["gt"] = self.gt_name
         if self.pred_name:
             output["pred"] = self.pred_name
+        if self.gt_border_margin is not None:
+            output["gt_border_margin"] = self.gt_border_margin
+        if self.pred_border_margin is not None:
+            output["pred_border_margin"] = self.pred_border_margin
 
         return output
