@@ -31,14 +31,6 @@ class Results:
         self.pred_info = pred_info or {}
 
     @property
-    def gt_name(self) -> str | None:
-        return self.gt_info.get("name")
-
-    @property
-    def pred_name(self) -> str | None:
-        return self.pred_info.get("name")
-
-    @property
     def version(self) -> str:
         """Return current traccuracy version"""
         return version("traccuracy")
