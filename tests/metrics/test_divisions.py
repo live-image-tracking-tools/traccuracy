@@ -99,18 +99,31 @@ class TestDivisionMetrics:
         results = DivisionMetrics()._compute(matched)
         assert "No ground truth divisions present. Metrics may return np.nan" in caplog.text
 
+        metrics = [
+            "Division Recall",
+            "Division Precision",
+            "Division F1",
+            "Mitotic Branching Correctness",
+        ]
+        for m in metrics:
+            assert np.isnan(results["Frame Buffer 0"][m])
+
+    def test_no_divisions_zero_division(self, caplog):
+        matched = ex_graphs.good_matched()
+        with pytest.warns(UserWarning):
+            results = DivisionMetrics(zero_division=0.0)._compute(matched)
+
         r = results["Frame Buffer 0"]
-        assert np.isnan(r["Division Recall"])
+        assert r["Division Recall"] == 0
         assert r["Division Precision"] == 0
-        assert np.isnan(r["Division F1"])
-        assert np.isnan(r["Mitotic Branching Correctness"])
+        assert r["Division F1"] == 0
 
     def test_fp_no_gt(self, caplog):
         matched = Matched(TrackingGraph(nx.DiGraph()), ex_graphs.basic_division(0), [], {})
         results = DivisionMetrics()._compute(matched)["Frame Buffer 0"]
         assert "No ground truth divisions present. Metrics may return np.nan" in caplog.text
 
-        # No GT so recall and F1 are nan
+        # No GT so recall is nan; precision is 0/1 = 0; F1 is nan (recall is nan)
         assert np.isnan(results["Division Recall"])
         assert results["Division Precision"] == 0
         assert np.isnan(results["Division F1"])

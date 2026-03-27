@@ -24,7 +24,15 @@ class Metric(ABC):
     Kwargs should be specified in the constructor
     """
 
-    def __init__(self, valid_matches: list):
+    def __init__(self, valid_matches: list, zero_division: float = np.nan):
+        """Initialize metric.
+
+        Args:
+            valid_matches: List of valid matching types for this metric.
+            zero_division: Value to return for metrics that result in a 0/0 division.
+                Defaults to np.nan. Set to 0.0 to return 0 and raise a warning
+                instead, similar to scikit-learn's ``zero_division`` parameter.
+        """
         # Check that we have gotten a list of valid match types
         if len(valid_matches) == 0:
             raise TypeError("New metrics must provide a list of valid matching types")
@@ -36,6 +44,7 @@ class Metric(ABC):
                 )
 
         self.valid_match_types = valid_matches
+        self.zero_division = zero_division
 
     def _validate_matcher(self, matched: Matched) -> bool:
         """Verifies that the matched meets the assumptions of the metric
@@ -126,7 +135,10 @@ class Metric(ABC):
         return {"name": self.__class__.__name__, **self.__dict__}
 
     def _get_precision(self, numerator: int, denominator: int) -> float:
-        """Compute precision and return 0 if denominator is 0
+        """Compute precision.
+
+        Returns ``self.zero_division`` (default ``np.nan``) when *denominator*
+        is 0.  If ``self.zero_division == 0``, a ``UserWarning`` is raised.
 
         Args:
             numerator (int): Typically TP
@@ -136,11 +148,19 @@ class Metric(ABC):
             float: Precision
         """
         if denominator == 0:
-            return 0.0
+            if self.zero_division == 0:
+                warnings.warn(
+                    "Precision is ill-defined and set to 0 due to no predicted elements.",
+                    stacklevel=2,
+                )
+            return float(self.zero_division)
         return numerator / denominator
 
     def _get_recall(self, numerator: int, denominator: int) -> float:
-        """Compute recall and return np.nan if denominator is 0
+        """Compute recall.
+
+        Returns ``self.zero_division`` (default ``np.nan``) when *denominator*
+        is 0.  If ``self.zero_division == 0``, a ``UserWarning`` is raised.
 
         Args:
             numerator (int): Typically TP
@@ -150,12 +170,18 @@ class Metric(ABC):
             float: Recall
         """
         if denominator == 0:
-            return np.nan
+            if self.zero_division == 0:
+                warnings.warn(
+                    "Recall is ill-defined and set to 0 due to no ground truth elements.",
+                    stacklevel=2,
+                )
+            return float(self.zero_division)
         return numerator / denominator
 
     def _get_f1(self, precision: float, recall: float) -> float:
-        """Compute F1 and return np.nan if either input is nan,
-        or 0 if either input is 0
+        """Compute F1.
+
+        Returns ``np.nan`` if either input is nan, or 0 if either input is 0.
 
         Args:
             precision (float): Precision score
