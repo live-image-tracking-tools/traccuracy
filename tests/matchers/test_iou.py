@@ -459,12 +459,20 @@ def test_iou_match_with_border_margin():
         "label_key": graph.label_key,
     }
     # Only gt has border_margin; pred keeps all nodes.
-    # This triggers the guard clause for seg labels missing from gt.
     gt = TrackingGraph(graph.graph.copy(), **base_kwargs, border_margin=30.0)
     pred = TrackingGraph(graph.graph.copy(), **base_kwargs)
     assert len(gt.graph.nodes) < len(pred.graph.nodes)
 
-    mapping = match_iou(gt, pred)
+    # Strip bbox so match_iou falls back to regionprops on the raw
+    # segmentation.  This exposes labels for removed nodes, triggering
+    # the guard clause that skips seg labels missing from the graph.
+    for node in gt.graph.nodes:
+        gt.graph.nodes[node].pop("bbox", None)
+    for node in pred.graph.nodes:
+        pred.graph.nodes[node].pop("bbox", None)
+
+    with pytest.warns(UserWarning, match="regionprops"):
+        mapping = match_iou(gt, pred)
     for gt_node, pred_node in mapping:
         assert gt_node in gt.graph.nodes
         assert pred_node in pred.graph.nodes
