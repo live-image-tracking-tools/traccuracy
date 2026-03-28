@@ -453,15 +453,16 @@ def test_iou_match_with_border_margin():
     n_labels = 3
     graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
 
-    kwargs = {
+    base_kwargs = {
         "segmentation": graph.segmentation,
         "location_keys": graph.location_keys,
         "label_key": graph.label_key,
-        "border_margin": 30.0,
     }
-    gt = TrackingGraph(graph.graph.copy(), **kwargs)
-    pred = TrackingGraph(graph.graph.copy(), **kwargs)
-    assert len(gt.graph.nodes) < len(graph.graph.nodes)
+    # Only gt has border_margin; pred keeps all nodes.
+    # This triggers the guard clause for seg labels missing from gt.
+    gt = TrackingGraph(graph.graph.copy(), **base_kwargs, border_margin=30.0)
+    pred = TrackingGraph(graph.graph.copy(), **base_kwargs)
+    assert len(gt.graph.nodes) < len(pred.graph.nodes)
 
     mapping = match_iou(gt, pred)
     for gt_node, pred_node in mapping:

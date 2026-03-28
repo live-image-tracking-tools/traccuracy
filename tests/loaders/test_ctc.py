@@ -177,3 +177,30 @@ def test_load_data_with_border_margin():
         loc = with_margin.get_location(node)
         min_dist = min(min(c, s - 1 - c) for c, s in zip(loc, spatial_shape, strict=True))
         assert min_dist >= 20.0
+
+
+def test_border_margin_requires_segmentation():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0)
+    with pytest.raises(ValueError, match="`segmentation` is required"):
+        TrackingGraph(G, border_margin=10.0)
+
+
+def test_border_margin_requires_tuple_location_keys():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0, segmentation_id=1)
+    seg = np.zeros((1, 20, 20), dtype=np.uint16)
+    # string location_keys should fail
+    with pytest.raises(ValueError, match="`location_keys` must be a tuple"):
+        TrackingGraph(G, segmentation=seg, location_keys="x", border_margin=10.0)
+    # None location_keys should fail
+    with pytest.raises(ValueError, match="`location_keys` must be a tuple"):
+        TrackingGraph(G, segmentation=seg, location_keys=None, border_margin=10.0)
+
+
+def test_border_margin_dimension_mismatch():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0, z=5.0, segmentation_id=1)
+    seg = np.zeros((1, 20, 20), dtype=np.uint16)  # 2D spatial
+    with pytest.raises(ValueError, match="does not match number of location_keys"):
+        TrackingGraph(G, segmentation=seg, location_keys=("x", "y", "z"), border_margin=10.0)
