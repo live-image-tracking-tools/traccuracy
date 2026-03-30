@@ -14,7 +14,6 @@ from traccuracy.matchers._iou import (
     IOUMatcher,
     _construct_time_to_seg_id_map,
     _match_nodes,
-    _one_to_one_assignment,
     match_iou,
 )
 
@@ -299,12 +298,6 @@ class TestStandards:
             res_labels=data[1].labels,
         )
         assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
-
-
-def test_one_to_one_assignment_empty():
-    rows, cols = _one_to_one_assignment([], 0.5)
-    assert len(rows) == 0
-    assert len(cols) == 0
 
 
 def test__construct_time_to_seg_id_map():

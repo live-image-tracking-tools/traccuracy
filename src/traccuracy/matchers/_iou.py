@@ -57,22 +57,26 @@ def _match_nodes(
         overlap="iou",
     )
 
-    if one_to_one:
-        pairs = _one_to_one_assignment(ious, threshold)
-        return pairs[0], pairs[1]
+    if not ious:
+        return np.array([], dtype=np.intp), np.array([], dtype=np.intp)
+    iou_arr = np.array(ious)  # shape (N, 3)
 
-    gt_matched = []
-    res_matched = []
-    for gt_label, res_label, iou_val in ious:
-        if iou_val >= threshold:
-            gt_matched.append(gt_label)
-            res_matched.append(res_label)
-    return np.array(gt_matched, dtype=np.intp), np.array(res_matched, dtype=np.intp)
+    # filter to IOUs above threshold
+    mask = iou_arr[:, 2] >= threshold
+    filtered_ious = iou_arr[mask]
+    if len(filtered_ious) == 0:
+        return np.array([], dtype=np.intp), np.array([], dtype=np.intp)
+
+    if one_to_one:
+        pairs = _one_to_one_assignment(filtered_ious)
+    else:
+        pairs = (filtered_ious[:, 0].astype(np.intp), filtered_ious[:, 1].astype(np.intp))
+
+    return pairs[0], pairs[1]
 
 
 def _one_to_one_assignment(
-    ious: list[tuple[int, int, float]],
-    threshold: float = 0.5,
+    ious: np.ndarray,
     unmapped_cost: int = 4,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Perform linear assignment on IoU overlaps to create a one-to-one mapping.
@@ -81,23 +85,16 @@ def _one_to_one_assignment(
     avoiding allocation of a large dense matrix indexed by max label value.
 
     Args:
-        ious: List of (gt_label, res_label, iou_value) tuples from get_labels_with_overlap.
-        threshold: Minimum IoU to consider a match. Default 0.5.
+        ious: List of (gt_label, res_label, iou_value) tuples from get_labels_with_overlap,
+            already filtered to remove matches below threshold
         unmapped_cost (float, optional): Cost of an unassigned cell.
             Lower values leads to more unassigned cells. Defaults to 4.
 
     Returns:
         tuple: Tuple of two arrays containing matched gt and res label indices.
     """
-    gt_labels_set: set[int] = set()
-    res_labels_set: set[int] = set()
-    for gt_label, res_label, iou_val in ious:
-        if iou_val >= threshold:
-            gt_labels_set.add(gt_label)
-            res_labels_set.add(res_label)
-
-    if not gt_labels_set or not res_labels_set:
-        return np.array([], dtype=np.intp), np.array([], dtype=np.intp)
+    gt_labels_set: set[int] = set(ious[:, 0])
+    res_labels_set: set[int] = set(ious[:, 1])
 
     gt_label_list = sorted(gt_labels_set)
     res_label_list = sorted(res_labels_set)
@@ -105,9 +102,10 @@ def _one_to_one_assignment(
     res_idx = {label: i for i, label in enumerate(res_label_list)}
 
     cost = np.ones((len(gt_label_list), len(res_label_list)))
-    for gt_label, res_label, iou_val in ious:
-        if iou_val >= threshold and gt_label in gt_idx and res_label in res_idx:
-            cost[gt_idx[gt_label], res_idx[res_label]] = 1 - iou_val
+
+    gt_indices = np.array([gt_idx[idx] for idx in ious[:, 0]])
+    res_indices = np.array([res_idx[idx] for idx in ious[:, 1]])
+    cost[gt_indices, res_indices] = 1 - ious[:, 2]
 
     cost[cost == 1] = np.inf
 
