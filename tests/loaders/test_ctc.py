@@ -158,3 +158,49 @@ def test_3d_data(tmpdir):
 
     # Check that when we get the location we get all 3 dims
     assert len(track_graph.get_location(1)) == 3
+
+
+def test_load_data_with_border_margin():
+    test_dir = os.path.abspath(__file__)
+    data_dir = os.path.abspath(
+        os.path.join(test_dir, "../../../examples/sample-data/Fluo-N2DL-HeLa/01_RES/")
+    )
+    without = _ctc.load_ctc_data(data_dir)
+    with_margin = _ctc.load_ctc_data(data_dir, border_margin=20.0)
+    # Some nodes should be removed
+    assert len(with_margin.graph.nodes) < len(without.graph.nodes)
+    # Segmentation array should be unchanged
+    assert_array_equal(with_margin.segmentation, without.segmentation)
+    # Remaining nodes should all be far enough from the border
+    spatial_shape = with_margin.segmentation.shape[1:]
+    for node in with_margin.graph.nodes:
+        loc = with_margin.get_location(node)
+        min_dist = min(min(c, s - 1 - c) for c, s in zip(loc, spatial_shape, strict=True))
+        assert min_dist >= 20.0
+
+
+def test_border_margin_requires_segmentation():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0)
+    with pytest.raises(ValueError, match="`segmentation` is required"):
+        TrackingGraph(G, border_margin=10.0)
+
+
+def test_border_margin_requires_tuple_location_keys():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0, segmentation_id=1)
+    seg = np.zeros((1, 20, 20), dtype=np.uint16)
+    # string location_keys should fail
+    with pytest.raises(ValueError, match="`location_keys` must be a tuple"):
+        TrackingGraph(G, segmentation=seg, location_keys="x", border_margin=10.0)
+    # None location_keys should fail
+    with pytest.raises(ValueError, match="`location_keys` must be a tuple"):
+        TrackingGraph(G, segmentation=seg, location_keys=None, border_margin=10.0)
+
+
+def test_border_margin_dimension_mismatch():
+    G = nx.DiGraph()
+    G.add_node(1, t=0, x=5.0, y=5.0, z=5.0, segmentation_id=1)
+    seg = np.zeros((1, 20, 20), dtype=np.uint16)  # 2D spatial
+    with pytest.raises(ValueError, match="does not match number of location_keys"):
+        TrackingGraph(G, segmentation=seg, location_keys=("x", "y", "z"), border_margin=10.0)

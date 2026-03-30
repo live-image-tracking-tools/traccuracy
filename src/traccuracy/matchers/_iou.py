@@ -196,10 +196,13 @@ def match_iou(
         )
         # Construct node id tuple for each match
         for gt_seg_id, pred_seg_id in zip(*matches, strict=True):
-            # Find node id based on time and segmentation label
-            gt_node = gt_time_to_seg_id_map[t][gt_seg_id]
-            pred_node = pred_time_to_seg_id_map[t][pred_seg_id]
-            mapper.append((gt_node, pred_node))
+            # Skip if either seg label has no corresponding graph node
+            # (e.g. node removed by border_margin filtering)
+            gt_seg_map = gt_time_to_seg_id_map.get(t, {})
+            pred_seg_map = pred_time_to_seg_id_map.get(t, {})
+            if gt_seg_id not in gt_seg_map or pred_seg_id not in pred_seg_map:
+                continue
+            mapper.append((gt_seg_map[gt_seg_id], pred_seg_map[pred_seg_id]))
     return mapper
 
 
