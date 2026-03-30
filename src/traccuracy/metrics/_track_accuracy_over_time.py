@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from traccuracy.track_errors._basic import classify_basic_errors
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
 
@@ -111,11 +110,9 @@ class TrackAccuracyOverTime(Metric):
                     "Consider using error_type='ctc' for many-to-one matching.",
                     stacklevel=2,
                 )
-            classify_basic_errors(
-                matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
-            )
             # Run division error classification (only for basic errors)
             # CTC handles division errors via WRONG_SEMANTIC edge flags
+            # Note: evaluate_division_events internally calls classify_basic_errors
             evaluate_division_events(
                 matched, relax_skips_gt=relax_skips_gt, relax_skips_pred=relax_skips_pred
             )
