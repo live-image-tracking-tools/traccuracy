@@ -56,8 +56,8 @@ def compute_track_accuracy(
     else:
         components = matched.gt_graph.get_tracklets(include_division_edges=False)
 
-    total_segments: dict[int, int] = {i: 0 for i in range(1, window + 1)}
-    correct_segments: dict[int, int] = {i: 0 for i in range(1, window + 1)}
+    total_segments: dict[int, int] = dict.fromkeys(range(1, window + 1), 0)
+    correct_segments: dict[int, int] = dict.fromkeys(range(1, window + 1), 0)
 
     for gt_track in components:
         # Build the w=1 grid and division links for this component.
@@ -97,9 +97,7 @@ def compute_track_accuracy(
                         # Only follow division links when the parent row
                         # is occupied at this time step (val_base != EMPTY).
                         divs = divisions if val_base != EMPTY else None
-                        val_prev = _get_linked_value(
-                            row, t + 1, prev_grid, divs
-                        )
+                        val_prev = _get_linked_value(row, t + 1, prev_grid, divs)
                         cur_grid[t][row] = _combine(val_base, val_prev)
 
                 prev_grid = cur_grid
@@ -243,7 +241,10 @@ def _build_grid(
             continue
 
         node_correct = _is_node_correct(
-            node, matched, is_ctc, relax_skips_pred,
+            node,
+            matched,
+            is_ctc,
+            relax_skips_pred,
         )
 
         if len(out_edges) > 1:
@@ -261,7 +262,11 @@ def _build_grid(
                 edge_span = target_frame - source_frame
 
                 edge_correct = node_correct and _is_edge_correct(
-                    edge, matched, is_ctc, relax_skips_gt, relax_skips_pred,
+                    edge,
+                    matched,
+                    is_ctc,
+                    relax_skips_gt,
+                    relax_skips_pred,
                 )
                 val = CORRECT if edge_correct else INCORRECT
 
@@ -287,7 +292,11 @@ def _build_grid(
             edge_span = target_frame - source_frame
 
             edge_correct = node_correct and _is_edge_correct(
-                edge, matched, is_ctc, relax_skips_gt, relax_skips_pred,
+                edge,
+                matched,
+                is_ctc,
+                relax_skips_gt,
+                relax_skips_pred,
             )
             val = CORRECT if edge_correct else INCORRECT
 
@@ -306,9 +315,7 @@ def _build_grid(
     return grid, divisions, num_rows
 
 
-def _grid_set(
-    grid: list[list[int]], t: int, row: int, val: int
-) -> None:
+def _grid_set(grid: list[list[int]], t: int, row: int, val: int) -> None:
     """Set grid[t][row] = val, extending the row list if needed."""
     while len(grid[t]) <= row:
         grid[t].append(EMPTY)

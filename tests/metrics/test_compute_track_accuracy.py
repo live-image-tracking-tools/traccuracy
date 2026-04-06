@@ -121,7 +121,7 @@ class TestStandards:
             (0, 1, 1.0, 0.5),  # basic: all TP; ctc: 1/2 (NON_SPLIT detected)
             (0, 2, 1.0, 0.0),  # basic: all TP; ctc: 0/1
             (1, 1, 1.0, 0.0),  # basic: all TP; ctc: 0/2 (both start nodes FN)
-            (1, 2, np.nan, np.nan),  # no 2-edge segments exist
+            (1, 2, 1.0, 0.0),  # short tracks still count at w=2
             (2, 1, 1.0, 0.5),  # basic: all TP; ctc: 1/2
             (2, 2, 1.0, 0.0),  # basic: all TP; ctc: 0/1
         ],
@@ -378,11 +378,11 @@ class TestDivisionSkipEdges:
             # Without relaxation: node 4 unmatched, segments through it incorrect
             (False, False, 1, 4 / 6),
             (False, False, 2, 2 / 4),
-            (False, False, 3, 0.0),
+            (False, False, 3, 2 / 6),  # daughter tracks shorter than w=3 still count
             # relax_skips_gt doesn't help (skip is in pred)
             (True, False, 1, 4 / 6),
             (True, False, 2, 2 / 4),
-            (True, False, 3, 0.0),
+            (True, False, 3, 2 / 6),
             # relax_skips_pred: skip edge matches GT multi-edge path
             (False, True, 1, 1.0),
             (False, True, 2, 1.0),
@@ -409,7 +409,7 @@ class TestDivisionSkipEdges:
             # div_daughter_dual_gap: pred has skip edges past both daughters
             # Both daughter nodes removed, skip edges to grandchildren
             (False, False, 1, 2 / 6),
-            (False, False, 2, 1 / 4),
+            (False, False, 2, 1 / 6),  # short daughter tracks still count
             (False, False, 3, 0.0),
             # relax_skips_pred fixes everything
             (False, True, 1, 1.0),
@@ -444,9 +444,9 @@ class TestLargerExample:
         ("window", "correct", "total"),
         [
             (1, 10, 20),
-            (2, 5, 13),
-            (3, 2, 6),
-            (4, 1, 3),
+            (2, 9, 20),  # short tracks count at larger windows
+            (3, 7, 17),
+            (4, 4, 9),
         ],
     )
     def test_larger_example_1(self, error_type, window, correct, total):
