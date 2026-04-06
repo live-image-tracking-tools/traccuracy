@@ -20,6 +20,7 @@ def load_geff_data(
     seg_property: str | None = None,
     name: str | None = None,
     load_all_props: bool = False,
+    border_margin: float | None = None,
 ) -> TrackingGraph:
     """Load a graph into memory from a geff file
 
@@ -42,6 +43,9 @@ def load_geff_data(
         load_all_props (bool, optional): If True, load all node and edge properties on the graph.
             Defaults to False and only spatiotemporal and segmentation node properties are loaded.
             Set to True to get already annotated error flags, e.g. for visualization.
+        border_margin (float, optional): If set, nodes whose centroid is within this
+            distance (in pixels) of the spatial border will be excluded from the graph.
+            Requires segmentation to be loaded. Defaults to None (no filtering).
     """
     if load_geff_seg and seg_path is not None:
         raise ValueError('Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"')
@@ -123,4 +127,5 @@ def load_geff_data(
         frame_key=temporal_prop,
         location_keys=tuple(spatial_props),
         name=name,
+        border_margin=border_margin,
     )

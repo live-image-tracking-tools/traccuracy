@@ -88,6 +88,35 @@ class TestCTCMatcher:
         for pair in matched.mapping:
             assert pair[0] == pair[1]
 
+    def test_with_border_margin(self):
+        """Matching should skip seg labels not represented in the graph."""
+        from tests.test_utils import get_movie_with_graph
+
+        graph = get_movie_with_graph(ndims=3, n_frames=3, n_labels=3)
+        base_kwargs = {
+            "segmentation": graph.segmentation,
+            "location_keys": graph.location_keys,
+            "label_key": graph.label_key,
+        }
+        # Only gt has border_margin; pred keeps all nodes.
+        gt = TrackingGraph(graph.graph.copy(), **base_kwargs, border_margin=30.0)
+        pred = TrackingGraph(graph.graph.copy(), **base_kwargs)
+        assert len(gt.graph.nodes) < len(pred.graph.nodes)
+
+        # Strip bbox so the matcher falls back to regionprops on the raw
+        # segmentation.  This exposes labels for removed nodes, triggering
+        # the guard clause that skips seg labels missing from the graph.
+        for node in gt.graph.nodes:
+            gt.graph.nodes[node].pop("bbox", None)
+        for node in pred.graph.nodes:
+            pred.graph.nodes[node].pop("bbox", None)
+
+        with pytest.warns(UserWarning, match="regionprops"):
+            matched = self.matcher.compute_mapping(gt, pred)
+        for gt_node, pred_node in matched.mapping:
+            assert gt_node in gt.graph.nodes
+            assert pred_node in pred.graph.nodes
+
 
 class TestStandards:
     """Test match_frame_majority against standard test cases"""
