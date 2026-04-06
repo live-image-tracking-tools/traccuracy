@@ -10,8 +10,10 @@ class Results:
         results (dict): Dictionary with metric output
         matcher_info (dict): Dictionary with matcher name and parameters
         metric_info (dict): Dictionary with metric name and parameters
-        gt_name (optional, str): Name of the ground truth data
-        pred_name (optional, str): Name of the predicted data
+        gt_info (dict): Dictionary with ground truth graph info
+            (name, border_margin, etc.)
+        pred_info (dict): Dictionary with predicted graph info
+            (name, border_margin, etc.)
     """
 
     def __init__(
@@ -19,14 +21,14 @@ class Results:
         results: dict,
         matcher_info: dict | None,
         metric_info: dict,
-        gt_name: str | None = None,
-        pred_name: str | None = None,
+        gt_info: dict | None = None,
+        pred_info: dict | None = None,
     ):
         self.results = results
         self.matcher_info = matcher_info
         self.metric_info = metric_info
-        self.gt_name = gt_name
-        self.pred_name = pred_name
+        self.gt_info = gt_info or {}
+        self.pred_info = pred_info or {}
 
     @property
     def version(self) -> str:
@@ -39,15 +41,13 @@ class Results:
         Returns:
             dict: Dictionary of Results attributes
         """
-        output = {
+        output: dict[str, Any] = {
             "version": self.version,
             "results": self.results,
             "matcher": self.matcher_info,
             "metric": self.metric_info,
+            "gt": self.gt_info,
+            "pred": self.pred_info,
         }
-        if self.gt_name:
-            output["gt"] = self.gt_name
-        if self.pred_name:
-            output["pred"] = self.pred_name
 
         return output

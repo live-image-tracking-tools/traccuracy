@@ -190,7 +190,7 @@ jobs:
 
       - name: Comment on commit with report for non-forks
         uses: peter-evans/commit-comment@v3
-        if: github.event.pull_request.head.repo.fork == false
+        if: github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]'
         with:
           body-path: report.md
 
@@ -223,6 +223,7 @@ jobs:
           python scripts/test_case_report.py ${{ github.event.pull_request.head.sha }}
 
       - name: Add, stash, switch branch
+        if: github.actor != 'dependabot[bot]'
         run: |
           git add ${{ github.event.pull_request.head.sha }}.png
           git stash
@@ -231,11 +232,13 @@ jobs:
           git stash pop
 
       - name: Commit to branch
+        if: github.actor != 'dependabot[bot]'
         uses: EndBug/add-and-commit@v9
         with:
           add: "*.png"
 
       - name: Comment with image link
+        if: github.actor != 'dependabot[bot]'
         uses: peter-evans/commit-comment@v3
         with:
           body: |

@@ -83,6 +83,31 @@ class Test_load_geff_data:
         tg = load_geff_data(geff_path, seg_path=zarr_path / seg_group, seg_property=seg_prop)
         assert tg.segmentation is not None
 
+    def test_good_seg_with_border_margin(self, tmp_path):
+        zarr_path = tmp_path / "test.zarr"
+        geff_path = zarr_path / "tracks"
+        seg_group = "seg"
+        seg_prop = "seg_id"
+
+        geff_store, attrs = create_mock_geff(
+            node_id_dtype="uint",
+            node_axis_dtypes={"position": "float64", "time": "float64"},
+            directed=True,
+            extra_node_props={seg_prop: "int"},
+        )
+        self.geff_to_disk(geff_store, geff_path)
+        t_len = int(max(attrs["node_props"]["t"]["values"]))
+
+        store = zarr.open(zarr_path)
+        store[seg_group] = np.zeros((t_len, 20, 20, 10), dtype="int")
+
+        without = load_geff_data(geff_path, seg_path=zarr_path / seg_group, seg_property=seg_prop)
+        with_margin = load_geff_data(
+            geff_path, seg_path=zarr_path / seg_group, seg_property=seg_prop, border_margin=5.0
+        )
+        assert len(with_margin.graph.nodes) <= len(without.graph.nodes)
+        assert with_margin.segmentation is not None
+
     def test_missing_seg_prop(self):
         with pytest.raises(
             ValueError,
