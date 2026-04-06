@@ -162,23 +162,35 @@ class TestStandards:
 # Skip edge tests - only basic error type supports skip edges
 class TestSkipEdges:
     @pytest.mark.parametrize(
-        ("relax_gt", "relax_pred", "window", "acc"),
+        ("relax_gt", "relax_pred", "window", "correct", "total"),
         [
             # gap_close_gt_gap: GT has skip edge t=0->t=2, pred has full path
-            # GT edges: 1->3 (skip spanning 2 frames), 3->4 (1 frame)
-            # Time-based windows: w1 has only 3->4, w2 has only 1->3
-            # Without relax: edge 1->3 not TRUE_POS, edge 3->4 is TRUE_POS
-            (False, False, 1, 1.0),  # w1: 1/1 (only 3->4, which is correct)
-            (False, False, 2, 0.0),  # w2: 0/1 (only 1->3, skip not relaxed)
-            # With relax_skips_gt: edge 1->3 becomes SKIP_TRUE_POS
-            (True, False, 1, 1.0),
-            (True, False, 2, 1.0),  # w2: 1/1 (skip edge now correct)
+            # GT nodes: 1(t=0), 3(t=2), 4(t=3). Skip edge 1->3, real edge 3->4.
+            #
+            # Skip edge 1->3 spans 2 frames, so it interpolates into:
+            #   w=1: 2 interpolated segments (t=0->t=1, t=1->t=2)
+            #   w=2: 1 segment (the skip edge itself, t=0->t=2)
+            # Then continuing the path from node 1 with real edge 3->4:
+            #   w=1: 1 real segment (3->4, t=2->t=3)
+            #   w=2: 1 interpolated continuation (t=1->t=3)
+            #   w=3: 1 segment (t=0->t=3)
+            #
+            # Without relax: skip edge 1->3 is NOT correct, 3->4 IS correct
+            # Interpolated segments from skip edge share its correctness (incorrect)
+            (False, False, 1, 1, 3),  # 1 correct (3->4) out of 3
+            (False, False, 2, 0, 2),  # 0 correct out of 2
+            (False, False, 3, 0, 1),  # 0 correct out of 1
+            # With relax_skips_gt: skip edge becomes SKIP_TRUE_POS, all correct
+            (True, False, 1, 3, 3),
+            (True, False, 2, 2, 2),
+            (True, False, 3, 1, 1),
             # relax_skips_pred doesn't help (skip is in GT, not pred)
-            (False, True, 1, 1.0),
-            (False, True, 2, 0.0),
+            (False, True, 1, 1, 3),
+            (False, True, 2, 0, 2),
+            (False, True, 3, 0, 1),
         ],
     )
-    def test_gap_close_gt_gap(self, relax_gt, relax_pred, window, acc):
+    def test_gap_close_gt_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_gt_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
         result = compute_track_accuracy(
@@ -188,26 +200,29 @@ class TestSkipEdges:
             relax_skips_gt=relax_gt,
             relax_skips_pred=relax_pred,
         )
-        accuracy = get_accuracy(result, window)
-        assert pytest.approx(accuracy, abs=0.01) == acc
+        assert result[window] == (correct, total)
 
     @pytest.mark.parametrize(
-        ("relax_gt", "relax_pred", "window", "acc"),
+        ("relax_gt", "relax_pred", "window", "correct", "total"),
         [
             # gap_close_pred_gap: GT has full path, pred has skip edge
-            # GT edges: 1->2, 2->3, 3->4. Node 3 not matched. Total: w1=3, w2=2
+            # GT edges: 1->2, 2->3, 3->4. No GT skip edges, no interpolation.
+            # Node 3 not matched. Total: w1=3, w2=2, w3=1
             # Without relax: only edge 1->2 is TRUE_POS
-            (False, False, 1, 1 / 3),
-            (False, False, 2, 0.0),
+            (False, False, 1, 1, 3),
+            (False, False, 2, 0, 2),
+            (False, False, 3, 0, 1),
             # relax_skips_gt doesn't help (skip is in pred, not GT)
-            (True, False, 1, 1 / 3),
-            (True, False, 2, 0.0),
+            (True, False, 1, 1, 3),
+            (True, False, 2, 0, 2),
+            (True, False, 3, 0, 1),
             # With relax_skips_pred: GT path matches pred skip
-            (False, True, 1, 1.0),
-            (False, True, 2, 1.0),
+            (False, True, 1, 3, 3),
+            (False, True, 2, 2, 2),
+            (False, True, 3, 1, 1),
         ],
     )
-    def test_gap_close_pred_gap(self, relax_gt, relax_pred, window, acc):
+    def test_gap_close_pred_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_pred_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
         result = compute_track_accuracy(
@@ -217,24 +232,27 @@ class TestSkipEdges:
             relax_skips_gt=relax_gt,
             relax_skips_pred=relax_pred,
         )
-        accuracy = get_accuracy(result, window)
-        assert pytest.approx(accuracy, abs=0.01) == acc
+        assert result[window] == (correct, total)
 
     @pytest.mark.parametrize(
-        ("relax_gt", "relax_pred", "window", "acc"),
+        ("relax_gt", "relax_pred", "window", "correct", "total"),
         [
             # gap_close_matched_gap: both GT and pred have skip at same location
-            # GT edges: 1->3 (skip), 3->4. All nodes matched.
-            # Skip edges align, so all edges TRUE_POS without relaxation
-            (False, False, 1, 1.0),
-            (False, False, 2, 1.0),
-            (True, False, 1, 1.0),
-            (True, False, 2, 1.0),
-            (False, True, 1, 1.0),
-            (False, True, 2, 1.0),
+            # GT nodes: 1(t=0), 3(t=2), 4(t=3). Same topology as gt_gap.
+            # Skip edges align, so all edges TRUE_POS without relaxation.
+            # Interpolation gives same totals as gt_gap, all correct.
+            (False, False, 1, 3, 3),
+            (False, False, 2, 2, 2),
+            (False, False, 3, 1, 1),
+            (True, False, 1, 3, 3),
+            (True, False, 2, 2, 2),
+            (True, False, 3, 1, 1),
+            (False, True, 1, 3, 3),
+            (False, True, 2, 2, 2),
+            (False, True, 3, 1, 1),
         ],
     )
-    def test_gap_close_matched_gap(self, relax_gt, relax_pred, window, acc):
+    def test_gap_close_matched_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_matched_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
         result = compute_track_accuracy(
@@ -244,23 +262,27 @@ class TestSkipEdges:
             relax_skips_gt=relax_gt,
             relax_skips_pred=relax_pred,
         )
-        accuracy = get_accuracy(result, window)
-        assert pytest.approx(accuracy, abs=0.01) == acc
+        assert result[window] == (correct, total)
 
     @pytest.mark.parametrize(
-        ("relax_gt", "relax_pred", "window", "acc"),
+        ("relax_gt", "relax_pred", "window", "correct", "total"),
         [
             # gap_close_offset: GT skip at 1->3, pred skip at 6->8
+            # GT nodes: 1(t=0), 3(t=2), 4(t=3). Same topology as gt_gap.
             # Node 3 never matched. All segments incorrect.
-            (False, False, 1, 0.0),
-            (False, False, 2, 0.0),
-            (True, False, 1, 0.0),
-            (True, False, 2, 0.0),
-            (False, True, 1, 0.0),
-            (False, True, 2, 0.0),
+            # Interpolation gives same totals, all incorrect.
+            (False, False, 1, 0, 3),
+            (False, False, 2, 0, 2),
+            (False, False, 3, 0, 1),
+            (True, False, 1, 0, 3),
+            (True, False, 2, 0, 2),
+            (True, False, 3, 0, 1),
+            (False, True, 1, 0, 3),
+            (False, True, 2, 0, 2),
+            (False, True, 3, 0, 1),
         ],
     )
-    def test_gap_close_offset(self, relax_gt, relax_pred, window, acc):
+    def test_gap_close_offset(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_offset()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
         result = compute_track_accuracy(
@@ -270,8 +292,7 @@ class TestSkipEdges:
             relax_skips_gt=relax_gt,
             relax_skips_pred=relax_pred,
         )
-        accuracy = get_accuracy(result, window)
-        assert pytest.approx(accuracy, abs=0.01) == acc
+        assert result[window] == (correct, total)
 
 
 # Division tests - test FN_DIV and FP_DIV error detection
