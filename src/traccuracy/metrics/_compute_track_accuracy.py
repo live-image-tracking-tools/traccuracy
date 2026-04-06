@@ -56,8 +56,7 @@ def compute_track_accuracy(
     else:
         components = matched.gt_graph.get_tracklets(include_division_edges=False)
 
-    total_segments: dict[int, int] = dict.fromkeys(range(1, window + 1), 0)
-    correct_segments: dict[int, int] = dict.fromkeys(range(1, window + 1), 0)
+    results: dict[int, tuple[int, int]] = {}
 
     for gt_track in components:
         # Build the w=1 grid and division links for this component.
@@ -102,9 +101,16 @@ def compute_track_accuracy(
 
                 prev_grid = cur_grid
 
-            _count_grid(cur_grid, total_segments, correct_segments, w)
+            correct, total = _count_grid(cur_grid)
+            sum_correct, sum_total = results.get(w, (0, 0))
+            results[w] = (sum_correct + correct, sum_total + total)
 
-    return {i: (correct_segments[i], total_segments[i]) for i in range(1, window + 1)}
+    # Fill in any window sizes that had no data
+    for w in range(1, window + 1):
+        if w not in results:
+            results[w] = (0, 0)
+
+    return results
 
 
 def _combine(a: int, b: int) -> int:
@@ -150,19 +156,21 @@ def _get_linked_value(
     return prev_grid[next_t][row]
 
 
-def _count_grid(
-    cur_grid: list[list[int]],
-    total_segments: dict[int, int],
-    correct_segments: dict[int, int],
-    w: int,
-) -> None:
-    """Count total and correct entries in a grid for window size w."""
+def _count_grid(cur_grid: list[list[int]]) -> tuple[int, int]:
+    """Count total and correct entries in a grid.
+
+    Returns:
+        (correct_count, total_count)
+    """
+    total = 0
+    correct = 0
     for t_col in cur_grid:
         for val in t_col:
             if val != EMPTY:
-                total_segments[w] += 1
+                total += 1
                 if val == CORRECT:
-                    correct_segments[w] += 1
+                    correct += 1
+    return correct, total
 
 
 def _build_grid(
@@ -218,6 +226,8 @@ def _build_grid(
     # Determine time range
     min_frame = gt_graph.start_frame
     max_frame = gt_graph.end_frame
+    if min_frame is None or max_frame is None:
+        return [], {}, 0
     T = max_frame - min_frame - 1  # Number of frame steps
     if T <= 0:
         return [], {}, 0
@@ -247,48 +257,21 @@ def _build_grid(
             relax_skips_pred,
         )
 
-        if len(out_edges) > 1:
-            # Division: assign new rows for each daughter
-            daughter_rows = []
-            source_frame = gt_graph.nodes[node][frame_key]
+        is_division = len(out_edges) > 1
+        source_frame = gt_graph.nodes[node][frame_key]
+        daughter_rows = []
 
-            for edge in out_edges:
-                daughter_row = num_rows
+        for edge in out_edges:
+            # Divisions get new rows; single edges continue on cur_row
+            if is_division:
+                edge_row = num_rows
                 num_rows += 1
-                daughter_rows.append(daughter_row)
+                daughter_rows.append(edge_row)
+            else:
+                edge_row = cur_row
 
-                target = edge[1]
-                target_frame = gt_graph.nodes[target][frame_key]
-                edge_span = target_frame - source_frame
-
-                edge_correct = node_correct and _is_edge_correct(
-                    edge,
-                    matched,
-                    is_ctc,
-                    relax_skips_gt,
-                    relax_skips_pred,
-                )
-                val = CORRECT if edge_correct else INCORRECT
-
-                for dt in range(edge_span):
-                    t_idx = source_frame - min_frame + dt
-                    if 0 <= t_idx < T:
-                        _grid_set(grid, t_idx, daughter_row, val)
-
-                stack.append((target, daughter_row))
-
-            # Record division link for this row.
-            # If the division is at the root (no pre-division steps on
-            # this row), no link is needed — daughters are independent.
-            if source_frame > min_frame:
-                divisions[cur_row] = daughter_rows
-
-        else:
-            # Single outgoing edge
-            edge = out_edges[0]
             target = edge[1]
             target_frame = gt_graph.nodes[target][frame_key]
-            source_frame = gt_graph.nodes[node][frame_key]
             edge_span = target_frame - source_frame
 
             edge_correct = node_correct and _is_edge_correct(
@@ -303,9 +286,15 @@ def _build_grid(
             for dt in range(edge_span):
                 t_idx = source_frame - min_frame + dt
                 if 0 <= t_idx < T:
-                    _grid_set(grid, t_idx, cur_row, val)
+                    _grid_set(grid, t_idx, edge_row, val)
 
-            stack.append((target, cur_row))
+            stack.append((target, edge_row))
+
+        # Record division link for this row.
+        # If the division is at the root (no pre-division steps on
+        # this row), no link is needed — daughters are independent.
+        if is_division and source_frame > min_frame:
+            divisions[cur_row] = daughter_rows
 
     # Pad all columns to the same number of rows
     for t in range(T):
