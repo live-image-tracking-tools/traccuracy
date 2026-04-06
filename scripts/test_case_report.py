@@ -205,7 +205,7 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
     """
     # Add empty columns for spacing/grouping
     for group in groups.keys():
-        df.loc[group] = [None] * len(df.columns)
+        df.loc[group] = [float("nan")] * len(df.columns)
 
     sort = []
     for group, fxns in groups.items():
@@ -215,7 +215,7 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
     # Check for any ungrouped functions
     ungrouped = df.drop(sort)
     if len(ungrouped) > 0:
-        df.loc["Ungrouped"] = [None] * len(df.columns)
+        df.loc["Ungrouped"] = [float("nan")] * len(df.columns)
         sort.append("Ungrouped")
         sort.extend(ungrouped.index)
 

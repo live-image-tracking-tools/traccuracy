@@ -104,6 +104,10 @@ class CTCMatcher(Matcher):
             # Switch from segmentation ids to node ids
             for gt_label, pred_label, iogt in overlaps:
                 if iogt > 0.5:
+                    # Skip if either seg label has no corresponding graph node
+                    # (e.g. node removed by border_margin filtering)
+                    if gt_label not in gt_label_to_id or pred_label not in pred_label_to_id:
+                        continue
                     mapping.append((gt_label_to_id[gt_label], pred_label_to_id[pred_label]))
 
         return mapping

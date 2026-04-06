@@ -73,11 +73,14 @@ class DivisionMetrics(Metric):
         max_frame_buffer (int, optional): Maximum value of frame buffer to use in correcting
             shifted divisions. Divisions will be evaluated for all integer values of frame
             buffer between 0 and max_frame_buffer
+        zero_division (float, optional): Value to return for metrics that result in a 0/0
+            division. Defaults to np.nan. Set to 0.0 to return 0 and raise a warning instead,
+            similar to scikit-learn's ``zero_division`` parameter.
     """
 
-    def __init__(self, max_frame_buffer: int = 0) -> None:
+    def __init__(self, max_frame_buffer: int = 0, zero_division: float = np.nan) -> None:
         valid_matching_types = ["one-to-one"]
-        super().__init__(valid_matching_types)
+        super().__init__(valid_matching_types, zero_division=zero_division)
 
         self.frame_buffer = max_frame_buffer
 
