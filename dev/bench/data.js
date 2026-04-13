@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775526120931,
+  "lastUpdate": 1776086823758,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -22591,6 +22591,226 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 532.1880030001012 msec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "331c0065cc2fb005e3cb8765def8157aa7d9b900",
+          "message": "ci(dependabot): bump softprops/action-gh-release from 2 to 3 (#343)\n\nBumps\n[softprops/action-gh-release](https://github.com/softprops/action-gh-release)\nfrom 2 to 3.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/softprops/action-gh-release/releases\">softprops/action-gh-release's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v3.0.0</h2>\n<p><code>3.0.0</code> is a major release that moves the action runtime\nfrom Node 20 to Node 24.\nUse <code>v3</code> on GitHub-hosted runners and self-hosted fleets that\nalready support the\nNode 24 Actions runtime. If you still need the last Node 20-compatible\nline, stay on\n<code>v2.6.2</code>.</p>\n<h2>What's Changed</h2>\n<h3>Other Changes 🔄</h3>\n<ul>\n<li>Move the action runtime and bundle target to Node 24</li>\n<li>Update <code>@types/node</code> to the Node 24 line and allow future\nDependabot updates</li>\n<li>Keep the floating major tag on <code>v3</code>; <code>v2</code>\nremains pinned to the latest <code>2.x</code> release</li>\n</ul>\n<h2>v2.6.2</h2>\n<!-- raw HTML omitted -->\n<h2>What's Changed</h2>\n<h3>Other Changes 🔄</h3>\n<ul>\n<li>chore(deps): bump picomatch from 4.0.3 to 4.0.4 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/softprops/action-gh-release/pull/775\">softprops/action-gh-release#775</a></li>\n<li>chore(deps): bump brace-expansion from 5.0.4 to 5.0.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/softprops/action-gh-release/pull/777\">softprops/action-gh-release#777</a></li>\n<li>chore(deps): bump vite from 8.0.0 to 8.0.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/softprops/action-gh-release/pull/781\">softprops/action-gh-release#781</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/softprops/action-gh-release/compare/v2...v2.6.2\">https://github.com/softprops/action-gh-release/compare/v2...v2.6.2</a></p>\n<h2>v2.6.1</h2>\n<p><code>2.6.1</code> is a patch release focused on restoring linked\ndiscussion thread creation when\n<code>discussion_category_name</code> is set. It fixes\n<code>[#764](https://github.com/softprops/action-gh-release/issues/764)</code>,\nwhere the draft-first publish flow\nstopped carrying the discussion category through the final publish\nstep.</p>\n<p>If you still hit an issue after upgrading, please open a report with\nthe bug template and include a minimal repro or sanitized workflow\nsnippet where possible.</p>\n<h2>What's Changed</h2>\n<h3>Bug fixes 🐛</h3>\n<ul>\n<li>fix: preserve discussion category on publish by <a\nhref=\"https://github.com/chenrui333\"><code>@​chenrui333</code></a> in <a\nhref=\"https://redirect.github.com/softprops/action-gh-release/pull/765\">softprops/action-gh-release#765</a></li>\n</ul>\n<h2>v2.6.0</h2>\n<p><code>2.6.0</code> is a minor release centered on\n<code>previous_tag</code> support for\n<code>generate_release_notes</code>,\nwhich lets workflows pin GitHub's comparison base explicitly instead of\nrelying on the default range.\nIt also includes the recent concurrent asset upload recovery fix, a\n<code>working_directory</code> docs sync,\na checked-bundle freshness guard for maintainers, and clearer\nimmutable-prerelease guidance where\nGitHub platform behavior imposes constraints on how prerelease asset\nuploads can be published.</p>\n<p>If you still hit an issue after upgrading, please open a report with\nthe bug template and include a minimal repro or sanitized workflow\nsnippet where possible.</p>\n<h2>What's Changed</h2>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Changelog</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/softprops/action-gh-release/blob/master/CHANGELOG.md\">softprops/action-gh-release's\nchangelog</a>.</em></p>\n<blockquote>\n<h2>0.1.13</h2>\n<ul>\n<li>fix issue with multiple runs concatenating release bodies <a\nhref=\"https://redirect.github.com/softprops/action-gh-release/pull/145\">#145</a></li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/softprops/action-gh-release/commit/b4309332981a82ec1c5618f44dd2e27cc8bfbfda\"><code>b430933</code></a>\nrelease: cut v3.0.0 for Node 24 upgrade (<a\nhref=\"https://redirect.github.com/softprops/action-gh-release/issues/670\">#670</a>)</li>\n<li><a\nhref=\"https://github.com/softprops/action-gh-release/commit/c2e35e05a74208bafbfcbdae5ebc9da7236e980f\"><code>c2e35e0</code></a>\nchore(deps): bump the npm group across 1 directory with 7 updates (<a\nhref=\"https://redirect.github.com/softprops/action-gh-release/issues/783\">#783</a>)</li>\n<li>See full diff in <a\nhref=\"https://github.com/softprops/action-gh-release/compare/v2...v3\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=softprops/action-gh-release&package-manager=github_actions&previous-version=2&new-version=3)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-13T09:17:51-04:00",
+          "tree_id": "537d5eb010e4cd01cd3a5f01dc0926225ed9f978",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/331c0065cc2fb005e3cb8765def8157aa7d9b900"
+        },
+        "date": 1776086822586,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.13860314389666392,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 7.21484355900003 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.07337129383729851,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 13.62930851699997 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.9496722754102295,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.0529948340000033 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 6.811858617530352,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0014693499869276184",
+            "extra": "mean: 146.80281200001642 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 1.0481914405568522,
+            "unit": "iter/sec",
+            "range": "stddev: 0.010224508790445912",
+            "extra": "mean: 954.0241994999974 msec\nrounds: 2"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.12122783047277656,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 8.248930927000004 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 6.00007432891986,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 166.66460200002575 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 1.5560765839399149,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 642.6418919999719 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 8.62890370201144,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 115.88957700001856 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.9824077667434006,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 335.2995559999954 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 5.794391622255999,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 172.58067199998095 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 1.781492828495564,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 561.3269859999832 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 12.867791064545015,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 77.7134159999946 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 3.8717985849495875,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 258.27789799996026 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 55.899673948431236,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 17.889191999984178 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 5.156278712414788,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 193.93831400003592 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 13.316272702297674,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 75.09608899999876 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 4.007880053288573,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 249.5084649999626 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 12.65601624931427,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 79.01380499998822 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 4.6340248090772755,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 215.79513299997188 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 4.096642198283787,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 244.10235299995975 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.3895770614887681,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 719.6434280000403 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.32150388333432384,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 3.1103823370000327 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 4.092247090156245,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 244.36452100007955 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 3.276606472150647,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 305.1938060000339 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 1.0292895043362906,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 971.5439589999733 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 5.946188139009493,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 168.17496800001663 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 1.9927095485684605,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 501.82928100002755 msec\nrounds: 1"
           }
         ]
       }
