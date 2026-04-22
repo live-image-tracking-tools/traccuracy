@@ -219,7 +219,9 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
         sort.append("Ungrouped")
         sort.extend(ungrouped.index)
 
-    sns.heatmap(df.loc[sort], linewidths=1, vmin=0, vmax=100, cmap="copper", ax=ax, cbar=False)
+    sns.heatmap(
+        df.loc[sort].astype(float), linewidths=1, vmin=0, vmax=100, cmap="copper", ax=ax, cbar=False
+    )
     ax.set_title(name)
 
 
