@@ -1,7 +1,7 @@
 (lineage-accuracy-metrics)
 # Tracklet and Lineage Accuracy Metrics
 
-Track accuracy over N frames measures what fraction of ground truth tracklet or lineage segments of that span N frames are correctly reconstructed.
+Track accuracy over N frames measures what fraction of ground truth tracklet or lineage segments that span N frames are correctly reconstructed.
 For lineage segments, all branches are included - a segment is only correct if all branches are correct.
 Skip edges that span multiple frames count toward their actual frame difference. For example, a skip edge from t=0 to t=3 contributes a segment of size 3, not size 1.
 
