@@ -259,13 +259,12 @@ def _build_grid(
     # Each component has exactly one root node
     root = next(n for n in gt_track.nodes() if gt_track.in_degree(n) == 0)
 
-    num_rows = 0
-    root_row = num_rows
-    num_rows += 1
-    stack = [(root, root_row)]
+    num_rows = 1
+    # DFS through the track tree: each entry is (node, grid row for that node)
+    nodes_to_process = [(root, 0)]
 
-    while stack:
-        node, cur_row = stack.pop()
+    while nodes_to_process:
+        node, cur_row = nodes_to_process.pop()
         out_edges = list(gt_track.out_edges(node))
 
         if not out_edges:
@@ -309,7 +308,7 @@ def _build_grid(
                 if 0 <= t_idx < T:
                     _grid_set(grid, t_idx, edge_row, val)
 
-            stack.append((target, edge_row))
+            nodes_to_process.append((target, edge_row))
 
         # Record division link for this row.
         # If the division is at the root (no pre-division steps on
