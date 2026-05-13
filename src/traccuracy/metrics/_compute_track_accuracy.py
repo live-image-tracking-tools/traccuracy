@@ -140,12 +140,13 @@ def compute_track_accuracy(
                         # Only follow division links when the parent row
                         # is occupied at this time step (val_base != EMPTY).
                         divs = divisions if val_base != EMPTY else None
-                        val_prev = _get_linked_value(row, t + 1, prev_grid, divs)
+                        val_prev = _get_continuation_value(row, t, prev_grid, divs)
                         cur_grid[t][row] = _combine(val_base, val_prev)
 
                 prev_grid = cur_grid
 
             correct, total = _count_grid(cur_grid)
+            # aggregate results across different lineages by updating results dict
             sum_correct, sum_total = results.get(w, (0, 0))
             results[w] = (sum_correct + correct, sum_total + total)
 
@@ -158,11 +159,9 @@ def compute_track_accuracy(
 
 
 def _combine(a: int, b: int) -> int:
-    """Combine two grid values.
+    """AND two correctness values: a segment is correct only if all parts are correct.
 
-    -1 (EMPTY) is identity: the result is the other value.
-    0 (INCORRECT) absorbs: if either is 0, result is 0.
-    1 (CORRECT) requires both: 1 combined with 1 = 1.
+    EMPTY means "no data" and is ignored (identity element).
     """
     if a == EMPTY:
         return b
@@ -173,39 +172,39 @@ def _combine(a: int, b: int) -> int:
     return CORRECT
 
 
-def _get_linked_value(
+def _get_continuation_value(
     row: int,
-    next_t: int,
+    t: int,
     prev_grid: list[list[int]],
     divisions: dict[int, list[int]] | None,
 ) -> int:
-    """Get the value from prev_grid following the link from row.
+    """Look up the correctness of the continuation track(s) from the edge at (t, row).
 
-    Default link: same row at next_t.
-    Division link: AND across all daughter rows at next_t.
-    Divisions is None when the caller knows no division link should fire.
+    For a non-dividing tracklet, the continuation is the same row at t+1.
+    At a division, the continuation includes all daughter rows at t+1,
+    AND'd together (a segment spanning a division is only correct if
+    all branches are correct).
+
+    Returns EMPTY if there is no continuation (t+1 past the grid, or
+    divisions=None and the row has no data — EMPTY acts as identity
+    in _combine so the current cell's value is unchanged).
     """
+    next_t = t + 1
     if next_t >= len(prev_grid):
         return EMPTY
 
     if divisions is not None and row in divisions:
-        # Division: combine all daughter values (all must be correct)
         result = EMPTY
         for daughter_row in divisions[row]:
             daughter_val = prev_grid[next_t][daughter_row]
             result = _combine(result, daughter_val)
         return result
 
-    # Default: same row in next column
     return prev_grid[next_t][row]
 
 
 def _count_grid(cur_grid: list[list[int]]) -> tuple[int, int]:
-    """Count total and correct entries in a grid.
-
-    Returns:
-        (correct_count, total_count)
-    """
+    """Count how many segments exist in the grid and how many are correct."""
     total = 0
     correct = 0
     for t_col in cur_grid:
@@ -224,45 +223,23 @@ def _build_grid(
     relax_skips_gt: bool,
     relax_skips_pred: bool,
 ) -> tuple[list[list[int]], dict[int, list[int]], int]:
-    """Build the w=1 grid for a single component (lineage or tracklet).
+    """Build the base (window=1) correctness grid for a single GT component.
 
-    The grid is a 2D structure indexed by [time_step][row]. Each cell
-    holds CORRECT (1), INCORRECT (0), or EMPTY (-1). Time steps span
-    the full GT graph time range: T = end_frame - start_frame - 1,
-    where start_frame and end_frame come from the GT graph (end_frame
-    is exclusive). Each row represents one branch of the track tree.
+    Maps a lineage or tracklet tree onto a 2D grid where each column is
+    a frame step and each row is one branch of the tree. Each entry
+    records whether the corresponding edge was correctly reconstructed.
+    At divisions, the parent row ends and daughters get new rows.
 
-    A cell at grid[t][row] represents the correctness of the frame
-    step from (start_frame + t) to (start_frame + t + 1) on that
-    branch. EMPTY means no track occupies that row at that time step.
+    Also returns division links so that larger windows can AND across
+    all daughter branches when a segment spans a division.
 
-    At divisions, the parent row ends and each daughter gets a new row.
-    A division link is stored at the last pre-division time step so
-    that larger windows spanning the division AND across all daughters.
-
-    Skip edges spanning multiple frames are interpolated: a skip from
-    t=2 to t=5 fills grid[2], grid[3], grid[4] with the same value.
-
-    Example — GT graph spans frames 0-4 (T=3 steps). A lineage with
-    root A at t=0, edge A->B (t=0->1), then B divides into C (t=1->2)
-    and D (t=1->2), all correct::
-
-        time step:    0     1     2
-        row 0 (A-B):  1     .     .     <- parent row, EMPTY after division
-        row 1 (C):    .     1     .     <- daughter 1
-        row 2 (D):    .     1     .     <- daughter 2
-
-        divisions: {0: [1, 2]}  <- row 0 links to daughter rows 1, 2
-
-    For window w=1, we count non-EMPTY cells (3 total, 3 correct).
-    For w=2, we combine grid[t] with grid[t+1] following division
-    links, so the cell at (0, 0) combines with daughters at (1, 1)
-    and (1, 2).
+    Skip edges spanning multiple frames are interpolated: each
+    intermediate frame step gets the same correctness value.
 
     Returns:
-        grid: list of columns, each column is a list of row values
-        divisions: dict mapping parent row -> list of daughter row indices
-        num_rows: total number of rows in the grid
+        grid: grid[t][row] = CORRECT, INCORRECT, or EMPTY
+        divisions: parent row -> list of daughter row indices
+        num_rows: total number of rows
     """
     gt_graph = matched.gt_graph
     frame_key = gt_graph.frame_key
@@ -361,20 +338,11 @@ def _is_node_correct(
     is_ctc: bool,
     relax_skips_pred: bool,
 ) -> bool:
-    """Check if a GT node is correctly matched.
+    """Is this GT node correctly reconstructed in the prediction?
 
-    For basic errors:
-    - GT node must have the TRUE_POS flag
-    - GT node must not have FN_DIV flag
-    - Matched pred nodes must also have TRUE_POS flag
-    - Matched pred nodes must not have FP_DIV flag
-
-    For CTC errors:
-    - GT node must have the CTC_TRUE_POS flag
-    - Division errors (FN_DIV/FP_DIV) are NOT checked - CTC handles divisions
-      via WRONG_SEMANTIC edge flags instead
-
-    If relax_skips_pred is True, nodes between SKIP_TRUE_POS edges are also correct.
+    A node is correct if it is a true positive with no division errors
+    (missed or spurious divisions). With skip relaxation, nodes between
+    matched skip edges also count as correct.
     """
     gt_graph = matched.gt_graph
     pred_graph = matched.pred_graph
@@ -423,12 +391,11 @@ def _is_edge_correct(
     relax_skips_gt: bool,
     relax_skips_pred: bool,
 ) -> bool:
-    """Check if a GT edge is correctly matched.
+    """Is this GT edge correctly reconstructed in the prediction?
 
-    For basic errors: edge is correct if it has the TRUE_POS flag.
-    For CTC errors: edge is correct if it does NOT have CTC_FALSE_NEG flag,
-        and matched pred edges don't have WRONG_SEMANTIC.
-    If skip relaxation is enabled, SKIP_TRUE_POS also counts as correct.
+    An edge is correct if the prediction has a matching true positive
+    link with no semantic errors. With skip relaxation, matched skip
+    edges also count as correct.
     """
     gt_graph = matched.gt_graph
     pred_graph = matched.pred_graph
