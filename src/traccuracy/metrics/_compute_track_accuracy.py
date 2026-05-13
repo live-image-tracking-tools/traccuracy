@@ -150,11 +150,6 @@ def compute_track_accuracy(
             sum_correct, sum_total = results.get(w, (0, 0))
             results[w] = (sum_correct + correct, sum_total + total)
 
-    # Fill in any window sizes that had no data
-    for w in range(1, max_window + 1):
-        if w not in results:
-            results[w] = (0, 0)
-
     return results
 
 
