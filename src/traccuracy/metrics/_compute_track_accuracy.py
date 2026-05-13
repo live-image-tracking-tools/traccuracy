@@ -117,9 +117,6 @@ def compute_track_accuracy(
             relax_skips_pred,
         )
 
-        if not grid:
-            continue
-
         T = len(grid)
 
         # DP to build grids for increasing window sizes.

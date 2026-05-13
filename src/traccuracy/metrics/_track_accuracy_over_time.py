@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -51,7 +51,8 @@ class TrackAccuracyOverTime(Metric):
     at different temporal scales.
 
     Args:
-        max_window: Maximum window size in frames to evaluate (default: 50)
+        max_window (int | None): Maximum window size in frames to evaluate. The default
+            is None, which uses gt_tracks.end - gt_tracks.start
         lineages: If True, evaluate on full lineages (connected components).
             If False, evaluate on tracklets (segments between divisions).
         error_type: "basic" or "ctc" error classification scheme
@@ -66,7 +67,7 @@ class TrackAccuracyOverTime(Metric):
 
     def __init__(
         self,
-        max_window: int = 50,
+        max_window: int | None = None,
         lineages: bool = True,
         error_type: Literal["basic", "ctc"] = "basic",
     ):
@@ -101,6 +102,13 @@ class TrackAccuracyOverTime(Metric):
             Dictionary with window_{N}_correct, window_{N}_total, and
             window_{N}_accuracy for each window size from 1 to max_window.
         """
+        if matched.gt_graph.start_frame is None or matched.gt_graph.end_frame is None:
+            warnings.warn(
+                "GT graph has no frame range (empty graph). Returning empty results.",
+                stacklevel=2,
+            )
+            return {}
+
         # Run error classification
         if self.error_type == "basic":
             # Warn if using many-to-one matching with basic errors
@@ -126,10 +134,15 @@ class TrackAccuracyOverTime(Metric):
                 )
             evaluate_ctc_events(matched)
 
+        if self.max_window is None:
+            max_window = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
+        else:
+            max_window = self.max_window
+
         # Compute segment counts
         segment_counts = compute_track_accuracy(
             matched,
-            self.max_window,
+            max_window,
             self.lineages,
             error_type=self.error_type,
             relax_skips_gt=relax_skips_gt,
@@ -138,7 +151,7 @@ class TrackAccuracyOverTime(Metric):
 
         # Convert to results dict with computed accuracies
         results: dict = {}
-        for window_size in range(1, self.max_window + 1):
+        for window_size in range(1, max_window + 1):
             correct, total = segment_counts.get(window_size, (0, 0))
             key = f"window_{window_size}"
             results[f"{key}_correct"] = correct

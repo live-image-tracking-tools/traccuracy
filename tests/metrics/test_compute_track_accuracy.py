@@ -507,3 +507,37 @@ class TestManyToOne:
             assert np.isnan(actual_acc)
         else:
             assert pytest.approx(actual_acc, abs=0.01) == expected_acc
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Node errors already calculated",
+    "ignore:Edge errors already calculated",
+    "ignore:Division annotations already present",
+)
+class TestDefaultMaxWindow:
+    """Test that max_window=None uses the full GT time range."""
+
+    def test_default_matches_explicit(self):
+        matched = larger_example_1()
+        expected_max = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
+
+        default_metric = TrackAccuracyOverTime(max_window=None)
+        explicit_metric = TrackAccuracyOverTime(max_window=expected_max)
+
+        default_result = default_metric.compute(matched)
+        explicit_result = explicit_metric.compute(matched)
+
+        assert default_result.results == explicit_result.results
+
+    def test_default_window_range(self):
+        matched = larger_example_1()
+        expected_max = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
+
+        metric = TrackAccuracyOverTime(max_window=None)
+        result = metric.compute(matched)
+
+        for w in range(1, expected_max + 1):
+            assert f"window_{w}_correct" in result.results
+            assert f"window_{w}_total" in result.results
+            assert f"window_{w}_accuracy" in result.results
+        assert f"window_{expected_max + 1}_correct" not in result.results
