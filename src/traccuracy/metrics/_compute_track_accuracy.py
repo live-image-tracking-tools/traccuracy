@@ -289,12 +289,23 @@ def _build_grid(
             target_frame = gt_graph.nodes[target][frame_key]
             edge_span = target_frame - source_frame
 
-            edge_correct = node_correct and _is_edge_correct(
-                edge,
+            target_correct = _is_node_correct(
+                target,
                 matched,
                 is_ctc,
-                relax_skips_gt,
                 relax_skips_pred,
+            )
+            edge_correct = (
+                node_correct
+                and not _has_fp_division(node, matched, is_ctc)
+                and _is_edge_correct(
+                    edge,
+                    matched,
+                    is_ctc,
+                    relax_skips_gt,
+                    relax_skips_pred,
+                )
+                and target_correct
             )
             val = CORRECT if edge_correct else INCORRECT
 
@@ -332,11 +343,12 @@ def _is_node_correct(
     is_ctc: bool,
     relax_skips_pred: bool,
 ) -> bool:
-    """Is this GT node correctly reconstructed in the prediction?
+    """Is this GT node correctly detected in the prediction?
 
-    A node is correct if it is a true positive with no division errors
-    (missed or spurious divisions). With skip relaxation, nodes between
-    matched skip edges also count as correct.
+    A node is correct if it is a true positive. Division errors are
+    checked separately (FP_DIV via ``_has_fp_division``, FN_DIV via
+    edge error flags). With skip relaxation, nodes between matched
+    skip edges also count as correct.
     """
     gt_graph = matched.gt_graph
     pred_graph = matched.pred_graph
@@ -345,24 +357,12 @@ def _is_node_correct(
     gt_node_data = gt_graph.nodes[gt_node]
 
     if is_ctc:
-        # CTC only checks GT node TP flag - division errors handled via WRONG_SEMANTIC
         if node_tp in gt_node_data:
             return True
     else:
-        # Basic errors: check division errors and pred node TP flags
-        # Check for division errors on GT node (FN_DIV means missed division)
-        if NodeFlag.FN_DIV in gt_node_data:
-            return False
-
-        # Check if GT node is a TP
         if node_tp in gt_node_data:
-            # Check matched pred nodes for FP_DIV (false positive division)
+            # Check that all matched pred nodes are TP
             pred_nodes = matched.get_gt_pred_matches(gt_node)
-            for on in pred_nodes:
-                if NodeFlag.FP_DIV in pred_graph.nodes[on]:
-                    return False
-
-            # Also check that all matched pred nodes are TP
             for on in pred_nodes:
                 if node_tp not in pred_graph.nodes[on]:
                     return False
@@ -370,11 +370,34 @@ def _is_node_correct(
 
     # If not a TP, check if it's between skip edges (when relaxing)
     if relax_skips_pred:
-        # Check if any incoming edge is a SKIP_TRUE_POS
         for prev_edge in gt_graph.graph.in_edges(gt_node):
             if EdgeFlag.SKIP_TRUE_POS in gt_graph.edges[prev_edge]:
                 return True
 
+    return False
+
+
+def _has_fp_division(
+    gt_node: Any,
+    matched: Matched,
+    is_ctc: bool,
+) -> bool:
+    """Does this GT node have a false positive division in the prediction?
+
+    A spurious division means the prediction splits the track where the
+    GT doesn't. This invalidates windows starting from this node, since
+    the outgoing pred edges include a division that shouldn't exist.
+
+    Only applies to basic errors — CTC handles division errors via
+    WRONG_SEMANTIC edge flags instead.
+    """
+    if is_ctc:
+        return False
+
+    pred_graph = matched.pred_graph
+    for pred_node in matched.get_gt_pred_matches(gt_node):
+        if NodeFlag.FP_DIV in pred_graph.nodes[pred_node]:
+            return True
     return False
 
 
@@ -416,8 +439,14 @@ def _is_edge_correct(
         if EdgeFlag.TRUE_POS in edge_data:
             return True
 
-    # Check for skip TP if relaxation is enabled
-    if (relax_skips_gt or relax_skips_pred) and EdgeFlag.SKIP_TRUE_POS in edge_data:
-        return True
+    # Check for skip TP if the matching relaxation flag is enabled:
+    # - GT skip edge (spans multiple frames in GT) needs relax_skips_gt
+    # - Non-skip edge with SKIP_TRUE_POS (pred has the skip) needs relax_skips_pred
+    if EdgeFlag.SKIP_TRUE_POS in edge_data:
+        is_skip_edge = gt_graph.is_skip_edge(gt_edge)
+        if is_skip_edge and relax_skips_gt:
+            return True
+        if not is_skip_edge and relax_skips_pred:
+            return True
 
     return False

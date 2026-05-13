@@ -329,34 +329,35 @@ class TestDivisions:
         assert pytest.approx(accuracy, abs=0.01) == acc
 
     @pytest.mark.parametrize(
-        ("t_div", "window", "acc"),
+        ("t_div", "window", "basic_acc", "ctc_acc"),
         [
-            # one_child: pred missing one daughter edge -> FN_DIV on GT division node
-            # Division node should be marked incorrect
-            # t_div=0: division at node 1, segments starting at 1 incorrect
-            (0, 1, 0.5),  # 2/4 (segments at 2,3 correct, segments at 1 wrong)
-            (0, 2, 0.0),  # 0/2 (all window-2 segments go through node 1)
-            # t_div=1: division at node 2, segment at 1 correct, segments at 2 wrong
-            (1, 1, 1 / 3),  # 1/3 (segment at 1 correct, segments at 2 wrong due to FN_DIV)
-            (1, 2, 0.0),  # 0/1 (window-2 goes through node 2 which has FN_DIV)
+            # one_child: pred missing one daughter edge
+            # FN_DIV is NOT a node error; only the missing edge is FN.
+            # basic: surviving daughter edge is TP
+            # CTC: surviving daughter edge marked WRONG_SEMANTIC (CTC penalizes it)
+            (0, 1, 3 / 4, 2 / 4),  # basic: 3/4, ctc: 2/4
+            (0, 2, 1 / 2, 0 / 2),  # basic: 1/2, ctc: 0/2
+            (1, 1, 2 / 3, 1 / 3),  # basic: 2/3, ctc: 1/3
+            (1, 2, 1 / 3, 0 / 3),  # basic: 1/3, ctc: 0/3
         ],
     )
-    def test_one_child(self, error_type, t_div, window, acc):
+    def test_one_child(self, error_type, t_div, window, basic_acc, ctc_acc):
         matched = ex_graphs.one_child(t_div)
         self.add_errors(matched, error_type)
         result = compute_track_accuracy(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
+        acc = ctc_acc if error_type == "ctc" else basic_acc
         assert pytest.approx(accuracy, abs=0.01) == acc
 
     @pytest.mark.parametrize(
         ("t_div", "window", "acc"),
         [
-            # no_children: pred missing both daughter edges -> FN_DIV
-            # Same pattern as one_child
-            (0, 1, 0.5),
-            (0, 2, 0.0),
-            (1, 1, 1 / 3),  # Same as one_child: segment at 1 correct, segments at 2 wrong
-            (1, 2, 0.0),
+            # no_children: pred missing both daughter edges -> FN edge errors
+            # FN_DIV is not a node error; both daughter edges are FN
+            (0, 1, 2 / 4),  # 2/4 (both daughter edges FN, tracklet edges TP)
+            (0, 2, 0.0),  # 0/2 (both branches have FN edges)
+            (1, 1, 1 / 3),  # 1/3 (edge 0->1 correct, both daughter edges FN)
+            (1, 2, 0.0),  # 0/1 (all branches touch FN edges)
         ],
     )
     def test_no_children(self, error_type, t_div, window, acc):
@@ -441,20 +442,24 @@ class TestDivisionSkipEdges:
 @pytest.mark.parametrize("error_type", ["basic", "ctc"])
 class TestLargerExample:
     @pytest.mark.parametrize(
-        ("window", "correct", "total"),
+        ("window", "basic_correct", "ctc_correct", "total"),
         [
-            (1, 10, 20),
-            (2, 9, 20),  # short tracks count at larger windows
-            (3, 7, 17),
-            (4, 4, 9),
+            # basic and CTC diverge because CTC marks WRONG_SEMANTIC on the
+            # surviving daughter edge when the other daughter is missing,
+            # while basic only marks the missing edge as FN.
+            (1, 12, 10, 20),
+            (2, 11, 9, 20),
+            (3, 9, 7, 17),
+            (4, 5, 4, 9),
         ],
     )
-    def test_larger_example_1(self, error_type, window, correct, total):
+    def test_larger_example_1(self, error_type, window, basic_correct, ctc_correct, total):
         matched = larger_example_1()
         metric = TrackAccuracyOverTime(max_window=window, error_type=error_type)
         result = metric.compute(matched)
         # Lists are 0-indexed: index 0 = window 1
         idx = window - 1
+        correct = ctc_correct if error_type == "ctc" else basic_correct
         assert result.results["correct"][idx] == correct
         assert result.results["total"][idx] == total
         if total > 0:
