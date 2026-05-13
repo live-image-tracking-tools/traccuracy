@@ -27,19 +27,17 @@ from traccuracy.matchers import IOUMatcher
 matcher = IOUMatcher(iou_threshold=0.5)
 matched = matcher.compute_mapping(gt_graph, pred_graph)
 
-# Compute lineage accuracy over windows 1-50 frames
+# Compute lineage accuracy over windows spanning 1-50 frames
 metric = TrackAccuracyOverTime(max_window=50, lineages=True, error_type="basic")
 result = metric.compute(matched)
 
-# Access results for specific window sizes
-print(f"Window 1: {result.results['window_1_accuracy']:.2%}")
-print(f"Window 10: {result.results['window_10_accuracy']:.2%}")
-print(f"Window 50: {result.results['window_50_accuracy']:.2%}")
-
-# Each window size has three values:
-# - window_N_correct: number of correctly reconstructed segments spanning N frames
-# - window_N_total: total number of GT segments spanning N frames
-# - window_N_accuracy: correct/total (or NaN if total is 0)
+# Results contain three lists (index 0 = window 1, index 1 = window 2, etc.):
+#   "correct" - number of correctly reconstructed segments at each window size
+#   "total"   - total number of GT segments at each window size
+#   "accuracy"- correct/total (or NaN if total is 0)
+print(f"Window 1: {result.results['accuracy'][0]:.2%}")
+print(f"Window 10: {result.results['accuracy'][9]:.2%}")
+print(f"Window 50: {result.results['accuracy'][49]:.2%}")
 
 # For tracklet accuracy (segments between divisions):
 tracklet_metric = TrackAccuracyOverTime(max_window=50, lineages=False)

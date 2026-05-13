@@ -453,13 +453,13 @@ class TestLargerExample:
         matched = larger_example_1()
         metric = TrackAccuracyOverTime(max_window=window, error_type=error_type)
         result = metric.compute(matched)
-        assert result.results[f"window_{window}_correct"] == correct
-        assert result.results[f"window_{window}_total"] == total
+        # Lists are 0-indexed: index 0 = window 1
+        idx = window - 1
+        assert result.results["correct"][idx] == correct
+        assert result.results["total"][idx] == total
         if total > 0:
             expected_acc = correct / total
-            assert (
-                pytest.approx(result.results[f"window_{window}_accuracy"], abs=0.01) == expected_acc
-            )
+            assert pytest.approx(result.results["accuracy"][idx], abs=0.01) == expected_acc
 
 
 @pytest.mark.filterwarnings(
@@ -484,7 +484,7 @@ class TestManyToOne:
         matched = ex_graphs.node_two_to_one(idx)
         metric = TrackAccuracyOverTime(max_window=window, error_type="ctc")
         result = metric.compute(matched)
-        actual_acc = result.results[f"window_{window}_accuracy"]
+        actual_acc = result.results["accuracy"][window - 1]
         if np.isnan(expected_acc):
             assert np.isnan(actual_acc)
         else:
@@ -502,7 +502,7 @@ class TestManyToOne:
         matched = ex_graphs.edge_two_to_one(idx)
         metric = TrackAccuracyOverTime(max_window=window, error_type="ctc")
         result = metric.compute(matched)
-        actual_acc = result.results[f"window_{window}_accuracy"]
+        actual_acc = result.results["accuracy"][window - 1]
         if np.isnan(expected_acc):
             assert np.isnan(actual_acc)
         else:
@@ -536,8 +536,6 @@ class TestDefaultMaxWindow:
         metric = TrackAccuracyOverTime(max_window=None)
         result = metric.compute(matched)
 
-        for w in range(1, expected_max + 1):
-            assert f"window_{w}_correct" in result.results
-            assert f"window_{w}_total" in result.results
-            assert f"window_{w}_accuracy" in result.results
-        assert f"window_{expected_max + 1}_correct" not in result.results
+        assert len(result.results["correct"]) == expected_max
+        assert len(result.results["total"]) == expected_max
+        assert len(result.results["accuracy"]) == expected_max

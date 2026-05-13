@@ -57,11 +57,11 @@ class TrackAccuracyOverTime(Metric):
             If False, evaluate on tracklets (segments between divisions).
         error_type: "basic" or "ctc" error classification scheme
 
-    The compute function returns a results dictionary with entries for each
-    window size from 1 to max_window:
-        - `window_{N}_correct` - number of correct segments of size N frames
-        - `window_{N}_total` - total number of segments of size N frames
-        - `window_{N}_accuracy` - correct/total, or np.nan if total is 0
+    The compute function returns a results dictionary with three lists,
+    each indexed by window size (index 0 = window 1, index 1 = window 2, etc.):
+        - `correct` - number of correct segments at each window size
+        - `total` - total number of segments at each window size
+        - `accuracy` - correct/total at each window size, or np.nan if total is 0
 
     """
 
@@ -99,8 +99,8 @@ class TrackAccuracyOverTime(Metric):
                 have an equivalent multi-edge path in ground truth graph
 
         Returns:
-            Dictionary with window_{N}_correct, window_{N}_total, and
-            window_{N}_accuracy for each window size from 1 to max_window.
+            Dictionary with "correct", "total", and "accuracy" lists,
+            each of length max_window (index 0 = window 1, etc.).
         """
         if matched.gt_graph.start_frame is None or matched.gt_graph.end_frame is None:
             warnings.warn(
@@ -149,13 +149,18 @@ class TrackAccuracyOverTime(Metric):
             relax_skips_pred=relax_skips_pred,
         )
 
-        # Convert to results dict with computed accuracies
-        results: dict = {}
+        # Convert to results dict with lists (index 0 = window 1, etc.)
+        correct_list: list[int] = []
+        total_list: list[int] = []
+        accuracy_list: list[float] = []
         for window_size in range(1, max_window + 1):
             correct, total = segment_counts.get(window_size, (0, 0))
-            key = f"window_{window_size}"
-            results[f"{key}_correct"] = correct
-            results[f"{key}_total"] = total
-            results[f"{key}_accuracy"] = correct / total if total > 0 else np.nan
+            correct_list.append(correct)
+            total_list.append(total)
+            accuracy_list.append(correct / total if total > 0 else np.nan)
 
-        return results
+        return {
+            "correct": correct_list,
+            "total": total_list,
+            "accuracy": accuracy_list,
+        }
