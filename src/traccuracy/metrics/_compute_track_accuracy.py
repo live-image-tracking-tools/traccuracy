@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from traccuracy.matchers import Matched
 
 # Sentinel values for the DP grid
@@ -15,31 +17,75 @@ INCORRECT = 0
 
 def compute_track_accuracy(
     matched: Matched,
-    window: int,
+    max_window: int,
     lineages: bool = True,
-    error_type: str = "basic",
+    error_type: Literal["basic", "ctc"] = "basic",
     relax_skips_gt: bool = False,
     relax_skips_pred: bool = False,
 ) -> dict[int, tuple[int, int]]:
-    """Compute the fraction of GT track segments correctly reconstructed.
+    r"""Compute the fraction of GT track segments correctly reconstructed.
 
     For each component (lineage or tracklet), builds a 2D grid of
-    per-frame-step correctness values (see ``_build_grid``). Then uses
+    per-frame-step correctness values (see ``_build_grid``), then uses
     dynamic programming to combine adjacent frame steps into larger
-    windows: w=k is built from w=1 (base) and w=k-1 (previous), with
-    division links ensuring all daughter branches are AND'd together.
-    Non-EMPTY cells in each window's grid are counted as segments.
+    windows.
 
     Window size is measured in frames (time difference), not edge count.
     Skip edges spanning multiple frames are interpolated to fill
     intermediate frame steps with the same correctness status.
+    This means that if a skip edge exceeds the window, the part of it
+    inside the window still counts towards the correctness of the segment.
+
+    Example — A->A' then A' divides into B and C, with an error on
+    the C->C' edge (1 = correct, 0 = incorrect, empty = no track)::
+
+        GT graph (6 nodes, 5 edges):
+        t=0    t=1    t=2    t=3
+                    /  B ---- B'
+         A ---- A'<
+                    \  C -x-- C'  (error on C->C')
+
+        base grid (window=1): one entry per edge
+        Each column is frame span ((0-1) covers frames 0->1, etc.)
+                   (0-1)(1-2)(2-3)
+        ┌─────────┬────┬────┬────┐
+        │track. A │  1 │    │    │  edge A->A'
+        ├─────────┼────┼────┼────┤
+        │track. B │    │  1 │  1 │  edges A'->B, B->B'
+        ├─────────┼────┼────┼────┤
+        │track. C │    │  1 │  0 │  edges A'->C, C->C' (error)
+        └─────────┴────┴────┴────┘
+
+        w=2 grid (combine base[t] with base[t+1] via division links):
+                   (0-2)(1-3)
+        ┌─────────┬────┬────┐
+        │track. A │  1 │    │  AND(A->A'=1, A'->B=1, A'->C=1) = 1
+        ├─────────┼────┼────┤
+        │track. B │    │  1 │  AND(A'->B=1, B->B'=1) = 1
+        ├─────────┼────┼────┤
+        │track. C │    │  0 │  AND(A'->C=1, C->C'=0) = 0
+        └─────────┴────┴────┘
+
+        w=3 grid:
+                   (0-3)
+        ┌─────────┬────┐
+        │track. A │  0 │  AND(A->A'=1, w2_B=1, w2_C=0) = 0
+        ├─────────┼────┤
+        │track. B │    │
+        ├─────────┼────┤
+        │track. C │    │
+        └─────────┴────┘
+
+    At each window size, non-empty entries are counted as segments.
+    w=1: 5 (4 correct). w=2: 3 (2 correct). w=3: 1 (0 correct).
+
 
     GT tracks shorter than a given window size still count once for that
     window size (correct iff the entire track is correct).
 
     Args:
         matched: Matched data object with annotated errors
-        window: Maximum window size to evaluate (in frames)
+        max_window: Maximum window size to evaluate (in frames)
         lineages: If True, evaluate on full lineages. If False, on tracklets.
         error_type: "basic" or "ctc" - which error classification was used
         relax_skips_gt: If True, SKIP_TRUE_POS edges in GT count as correct
@@ -47,6 +93,7 @@ def compute_track_accuracy(
 
     Returns:
         Dictionary mapping window size (int) to tuple of (correct_count, total_count)
+        for each window size from 1 to max_window
     """
     is_ctc = error_type == "ctc"
 
@@ -80,7 +127,7 @@ def compute_track_accuracy(
         base_grid = grid
         prev_grid = grid
 
-        for w in range(1, window + 1):
+        for w in range(1, max_window + 1):
             if w == 1:
                 cur_grid = base_grid
             else:
@@ -106,7 +153,7 @@ def compute_track_accuracy(
             results[w] = (sum_correct + correct, sum_total + total)
 
     # Fill in any window sizes that had no data
-    for w in range(1, window + 1):
+    for w in range(1, max_window + 1):
         if w not in results:
             results[w] = (0, 0)
 

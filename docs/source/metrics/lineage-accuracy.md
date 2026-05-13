@@ -11,13 +11,11 @@ A segment is counted as correct if there are no errors anywhere in it. In our cu
 
 Important counting rules:
 - Isolated nodes (nodes with no outgoing edges) are NOT counted as segments
-- Ground truth tracks shorter than window size N do not contribute to the total for window N
+- Ground truth tracks shorter than window size N do contribute 1 to the total for window N
 
-In the extreme case where N equals the track length, this measures whether entire tracks are fully correctly reconstructed.
+In the extreme case where N equals the track length, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
 
 Tracklet accuracy over N frames is the same, but counts each tracklet (segment between divisions) independently rather than full lineages. Division edges are not included in this version of the metric.
-
-Note: This metric differs from CTC-BIO "Complete Tracks" because tracks shorter than window size N do not contribute to the total for window N. See [Complete Tracks](complete-tracks) for the CTC-BIO metric.
 
 ## Usage
 
@@ -39,8 +37,8 @@ print(f"Window 10: {result.results['window_10_accuracy']:.2%}")
 print(f"Window 50: {result.results['window_50_accuracy']:.2%}")
 
 # Each window size has three values:
-# - window_N_correct: number of correct segments of size N
-# - window_N_total: total number of segments of size N
+# - window_N_correct: number of correctly reconstructed segments spanning N frames
+# - window_N_total: total number of GT segments spanning N frames
 # - window_N_accuracy: correct/total (or NaN if total is 0)
 
 # For tracklet accuracy (segments between divisions):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -12,6 +12,8 @@ from ._base import Metric
 from ._compute_track_accuracy import compute_track_accuracy
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from traccuracy.matchers import Matched
 
 
@@ -66,7 +68,7 @@ class TrackAccuracyOverTime(Metric):
         self,
         max_window: int = 50,
         lineages: bool = True,
-        error_type: str = "basic",
+        error_type: Literal["basic", "ctc"] = "basic",
     ):
         # CTC supports many-to-one because it doesn't use division error classification
         # (divisions handled via WRONG_SEMANTIC edge flags instead)
@@ -76,10 +78,9 @@ class TrackAccuracyOverTime(Metric):
 
         if error_type not in ["ctc", "basic"]:
             raise ValueError(f"Unrecognized error type {error_type}. Should be 'ctc' or 'basic'")
-
         self.max_window = max_window
         self.lineages = lineages
-        self.error_type = error_type
+        self.error_type: Literal["basic", "ctc"] = error_type
 
     def _compute(
         self,
@@ -98,7 +99,7 @@ class TrackAccuracyOverTime(Metric):
 
         Returns:
             Dictionary with window_{N}_correct, window_{N}_total, and
-            window_{N}_accuracy for each window size N from 1 to max_window.
+            window_{N}_accuracy for each window size from 1 to max_window.
         """
         # Run error classification
         if self.error_type == "basic":
