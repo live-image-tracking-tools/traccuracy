@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import itertools
 import warnings
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.track_errors._basic import classify_basic_errors
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
+from ._compute_track_accuracy import _has_fp_division, _is_edge_correct, _is_node_correct
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -55,6 +54,7 @@ class CompleteTracks(Metric):
         if error_type not in ["ctc", "basic"]:
             raise ValueError(f"Unrecognized error type {error_type}. Should be 'ctc' or 'basic'")
         self.error_type = error_type
+        self.is_ctc = error_type == "ctc"
 
     def _compute(
         self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
@@ -135,11 +135,12 @@ class CompleteTracks(Metric):
                 for tracklet_start in tracklet_starts
             ]
             div_edges_correct = [
-                self._check_gt_edge_correct(
+                _is_edge_correct(
                     div_edge,
                     matched,
-                    relax_skips_gt=relax_skips_gt,
-                    relax_skips_pred=relax_skips_pred,
+                    self.is_ctc,
+                    relax_skips_gt,
+                    relax_skips_pred,
                 )
                 for div_edge in div_edges
             ]
@@ -162,86 +163,26 @@ class CompleteTracks(Metric):
             else np.nan,
         }
 
+    def _check_node_and_div(self, node: Hashable, matched: Matched, relax_skips_pred: bool) -> bool:
+        """Check if a GT node is correct and has no false positive division."""
+        return _is_node_correct(
+            node, matched, self.is_ctc, relax_skips_pred
+        ) and not _has_fp_division(node, matched, self.is_ctc)
+
     def _check_tracklet_correct(
         self, start_node: Hashable, matched: Matched, relax_skips_gt: bool, relax_skips_pred: bool
     ) -> bool:
-        if not self._check_gt_node_correct(start_node, matched, relax_skips_pred=relax_skips_pred):
+        if not self._check_node_and_div(start_node, matched, relax_skips_pred):
             return False
         out_edges = list(matched.gt_graph.graph.out_edges(start_node))
         while len(out_edges) == 1:
             out_edge = out_edges[0]
-            if not self._check_gt_edge_correct(out_edge, matched, relax_skips_gt, relax_skips_pred):
+            if not _is_edge_correct(
+                out_edge, matched, self.is_ctc, relax_skips_gt, relax_skips_pred
+            ):
                 return False
             curr_node = out_edge[1]
-            if not self._check_gt_node_correct(
-                curr_node, matched, relax_skips_pred=relax_skips_pred
-            ):
+            if not self._check_node_and_div(curr_node, matched, relax_skips_pred):
                 return False
             out_edges = list(matched.gt_graph.graph.out_edges(curr_node))
         return True
-
-    def _check_gt_node_correct(
-        self, node: Hashable, matched: Matched, relax_skips_pred: bool
-    ) -> bool:
-        node_tp = NodeFlag.TRUE_POS if self.error_type == "basic" else NodeFlag.CTC_TRUE_POS
-        gt_track = matched.gt_graph
-        # check if this gt node is a true pos
-        if node_tp in gt_track.nodes[node]:
-            # check if it is not matched to a FP-DIV, if applicable
-            if self.error_type == "basic":
-                matched_nodes = matched.get_gt_pred_matches(node)
-                for pred_node in matched_nodes:
-                    if NodeFlag.FP_DIV in matched.pred_graph.nodes[pred_node]:
-                        return False
-            return True
-        else:
-            # if skip edges are relaxed, check if the node is between skip tps
-            # (enough to check that one prev edge is a skip TP)
-            if relax_skips_pred:
-                for prev_edge in gt_track.graph.in_edges(node):
-                    if EdgeFlag.SKIP_TRUE_POS in gt_track.edges[prev_edge]:
-                        return True
-        # it's not a TP or between skip edges, so it's just wrong
-        return False
-
-    def _check_gt_edge_correct(
-        self,
-        edge: tuple[Hashable, Hashable],
-        matched: Matched,
-        relax_skips_gt: bool,
-        relax_skips_pred: bool,
-    ) -> bool:
-        gt_track = matched.gt_graph
-        pred_track = matched.pred_graph
-        edge_data = gt_track.edges[edge]
-        # check if it is a TP
-        if self.error_type == "ctc":
-            # the ctc errors don't annotate edge TPs, so instead we check for absence of
-            # all the error types. Wrong semantic are only annotated on the pred graph,
-            # so we need to find the matched edge and check it
-            tp = True
-            if EdgeFlag.CTC_FALSE_NEG in edge_data:
-                tp = False
-            else:
-                matched_sources = matched.get_gt_pred_matches(edge[0])
-                matched_targets = matched.get_gt_pred_matches(edge[1])
-                matched_edges = [
-                    (source, target)
-                    for source, target in itertools.product(matched_sources, matched_targets)
-                    if pred_track.graph.has_edge(source, target)
-                ]
-                for matched_edge in matched_edges:
-                    if EdgeFlag.WRONG_SEMANTIC in pred_track.graph.edges[matched_edge]:
-                        tp = False
-                        break
-            if tp:
-                return True
-        else:
-            if EdgeFlag.TRUE_POS in edge_data:
-                return True
-        is_skip_edge = gt_track.is_skip_edge(edge)
-        if is_skip_edge and relax_skips_gt and EdgeFlag.SKIP_TRUE_POS in edge_data:
-            return True
-        if (not is_skip_edge) and relax_skips_pred and EdgeFlag.SKIP_TRUE_POS in edge_data:
-            return True
-        return False
