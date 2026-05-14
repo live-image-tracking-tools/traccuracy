@@ -112,14 +112,6 @@ class TrackAccuracyOverTime(Metric):
 
         # Run error classification
         if self.error_type == "basic":
-            # Warn if using many-to-one matching with basic errors
-            if matched.matcher_info.get("type") == "many-to-one":
-                warnings.warn(
-                    "Using basic errors with many-to-one matching. "
-                    "Division error classification may not work correctly. "
-                    "Consider using error_type='ctc' for many-to-one matching.",
-                    stacklevel=2,
-                )
             # Run division error classification (only for basic errors)
             # CTC handles division errors via WRONG_SEMANTIC edge flags
             # Note: evaluate_division_events internally calls classify_basic_errors
