@@ -25,6 +25,7 @@ class TrackAccuracyOverTime(Metric):
 
     Window size is measured in frames (time difference), not edge count.
     A segment of size N spans N frames from start to end. For example:
+
     - A segment of size 1 spans 1 frame (node at t=0 to node at t=1)
     - A segment of size 2 spans 2 frames (node at t=0 to node at t=2)
 
@@ -36,10 +37,12 @@ class TrackAccuracyOverTime(Metric):
     a segment is only correct if all branches are correct.
 
     A segment is counted as correct if:
+
     - The starting node is a true positive
     - All edges along the path are true positives
 
     Important counting rules:
+
     - Isolated nodes (nodes with no outgoing edges) are NOT counted
     - Segments only exist at their actual frame spans (no intermediate sizes
       for skip edges)
