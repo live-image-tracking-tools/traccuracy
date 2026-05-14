@@ -1,9 +1,39 @@
+import networkx as nx
 import numpy as np
 import pytest
 
 import tests.examples.graphs as ex_graphs
 from tests.examples.larger_examples import larger_example_1
+from traccuracy._tracking_graph import TrackingGraph
+from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._track_accuracy_over_time import TrackAccuracyOverTime
+
+
+class TestValidation:
+    def test_invalid_error_type(self):
+        with pytest.raises(ValueError, match="Unrecognized error type"):
+            TrackAccuracyOverTime(error_type="invalid")
+
+    @pytest.mark.filterwarnings("ignore:Mapping is empty")
+    def test_empty_gt_graph_warns(self):
+        gt = TrackingGraph(nx.DiGraph())
+        pred = TrackingGraph(nx.DiGraph())
+        matched = Matched(gt, pred, [], {})
+        metric = TrackAccuracyOverTime(max_window=2)
+        with pytest.warns(UserWarning, match="empty graph"):
+            result = metric.compute(matched)
+        assert result.results == {}
+
+    @pytest.mark.filterwarnings(
+        "ignore:Mapping is empty",
+        "ignore:Node errors already calculated",
+        "ignore:Edge errors already calculated",
+    )
+    def test_ctc_relax_skips_warns(self):
+        matched = ex_graphs.good_matched()
+        metric = TrackAccuracyOverTime(max_window=1, error_type="ctc")
+        with pytest.warns(UserWarning, match="do not support relaxing skip edges"):
+            metric.compute(matched, relax_skips_gt=True)
 
 
 # End-to-end test using TrackAccuracyOverTime class on larger example
