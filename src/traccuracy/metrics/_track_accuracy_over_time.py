@@ -59,9 +59,10 @@ class TrackAccuracyOverTime(Metric):
 
     The compute function returns a results dictionary with three lists,
     each indexed by window size (index 0 = window 1, index 1 = window 2, etc.):
-        - `correct` - number of correct segments at each window size
-        - `total` - total number of segments at each window size
-        - `accuracy` - correct/total at each window size, or np.nan if total is 0
+
+    - ``correct`` - number of correct segments at each window size
+    - ``total`` - total number of segments at each window size
+    - ``accuracy`` - correct/total at each window size, or np.nan if total is 0
 
     """
 
