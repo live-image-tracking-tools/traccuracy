@@ -514,3 +514,19 @@ class TestGetContinuationValue:
     def test_empty_grid(self):
         result = _get_continuation_value(row=0, t=0, prev_grid=[], divisions=None)
         assert result == EMPTY
+
+
+class TestWindowLargerThanTrack:
+    """Test that max_window larger than the track length works correctly."""
+
+    def test_window_exceeds_track(self):
+        # good_matched has 3 nodes and 2 edges, so T=2.
+        # max_window=4 means w=3 and w=4 have no segments (cur_len <= 0).
+        matched = ex_graphs.good_matched()
+        classify_basic_errors(matched)
+        result = compute_track_accuracy(matched, 4, error_type="basic")
+        # w=1 and w=2 should have segments; w=3 and w=4 should not
+        assert result[1] == (2, 2)
+        assert result[2] == (1, 1)
+        assert 3 not in result
+        assert 4 not in result
