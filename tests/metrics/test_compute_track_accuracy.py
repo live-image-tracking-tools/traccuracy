@@ -1,10 +1,18 @@
 import math
 
+import networkx as nx
 import numpy as np
 import pytest
 
 import tests.examples.graphs as ex_graphs
-from traccuracy.metrics._compute_track_accuracy import compute_track_accuracy
+from traccuracy._tracking_graph import TrackingGraph
+from traccuracy.matchers._matched import Matched
+from traccuracy.metrics._compute_track_accuracy import (
+    CORRECT,
+    EMPTY,
+    _get_continuation_value,
+    compute_track_accuracy,
+)
 from traccuracy.track_errors._basic import classify_basic_errors
 from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
@@ -429,3 +437,80 @@ class TestDivisionSkipEdges:
         )
         accuracy = get_accuracy(result, window)
         assert pytest.approx(accuracy, abs=0.01) == acc
+
+
+class TestTracklets:
+    """Test lineages=False path (uses get_tracklets instead of get_lineages)."""
+
+    @pytest.mark.parametrize("window", [1, 2])
+    def test_good_div_tracklets(self, window):
+        matched = ex_graphs.good_div(1)
+        evaluate_division_events(matched)
+        # With lineages=False, tracklets are split at divisions.
+        # All edges are correct, so all segments should be correct.
+        result = compute_track_accuracy(matched, window, lineages=False, error_type="basic")
+        accuracy = get_accuracy(result, window)
+        assert accuracy == 1.0
+
+
+class TestSingleFrameComponent:
+    """Test that a single-frame GT graph produces no segments."""
+
+    @pytest.mark.filterwarnings("ignore:Mapping is empty")
+    def test_single_node_graph(self):
+        # A single node at t=0: T = end_frame - start_frame - 1 = 0
+        g = nx.DiGraph()
+        g.add_node(1, t=0, y=0)
+        gt = TrackingGraph(g, location_keys=("y",))
+        pred = TrackingGraph(nx.DiGraph())
+        matched = Matched(gt, pred, [], {})
+        classify_basic_errors(matched)
+        result = compute_track_accuracy(matched, 1, error_type="basic")
+        # Single node has no edges, so no segments exist
+        _correct, total = result.get(1, (0, 0))
+        assert total == 0
+
+
+class TestManyToOnePredNodeNotTP:
+    """Test basic error type where a matched pred node is not TP."""
+
+    def test_pred_node_missing_edge(self):
+        # GT: 1->2->3 (linear track)
+        # Pred: 4, 5->6 (node 4 has no outgoing edge to 5)
+        # Mapping: (1,4), (2,5), (3,6), (7,4) — many-to-one on pred node 4
+        # Node 7 is isolated so it won't produce segments.
+        # classify_basic_errors will not mark pred node 4 as TP because
+        # pred edge 4->5 is missing. So _is_node_correct for GT node 1
+        # finds that its matched pred node 4 is not TP -> segment is incorrect.
+        gt = ex_graphs.basic_graph(node_ids=(1, 2, 3))
+        pred = ex_graphs.basic_graph(node_ids=(4, 5, 6), y_offset=1)
+        pred.graph.remove_edge(4, 5)
+        gt.graph.add_node(7, t=0, y=2)
+        mapping = [(1, 4), (2, 5), (3, 6), (7, 4)]
+        matched = Matched(gt, pred, mapping, {})
+        classify_basic_errors(matched)
+        result = compute_track_accuracy(matched, 1, error_type="basic")
+        accuracy = get_accuracy(result, 1)
+        # Edge 1->2 is incorrect (pred node 4 not TP), edge 2->3 is correct
+        assert accuracy < 1.0
+
+
+class TestGetContinuationValue:
+    """Unit tests for _get_continuation_value."""
+
+    def test_past_end_of_grid(self):
+        # A 2-step grid: prev_grid has entries at t=0 and t=1.
+        # Asking for continuation at t=1 means next_t=2, which is past the end.
+        prev_grid = [[CORRECT], [CORRECT]]
+        result = _get_continuation_value(row=0, t=1, prev_grid=prev_grid, divisions=None)
+        assert result == EMPTY
+
+    def test_at_end_of_grid(self):
+        # Asking for continuation at t=0 means next_t=1, which is valid.
+        prev_grid = [[CORRECT], [CORRECT]]
+        result = _get_continuation_value(row=0, t=0, prev_grid=prev_grid, divisions=None)
+        assert result == CORRECT
+
+    def test_empty_grid(self):
+        result = _get_continuation_value(row=0, t=0, prev_grid=[], divisions=None)
+        assert result == EMPTY
