@@ -239,7 +239,8 @@ def _build_grid(
     gt_graph = matched.gt_graph
     frame_key = gt_graph.frame_key
 
-    # Determine time range
+    # Determine time range from global frames - this ensures that short gt tracks
+    # contribute to larger window sizes, but might be inefficient
     min_frame = gt_graph.start_frame
     max_frame = gt_graph.end_frame
     if min_frame is None or max_frame is None:
@@ -351,22 +352,14 @@ def _is_node_correct(
     skip edges also count as correct.
     """
     gt_graph = matched.gt_graph
-    pred_graph = matched.pred_graph
     node_tp = NodeFlag.CTC_TRUE_POS if is_ctc else NodeFlag.TRUE_POS
 
     gt_node_data = gt_graph.nodes[gt_node]
 
-    if is_ctc:
-        if node_tp in gt_node_data:
-            return True
-    else:
-        if node_tp in gt_node_data:
-            # Check that all matched pred nodes are TP
-            pred_nodes = matched.get_gt_pred_matches(gt_node)
-            for on in pred_nodes:
-                if node_tp not in pred_graph.nodes[on]:
-                    return False
-            return True
+    # All mapped nodes are marked TP by classify_basic_errors/evaluate_ctc_events,
+    # so checking the GT node flag is sufficient.
+    if node_tp in gt_node_data:
+        return True
 
     # If not a TP, check if it's between skip edges (when relaxing)
     if relax_skips_pred:

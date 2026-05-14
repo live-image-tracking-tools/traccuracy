@@ -10,6 +10,7 @@ from traccuracy.matchers._matched import Matched
 from traccuracy.metrics._compute_track_accuracy import (
     CORRECT,
     EMPTY,
+    _build_grid,
     _get_continuation_value,
     compute_track_accuracy,
 )
@@ -530,3 +531,20 @@ class TestWindowLargerThanTrack:
         assert result[2] == (1, 1)
         assert 3 not in result
         assert 4 not in result
+
+
+class TestBuildGrid:
+    """Unit tests for _build_grid."""
+
+    @pytest.mark.filterwarnings("ignore:Mapping is empty")
+    def test_empty_gt_graph(self):
+        gt = TrackingGraph(nx.DiGraph())
+        pred = TrackingGraph(nx.DiGraph())
+        matched = Matched(gt, pred, [], {})
+        # No nodes, so start_frame/end_frame are None
+        grid, divisions, num_rows = _build_grid(
+            gt.graph, matched, is_ctc=False, relax_skips_gt=False, relax_skips_pred=False
+        )
+        assert grid == []
+        assert divisions == {}
+        assert num_rows == 0
