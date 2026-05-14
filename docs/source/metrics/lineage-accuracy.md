@@ -1,4 +1,4 @@
-(lineage-accuracy-metrics)
+(lineage-accuracy-metrics)=
 # Tracklet and Lineage Accuracy Metrics
 
 Track accuracy over N frames measures what fraction of ground truth tracklet or lineage segments that span N frames are correctly reconstructed.
