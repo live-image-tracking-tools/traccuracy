@@ -13,7 +13,7 @@ Important counting rules:
 - Isolated nodes (nodes with no outgoing edges) are NOT counted as segments
 - Ground truth tracks shorter than window size N do contribute 1 to the total for window N
 
-In the extreme case where N equals the track length, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
+In the extreme case where N equals the number of frames in the dataset, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
 
 Tracklet accuracy over N frames is the same, but counts each tracklet (segment between divisions) independently rather than full lineages. Division edges are not included in this version of the metric.
 
