@@ -108,6 +108,7 @@ class TestDivisionMetrics:
         for m in metrics:
             assert np.isnan(results["Frame Buffer 0"][m])
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty. Defaulting to type of one-to-one")
     def test_fp_no_gt(self, caplog):
         matched = Matched(TrackingGraph(nx.DiGraph()), ex_graphs.basic_division(0), [], {})
         results = DivisionMetrics()._compute(matched)["Frame Buffer 0"]

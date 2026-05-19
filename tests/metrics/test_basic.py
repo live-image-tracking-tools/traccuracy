@@ -8,6 +8,7 @@ from traccuracy.track_errors._basic import classify_basic_errors
 class TestBasicMetrics:
     m = BasicMetrics()
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty. Defaulting to type of one-to-one")
     @pytest.mark.parametrize("feature_type", ["node", "edge"])
     def test_no_gt(self, feature_type):
         matched = ex_graphs.empty_gt()
@@ -19,6 +20,7 @@ class TestBasicMetrics:
         ):
             self.m._compute_stats(feature_type, matched)
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty. Defaulting to type of one-to-one")
     @pytest.mark.parametrize("feature_type", ["node", "edge"])
     def test_no_pred(self, feature_type):
         matched = ex_graphs.empty_pred()
