@@ -235,7 +235,11 @@ def load_tiffs(data_dir: str) -> np.ndarray:
 
 
 def load_ctc_data(
-    data_dir: str, track_path: str | None = None, name: str | None = None, run_checks: bool = True
+    data_dir: str,
+    track_path: str | None = None,
+    name: str | None = None,
+    run_checks: bool = True,
+    border_margin: float | None = None,
 ) -> TrackingGraph:
     """Read the CTC segmentations and track file and create a TrackingGraph.
 
@@ -246,6 +250,9 @@ def load_ctc_data(
         name (optional, str): Name of data to store in TrackingGraph
         run_checks (optional, bool): If set to `True` (default), runs checks on the data
             to ensure valid CTC format.
+        border_margin (float, optional): If set, nodes whose centroid is within this
+            distance (in pixels) of the spatial border will be excluded from the graph.
+            Defaults to None (no filtering).
 
     Returns:
         traccuracy.TrackingGraph: TrackingGraph object containing segmentations and graph.
@@ -293,4 +300,6 @@ def load_ctc_data(
     else:
         loc_keys = ("y", "x")
 
-    return TrackingGraph(G, segmentation=masks, name=name, location_keys=loc_keys)
+    return TrackingGraph(
+        G, segmentation=masks, name=name, location_keys=loc_keys, border_margin=border_margin
+    )

@@ -73,10 +73,13 @@ class DivisionMetrics(Metric):
         max_frame_buffer (int, optional): Maximum value of frame buffer to use in correcting
             shifted divisions. Divisions will be evaluated for all integer values of frame
             buffer between 0 and max_frame_buffer
+        zero_division (float, optional): Value to return for metrics that result in a 0/0
+            division. Defaults to np.nan. Set to 0.0 to return 0 and raise a warning instead,
+            similar to scikit-learn's ``zero_division`` parameter.
     """
 
-    def __init__(self, max_frame_buffer: int = 0) -> None:
-        super().__init__(VALID_MATCHING_TYPES)
+    def __init__(self, max_frame_buffer: int = 0, zero_division: float = np.nan) -> None:
+        super().__init__(VALID_MATCHING_TYPES, zero_division=zero_division)
 
         self.frame_buffer = max_frame_buffer
 
@@ -174,7 +177,7 @@ class DivisionMetrics(Metric):
         total_tp_div = tp_division_count + skip_tp_division_count
         recall = self._get_recall(total_tp_div, gt_div_count)
         precision = self._get_precision(total_tp_div, pred_div_count)
-        f1 = self._get_f1(recall, precision)
+        f1 = self._get_f1(precision, recall)
         mbc = self._get_mbc(gt_div_count, total_tp_div, fp_division_count)
 
         res_dict = {}
@@ -214,7 +217,7 @@ class DivisionMetrics(Metric):
             total_tp_div = new_tp_div_count + new_skip_tp_div_count
             recall = self._get_recall(total_tp_div, gt_div_count)
             precision = self._get_precision(total_tp_div, pred_div_count)
-            f1 = self._get_f1(recall, precision)
+            f1 = self._get_f1(precision, recall)
             mbc = self._get_mbc(gt_div_count, tp_division_count, fp_division_count)
 
             res_dict[f"Frame Buffer {fb}"] = {

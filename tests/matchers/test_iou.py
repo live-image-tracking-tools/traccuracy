@@ -230,6 +230,23 @@ class TestStandards:
         )
         assert Counter(ex_matches) == Counter(list(zip(gtcells, rescells, strict=False)))
 
+    @pytest.mark.parametrize(
+        "data", [ex_segs.no_overlap_2d(), ex_segs.no_overlap_3d()], ids=["2D", "3D"]
+    )
+    def test_no_overlap_one_to_one(self, data):
+        gtcells, rescells = _match_nodes(
+            gt=data[0].segmentation,
+            res=data[1].segmentation,
+            gt_boxes=data[0].boxes,
+            res_boxes=data[1].boxes,
+            gt_labels=data[0].labels,
+            res_labels=data[1].labels,
+            threshold=0.5,
+            one_to_one=True,
+        )
+        assert len(gtcells) == 0
+        assert len(rescells) == 0
+
     def test_input_error(self):
         im = np.zeros((10, 10))
         with pytest.raises(
@@ -342,6 +359,14 @@ class Test_match_iou:
                 TrackingGraph(nx.DiGraph()),
             )
 
+    def test_empty_graph(self):
+        seg = np.zeros((5, 10, 10), dtype=np.uint16)
+        result = match_iou(
+            TrackingGraph(nx.DiGraph(), segmentation=seg),
+            TrackingGraph(nx.DiGraph(), segmentation=seg),
+        )
+        assert result == []
+
     @pytest.mark.parametrize("label_key", ["segmentation_id", "label"])
     def test_end_to_end_2d(self, label_key):
         # Test 2d data
@@ -450,3 +475,35 @@ def test_matching_from_in_memory():
     ):
         matched = IOUMatcher().compute_mapping(gt_t_graph, gt_t_graph)
     assert len(matched.mapping) == len(gt_t_graph.nodes)
+
+
+def test_iou_match_with_border_margin():
+    """Matching should skip seg labels that have no graph node after border filtering."""
+    n_frames = 3
+    n_labels = 3
+    graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
+
+    base_kwargs = {
+        "segmentation": graph.segmentation,
+        "location_keys": graph.location_keys,
+        "label_key": graph.label_key,
+    }
+    # Only gt has border_margin; pred keeps all nodes.
+    gt = TrackingGraph(graph.graph.copy(), **base_kwargs, border_margin=30.0)
+    pred = TrackingGraph(graph.graph.copy(), **base_kwargs)
+    assert len(gt.graph.nodes) < len(pred.graph.nodes)
+
+    # Strip bbox so match_iou falls back to regionprops on the raw
+    # segmentation.  This exposes labels for removed nodes, triggering
+    # the guard clause that skips seg labels missing from the graph.
+    for node in gt.graph.nodes:
+        gt.graph.nodes[node].pop("bbox", None)
+    for node in pred.graph.nodes:
+        pred.graph.nodes[node].pop("bbox", None)
+
+    with pytest.warns(UserWarning, match="regionprops"):
+        mapping = match_iou(gt, pred)
+    for gt_node, pred_node in mapping:
+        assert gt_node in gt.graph.nodes
+        assert pred_node in pred.graph.nodes
+    assert len(mapping) <= len(gt.graph.nodes)
