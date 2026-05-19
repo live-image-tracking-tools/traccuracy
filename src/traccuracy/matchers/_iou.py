@@ -124,6 +124,10 @@ def _construct_time_to_seg_id_map(
         AssertionError: If two nodes in a time frame have the same segmentation_id
     """
     time_to_seg_id_map: dict[int, dict[Hashable, Hashable]] = {}
+
+    if graph.label_key is None:
+        raise ValueError("No label_key provided for input TrackingGraph")
+
     for node_id, data in graph.nodes(data=True):
         time = data[graph.frame_key]
         seg_id = data[graph.label_key]

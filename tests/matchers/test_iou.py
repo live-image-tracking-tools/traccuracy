@@ -310,6 +310,11 @@ def test__construct_time_to_seg_id_map():
         for i in range(1, n_labels):
             assert id_lut[time_to_seg_id_map[t][i]] == f"{i}_{t}"
 
+    # Check trackgraph without label key
+    bad_tg = TrackingGraph(track_graph.graph, label_key=None)
+    with pytest.raises(ValueError, match="No label_key provided for input TrackingGraph"):
+        _construct_time_to_seg_id_map(bad_tg)
+
 
 class Test_match_iou:
     def test_bad_input(self):
