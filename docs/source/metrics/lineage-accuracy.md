@@ -1,21 +1,25 @@
 (lineage-accuracy-metrics)=
 # Tracklet and Lineage Accuracy Metrics
 
-Track accuracy over N frames measures what fraction of ground truth tracklet or lineage segments that span N frames are correctly reconstructed.
-For lineage segments, all branches are included - a segment is only correct if all branches are correct.
-Skip edges that span multiple frames count toward their actual frame difference. For example, a skip edge from t=0 to t=3 contributes a segment of size 3, not size 1.
+Tracklet and lineage accuracy over N frames measures what fraction of ground truth tracklet or lineage segments that span N frames are correctly reconstructed.
 
-A segment is counted as correct if there are no errors anywhere in it. In our current implementation, this includes checking:
-- The starting node is a true positive
+This is computed using sliding a window of N frames over the full extent of the dataset. 
+For each window, we count the correct and total ground truth tracklet/lineage segments within each window. 
+A tracklet/lineage segment is counted as correct if there are no errors anywhere in it. This includes checking:
 - All edges are true positives (edge TP implies endpoint nodes are TP)
+- There are no false positive divisions matched to this ground truth segment within the window
 
-Important counting rules:
-- Isolated nodes (nodes with no outgoing edges) are NOT counted as segments
-- Ground truth tracks shorter than window size N do contribute 1 to the total for window N
+Then, we sum the correct and total segments over all sliding windows, and divide the totals to get the overall tracklet/lineage accuracy for that window size.
 
-In the extreme case where N equals the number of frames in the dataset, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
+For window size 1, this is approximately the same as the fraction of correct edges (minus segments counted as incorrect due to false positive divisions).
+When the window size equals the total extent of the data, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
+This metric returns the tracklet or lineage accuracy for all window sizes from 1 to the maximum window size, allowing you to see how the percent of fully correct lineages degrades as the window size you consider increases. 
 
-Tracklet accuracy over N frames is the same, but counts each tracklet (segment between divisions) independently rather than full lineages. Division edges are not included in this version of the metric.
+In lineage mode, all branches are included - a lineage segment is only correct if all branches are correct.
+Tracklet mode counts each tracklet (segment between divisions) independently, discarding division edges completely.
+
+Skip edges that span multiple frames count toward their actual frame difference. For example, a skip edge from t=0 to t=3 contributes a segment of size 3, not size 1. Isolated ground truth nodes (nodes with no outgoing edges) are not counted as segments. Ground truth tracks shorter than window size N do contribute 1 to the total for window N.
+
 
 ## Usage
 
