@@ -246,3 +246,12 @@ def test_invalid_input():
     matched = ex_graphs.empty_gt()
     with pytest.warns(UserWarning, match="CTC metrics do not support relaxing skip edges"):
         ct.compute(matched, relax_skips_gt=True)
+
+    # many to one match valid for complete tracks but fails with basic errors
+    ct = CompleteTracks(error_type="basic")
+    matched._matching_type = "many-to-one"
+    with pytest.raises(
+        ValueError,
+        match="Matching type many-to-one of matched data is not supported by basic errors",
+    ):
+        ct.compute(matched)

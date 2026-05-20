@@ -7,7 +7,7 @@ import numpy as np
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.matchers._base import Matched
-from traccuracy.track_errors._ctc import evaluate_ctc_events
+from traccuracy.track_errors._ctc import VALID_MATCHING_TYPES, evaluate_ctc_events
 
 from ._base import Metric
 
@@ -44,8 +44,7 @@ class AOGMMetrics(Metric):
         edge_fn_weight: float = 1,
         edge_ws_weight: float = 1,
     ) -> None:
-        valid_matching_types = ["one-to-one", "many-to-one"]
-        super().__init__(valid_matching_types)
+        super().__init__(VALID_MATCHING_TYPES)
 
         self.v_weights = {
             "ns": vertex_ns_weight,

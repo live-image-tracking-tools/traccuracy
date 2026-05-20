@@ -5,7 +5,7 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag, TrackingGraph
 from traccuracy.matchers._matched import Matched
-from traccuracy.track_errors._ctc import get_edge_errors, get_vertex_errors
+from traccuracy.track_errors._ctc import evaluate_ctc_events, get_edge_errors, get_vertex_errors
 
 
 def test_inconsistent_annotations_raises():
@@ -21,6 +21,17 @@ def test_inconsistent_annotations_raises():
 
     with pytest.raises(ValueError, match="both or neither of the graphs"):
         get_edge_errors(matched)
+
+
+def test_matching_validation():
+    matched = ex_graphs.good_matched()
+    matched._matching_type = "many-to-many"
+
+    with pytest.raises(
+        ValueError,
+        match="Matching type many-to-many of matched data is not supported by ctc errors",
+    ):
+        evaluate_ctc_events(matched)
 
 
 class TestStandardNode:

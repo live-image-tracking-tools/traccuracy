@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.matchers._matched import Matched
-from traccuracy.track_errors._basic import classify_basic_errors
+from traccuracy.track_errors._basic import VALID_MATCHING_TYPES, classify_basic_errors
 
 from ._base import Metric
 
@@ -27,8 +27,7 @@ class BasicMetrics(Metric):
     """
 
     def __init__(self) -> None:
-        valid_matching_types = ["one-to-one"]
-        super().__init__(valid_matching_types)
+        super().__init__(VALID_MATCHING_TYPES)
 
     def _compute(
         self, matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False

@@ -3,7 +3,7 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import EdgeFlag, NodeFlag
 from traccuracy.matchers._matched import Matched
-from traccuracy.track_errors._basic import _classify_edges, _classify_nodes
+from traccuracy.track_errors._basic import _classify_edges, _classify_nodes, classify_basic_errors
 
 
 def test_inconsistent_annotation_raises():
@@ -19,6 +19,17 @@ def test_inconsistent_annotation_raises():
 
     with pytest.raises(ValueError, match="both or neither of the graphs"):
         _classify_edges(matched)
+
+
+def test_matching_validation():
+    matched = ex_graphs.good_matched()
+    matched._matching_type = "many-to-one"
+
+    with pytest.raises(
+        ValueError,
+        match="Matching type many-to-one of matched data is not supported by basic errors",
+    ):
+        classify_basic_errors(matched)
 
 
 class TestStandardNode:

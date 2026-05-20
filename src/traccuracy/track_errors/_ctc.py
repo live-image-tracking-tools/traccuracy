@@ -14,11 +14,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+VALID_MATCHING_TYPES = ["one-to-one", "many-to-one"]
+
+
 def evaluate_ctc_events(matched_data: Matched) -> None:
     """Annotates ground truth and predicted graph with node and edge error types
 
     Annotations are made in place
     """
+
+    if matched_data.matching_type not in VALID_MATCHING_TYPES:
+        raise ValueError(
+            f"Matching type {matched_data.matching_type} of matched data is not supported by "
+            f"ctc errors. Please choose from {VALID_MATCHING_TYPES}"
+        )
+
     get_vertex_errors(matched_data)
     get_edge_errors(matched_data)
 

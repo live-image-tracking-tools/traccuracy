@@ -42,7 +42,7 @@ import numpy as np
 
 from traccuracy._tracking_graph import NodeFlag
 from traccuracy.matchers._matched import Matched
-from traccuracy.track_errors._divisions import evaluate_division_events
+from traccuracy.track_errors._divisions import VALID_MATCHING_TYPES, evaluate_division_events
 
 from ._base import Metric
 
@@ -79,8 +79,7 @@ class DivisionMetrics(Metric):
     """
 
     def __init__(self, max_frame_buffer: int = 0, zero_division: float = np.nan) -> None:
-        valid_matching_types = ["one-to-one"]
-        super().__init__(valid_matching_types, zero_division=zero_division)
+        super().__init__(VALID_MATCHING_TYPES, zero_division=zero_division)
 
         self.frame_buffer = max_frame_buffer
 

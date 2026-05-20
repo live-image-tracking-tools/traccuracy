@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+VALID_MATCHING_TYPES = ["one-to-one"]
+
+
 def classify_basic_errors(
     matched: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
 ) -> None:
@@ -37,6 +40,12 @@ def classify_basic_errors(
         relax_skips_pred (bool): If True, the metric will check if skips in the predicted
             graph have an equivalent multi-edge path in ground truth graph
     """
+    if matched.matching_type not in VALID_MATCHING_TYPES:
+        raise ValueError(
+            f"Matching type {matched.matching_type} of matched data is not supported by basic "
+            f"errors. Please choose from {VALID_MATCHING_TYPES}"
+        )
+
     _classify_nodes(matched)
     _classify_edges(matched, relax_skips_gt, relax_skips_pred)
 
