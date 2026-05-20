@@ -134,7 +134,6 @@ def _construct_time_to_seg_id_map(
     Raises:
         AssertionError: If two nodes in a time frame have the same segmentation_id
     """
-    assert graph.label_key is not None
     time_to_seg_id_map: dict[int, dict[Hashable, Hashable]] = {}
 
     if graph.label_key is None:
