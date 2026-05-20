@@ -56,12 +56,14 @@ class TestStandardsDivisions:
     Tests are written for sparse annotations
     """
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty. Defaulting to type of one-to-one")
     def test_empty_pred_div(self):
         matched = ex_graphs.empty_pred_div(1)
         _classify_divisions(matched)
 
         assert NodeFlag.FN_DIV in matched.gt_graph.nodes[2]
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty. Defaulting to type of one-to-one")
     def test_empty_gt_div(self):
         matched = ex_graphs.empty_gt_div(1)
         _classify_divisions(matched)
@@ -547,3 +549,14 @@ def test_evaluate_division_events():
         assert "min_buffer_correct" in matched.gt_graph.nodes[node]
     for node in matched.pred_graph.get_nodes_with_flag(NodeFlag.FP_DIV):
         assert "min_buffer_correct" in matched.pred_graph.nodes[node]
+
+
+def test_matching_validation():
+    matched = ex_graphs.good_matched()
+    matched._matching_type = "many-to-many"
+
+    with pytest.raises(
+        ValueError,
+        match="Matching type many-to-many of matched data is not supported by division errors",
+    ):
+        evaluate_division_events(matched)

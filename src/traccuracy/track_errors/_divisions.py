@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from traccuracy.matchers._matched import Matched
 
 
+VALID_MATCHING_TYPES = ["one-to-one"]
+
+
 def _classify_divisions(
     matched_data: Matched, relax_skips_gt: bool = False, relax_skips_pred: bool = False
 ) -> None:
@@ -376,6 +379,11 @@ def evaluate_division_events(
             divisions, with a `min_buffer_correct` attribute indicating the minimum frame
             buffer value that corrects this division, if applicable.
     """
+    if matched_data.matching_type not in VALID_MATCHING_TYPES:
+        raise ValueError(
+            f"Matching type {matched_data.matching_type} of matched data is not supported by "
+            f"division errors. Please choose from {VALID_MATCHING_TYPES}"
+        )
 
     # Baseline division classification
     _classify_divisions(

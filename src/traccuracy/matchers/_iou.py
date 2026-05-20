@@ -136,6 +136,10 @@ def _construct_time_to_seg_id_map(
     """
     assert graph.label_key is not None
     time_to_seg_id_map: dict[int, dict[Hashable, Hashable]] = {}
+
+    if graph.label_key is None:
+        raise ValueError("No label_key provided for input TrackingGraph")
+
     for node_id, data in graph.nodes(data=True):
         time = data[graph.frame_key]
         seg_id = data[graph.label_key]
