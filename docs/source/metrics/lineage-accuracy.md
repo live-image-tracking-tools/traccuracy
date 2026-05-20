@@ -15,8 +15,8 @@ For window size 1, this is approximately the same as the fraction of correct edg
 When the window size equals the total extent of the data, this is the same as the CTC-BIO [Complete Tracks](complete-tracks).
 This metric returns the tracklet or lineage accuracy for all window sizes from 1 to the maximum window size, allowing you to see how the percent of fully correct lineages degrades as the window size you consider increases. 
 
-In lineage mode, all branches are included - a lineage segment is only correct if all branches are correct.
-Tracklet mode counts each tracklet (segment between divisions) independently, discarding division edges completely.
+In lineage mode, if a division falls within the window, all branches are included in the same segment.
+Tracklet mode counts each segment between divisions independently, discarding division edges completely.
 
 Skip edges that span multiple frames count toward their actual frame difference. For example, a skip edge from t=0 to t=3 contributes a segment of size 3, not size 1. Isolated ground truth nodes (nodes with no outgoing edges) are not counted as segments. Ground truth tracks shorter than window size N do contribute 1 to the total for window N.
 
