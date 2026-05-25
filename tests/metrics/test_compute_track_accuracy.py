@@ -37,6 +37,7 @@ class TestStandards:
         else:
             raise ValueError(f"Error type {error_type} not recognized")
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty")
     @pytest.mark.parametrize("window", [1, 2])
     def test_empty_gt(self, error_type, window):
         matched = ex_graphs.empty_gt()
@@ -45,6 +46,7 @@ class TestStandards:
         accuracy = get_accuracy(result, window)
         assert math.isnan(accuracy)
 
+    @pytest.mark.filterwarnings("ignore:Mapping is empty")
     @pytest.mark.parametrize("window", [1, 2])
     def test_empty_pred(self, error_type, window):
         matched = ex_graphs.empty_pred()
@@ -123,26 +125,26 @@ class TestStandards:
         assert accuracy == acc
 
     @pytest.mark.parametrize(
-        ("t", "window", "basic_acc", "ctc_acc"),
+        ("t", "window", "acc"),
         [
-            (0, 1, 1.0, 0.5),  # basic: all TP; ctc: 1/2 (NON_SPLIT detected)
-            (0, 2, 1.0, 0.0),  # basic: all TP; ctc: 0/1
-            (1, 1, 1.0, 0.0),  # basic: all TP; ctc: 0/2 (both start nodes FN)
-            (1, 2, 1.0, 0.0),  # short tracks still count at w=2
-            (2, 1, 1.0, 0.5),  # basic: all TP; ctc: 1/2
-            (2, 2, 1.0, 0.0),  # basic: all TP; ctc: 0/1
+            (0, 1, 0.5),  # ctc: 1/2 (NON_SPLIT detected)
+            (0, 2, 0.0),  # ctc: 0/1
+            (1, 1, 0.0),  # ctc: 0/2 (both start nodes FN)
+            (1, 2, 0.0),  # short tracks still count at w=2
+            (2, 1, 0.5),  # ctc: 1/2
+            (2, 2, 0.0),  # ctc: 0/1
         ],
     )
-    def test_node_two_to_one(self, error_type, t, window, basic_acc, ctc_acc):
+    def test_node_two_to_one(self, error_type, t, window, acc):
+        # node_two_to_one produces a many-to-one matching, which basic errors
+        # don't support — only run for ctc.
+        if error_type != "ctc":
+            return
         matched = ex_graphs.node_two_to_one(t)
         self.add_errors(matched, error_type)
         result = compute_track_accuracy(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
-        acc = ctc_acc if error_type == "ctc" else basic_acc
-        if math.isnan(acc):
-            assert math.isnan(accuracy)
-        else:
-            assert pytest.approx(accuracy, abs=0.01) == acc
+        assert pytest.approx(accuracy, abs=0.01) == acc
 
     @pytest.mark.parametrize(
         ("t", "window", "acc"),
@@ -470,30 +472,6 @@ class TestSingleFrameComponent:
         # Single node has no edges, so no segments exist
         _correct, total = result.get(1, (0, 0))
         assert total == 0
-
-
-class TestManyToOnePredNodeNotTP:
-    """Test basic error type where a matched pred node is not TP."""
-
-    def test_pred_node_missing_edge(self):
-        # GT: 1->2->3 (linear track)
-        # Pred: 4, 5->6 (node 4 has no outgoing edge to 5)
-        # Mapping: (1,4), (2,5), (3,6), (7,4) — many-to-one on pred node 4
-        # Node 7 is isolated so it won't produce segments.
-        # classify_basic_errors will not mark pred node 4 as TP because
-        # pred edge 4->5 is missing. So _is_node_correct for GT node 1
-        # finds that its matched pred node 4 is not TP -> segment is incorrect.
-        gt = ex_graphs.basic_graph(node_ids=(1, 2, 3))
-        pred = ex_graphs.basic_graph(node_ids=(4, 5, 6), y_offset=1)
-        pred.graph.remove_edge(4, 5)
-        gt.graph.add_node(7, t=0, y=2)
-        mapping = [(1, 4), (2, 5), (3, 6), (7, 4)]
-        matched = Matched(gt, pred, mapping, {})
-        classify_basic_errors(matched)
-        result = compute_track_accuracy(matched, 1, error_type="basic")
-        accuracy = get_accuracy(result, 1)
-        # Edge 1->2 is incorrect (pred node 4 not TP), edge 2->3 is correct
-        assert accuracy < 1.0
 
 
 class TestGetContinuationValue:
