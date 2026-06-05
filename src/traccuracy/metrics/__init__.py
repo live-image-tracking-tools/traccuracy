@@ -2,10 +2,10 @@ from ._basic import BasicMetrics
 from ._cca import CellCycleAccuracy
 from ._chota import CHOTAMetric
 from ._complete_tracks import CompleteTracks
+from ._complete_tracks_by_length import CompleteTracksByLength
 from ._ctc import AOGMMetrics, CTCMetrics
 from ._divisions import DivisionMetrics
 from ._results import Results
-from ._track_accuracy_over_time import TrackAccuracyOverTime
 from ._track_overlap import TrackOverlapMetrics
 
 __all__ = [
@@ -15,8 +15,8 @@ __all__ = [
     "CTCMetrics",
     "CellCycleAccuracy",
     "CompleteTracks",
+    "CompleteTracksByLength",
     "DivisionMetrics",
     "Results",
-    "TrackAccuracyOverTime",
     "TrackOverlapMetrics",
 ]

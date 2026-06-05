@@ -17,9 +17,9 @@ from traccuracy.metrics import (
     BasicMetrics,
     CHOTAMetric,
     CompleteTracks,
+    CompleteTracksByLength,
     CTCMetrics,
     DivisionMetrics,
-    TrackAccuracyOverTime,
     TrackOverlapMetrics,
 )
 from traccuracy.metrics._cca import CellCycleAccuracy
@@ -351,10 +351,10 @@ def test_complete_tracks_metric(benchmark, ctc_matched, request):
     ["iou_matched_2d", "iou_matched_3d"],
     ids=["2d", "3d"],
 )
-def test_track_accuracy_over_time_metric(benchmark, iou_matched, request):
+def test_complete_tracks_by_length_metric(benchmark, iou_matched, request):
     matched = request.getfixturevalue(iou_matched)
 
     def run_compute():
-        return TrackAccuracyOverTime(max_window=50, error_type="basic").compute(matched)
+        return CompleteTracksByLength(max_length=50, error_type="basic").compute(matched)
 
     benchmark.pedantic(run_compute, rounds=1, iterations=1)

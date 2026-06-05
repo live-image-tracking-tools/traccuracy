@@ -38,7 +38,7 @@ metrics/track_overlap
 metrics/divisions
 metrics/chota
 metrics/complete_tracks
-metrics/lineage-accuracy
+metrics/complete-tracks-by-length
 ```
 
 ```{toctree}

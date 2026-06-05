@@ -7,12 +7,12 @@ import pytest
 import tests.examples.graphs as ex_graphs
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.matchers._matched import Matched
-from traccuracy.metrics._compute_track_accuracy import (
+from traccuracy.metrics._compute_complete_tracks_by_length import (
     CORRECT,
     EMPTY,
     _build_grid,
     _get_continuation_value,
-    compute_track_accuracy,
+    compute_complete_tracks_by_length,
 )
 from traccuracy.track_errors._basic import classify_basic_errors
 from traccuracy.track_errors._ctc import evaluate_ctc_events
@@ -42,7 +42,7 @@ class TestStandards:
     def test_empty_gt(self, error_type, window):
         matched = ex_graphs.empty_gt()
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert math.isnan(accuracy)
 
@@ -51,7 +51,7 @@ class TestStandards:
     def test_empty_pred(self, error_type, window):
         matched = ex_graphs.empty_pred()
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == 0.0
 
@@ -59,7 +59,7 @@ class TestStandards:
     def test_good_match(self, error_type, window):
         matched = ex_graphs.good_matched()
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         # All TP
         assert accuracy == 1.0
@@ -78,7 +78,7 @@ class TestStandards:
     def test_fn_node(self, error_type, t, window, acc):
         matched = ex_graphs.fn_node_matched(t)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == acc
 
@@ -94,7 +94,7 @@ class TestStandards:
     def test_fn_edge(self, error_type, edge_er, window, acc):
         matched = ex_graphs.fn_edge_matched(edge_er)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == acc
 
@@ -103,7 +103,7 @@ class TestStandards:
     def test_fp_node(self, error_type, t, window):
         matched = ex_graphs.fp_node_matched(t)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == 1.0
 
@@ -112,7 +112,7 @@ class TestStandards:
     def test_fp_edge(self, error_type, edge_er, window):
         matched = ex_graphs.fp_edge_matched(edge_er)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == 1.0
 
@@ -120,7 +120,7 @@ class TestStandards:
     def test_crossover(self, error_type, window, acc):
         matched = ex_graphs.crossover_edge()
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert accuracy == acc
 
@@ -142,7 +142,7 @@ class TestStandards:
             return
         matched = ex_graphs.node_two_to_one(t)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert pytest.approx(accuracy, abs=0.01) == acc
 
@@ -159,7 +159,7 @@ class TestStandards:
         if error_type == "ctc":
             matched = ex_graphs.edge_two_to_one(t)
             self.add_errors(matched, error_type)
-            result = compute_track_accuracy(matched, window, error_type=error_type)
+            result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
             accuracy = get_accuracy(result, window)
             assert accuracy == acc
 
@@ -202,7 +202,7 @@ class TestSkipEdges:
     def test_gap_close_gt_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_gt_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -234,7 +234,7 @@ class TestSkipEdges:
     def test_gap_close_pred_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_pred_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -264,7 +264,7 @@ class TestSkipEdges:
     def test_gap_close_matched_gap(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_matched_gap()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -294,7 +294,7 @@ class TestSkipEdges:
     def test_gap_close_offset(self, relax_gt, relax_pred, window, correct, total):
         matched = ex_graphs.gap_close_offset()
         classify_basic_errors(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -333,7 +333,7 @@ class TestDivisions:
     def test_good_div(self, error_type, t_div, window, acc):
         matched = ex_graphs.good_div(t_div)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert pytest.approx(accuracy, abs=0.01) == acc
 
@@ -353,7 +353,7 @@ class TestDivisions:
     def test_one_child(self, error_type, t_div, window, basic_acc, ctc_acc):
         matched = ex_graphs.one_child(t_div)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         acc = ctc_acc if error_type == "ctc" else basic_acc
         assert pytest.approx(accuracy, abs=0.01) == acc
@@ -372,7 +372,7 @@ class TestDivisions:
     def test_no_children(self, error_type, t_div, window, acc):
         matched = ex_graphs.no_children(t_div)
         self.add_errors(matched, error_type)
-        result = compute_track_accuracy(matched, window, error_type=error_type)
+        result = compute_complete_tracks_by_length(matched, window, error_type=error_type)
         accuracy = get_accuracy(result, window)
         assert pytest.approx(accuracy, abs=0.01) == acc
 
@@ -403,7 +403,7 @@ class TestDivisionSkipEdges:
         matched = ex_graphs.div_daughter_gap()
         # evaluate_division_events internally calls classify_basic_errors
         evaluate_division_events(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -431,7 +431,7 @@ class TestDivisionSkipEdges:
         matched = ex_graphs.div_daughter_dual_gap()
         # evaluate_division_events internally calls classify_basic_errors
         evaluate_division_events(matched, relax_skips_gt=relax_gt, relax_skips_pred=relax_pred)
-        result = compute_track_accuracy(
+        result = compute_complete_tracks_by_length(
             matched,
             window,
             error_type="basic",
@@ -451,7 +451,9 @@ class TestTracklets:
         evaluate_division_events(matched)
         # With lineages=False, tracklets are split at divisions.
         # All edges are correct, so all segments should be correct.
-        result = compute_track_accuracy(matched, window, lineages=False, error_type="basic")
+        result = compute_complete_tracks_by_length(
+            matched, window, lineages=False, error_type="basic"
+        )
         accuracy = get_accuracy(result, window)
         assert accuracy == 1.0
 
@@ -468,7 +470,7 @@ class TestSingleFrameComponent:
         pred = TrackingGraph(nx.DiGraph())
         matched = Matched(gt, pred, [], {})
         classify_basic_errors(matched)
-        result = compute_track_accuracy(matched, 1, error_type="basic")
+        result = compute_complete_tracks_by_length(matched, 1, error_type="basic")
         # Single node has no edges, so no segments exist
         _correct, total = result.get(1, (0, 0))
         assert total == 0
@@ -503,7 +505,7 @@ class TestWindowLargerThanTrack:
         # max_window=4 means w=3 and w=4 have no segments (cur_len <= 0).
         matched = ex_graphs.good_matched()
         classify_basic_errors(matched)
-        result = compute_track_accuracy(matched, 4, error_type="basic")
+        result = compute_complete_tracks_by_length(matched, 4, error_type="basic")
         # w=1 and w=2 should have segments; w=3 and w=4 should not
         assert result[1] == (2, 2)
         assert result[2] == (1, 1)

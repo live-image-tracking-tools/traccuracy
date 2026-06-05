@@ -10,7 +10,11 @@ from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
-from ._compute_track_accuracy import _has_fp_division, _is_edge_correct, _is_node_correct
+from ._compute_complete_tracks_by_length import (
+    _has_fp_division,
+    _is_edge_correct,
+    _is_node_correct,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Hashable

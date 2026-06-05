@@ -6,20 +6,20 @@ import tests.examples.graphs as ex_graphs
 from tests.examples.larger_examples import larger_example_1
 from traccuracy._tracking_graph import TrackingGraph
 from traccuracy.matchers._matched import Matched
-from traccuracy.metrics._track_accuracy_over_time import TrackAccuracyOverTime
+from traccuracy.metrics._complete_tracks_by_length import CompleteTracksByLength
 
 
 class TestValidation:
     def test_invalid_error_type(self):
         with pytest.raises(ValueError, match="Unrecognized error type"):
-            TrackAccuracyOverTime(error_type="invalid")
+            CompleteTracksByLength(error_type="invalid")
 
     @pytest.mark.filterwarnings("ignore:Mapping is empty")
     def test_empty_gt_graph_warns(self):
         gt = TrackingGraph(nx.DiGraph())
         pred = TrackingGraph(nx.DiGraph())
         matched = Matched(gt, pred, [], {})
-        metric = TrackAccuracyOverTime(max_window=2)
+        metric = CompleteTracksByLength(max_length=2)
         with pytest.warns(UserWarning, match="empty graph"):
             result = metric.compute(matched)
         assert result.results == {}
@@ -31,12 +31,12 @@ class TestValidation:
     )
     def test_ctc_relax_skips_warns(self):
         matched = ex_graphs.good_matched()
-        metric = TrackAccuracyOverTime(max_window=1, error_type="ctc")
+        metric = CompleteTracksByLength(max_length=1, error_type="ctc")
         with pytest.warns(UserWarning, match="do not support relaxing skip edges"):
             metric.compute(matched, relax_skips_gt=True)
 
 
-# End-to-end test using TrackAccuracyOverTime class on larger example
+# End-to-end test using CompleteTracksByLength class on larger example
 @pytest.mark.filterwarnings(
     "ignore:Node errors already calculated",
     "ignore:Edge errors already calculated",
@@ -58,7 +58,7 @@ class TestLargerExample:
     )
     def test_larger_example_1(self, error_type, window, basic_correct, ctc_correct, total):
         matched = larger_example_1()
-        metric = TrackAccuracyOverTime(max_window=window, error_type=error_type)
+        metric = CompleteTracksByLength(max_length=window, error_type=error_type)
         result = metric.compute(matched)
         # Lists are 0-indexed: index 0 = window 1
         idx = window - 1
@@ -90,7 +90,7 @@ class TestManyToOne:
     def test_node_two_to_one_ctc(self, idx, window, expected_acc):
         """CTC should work with many-to-one matching (no division errors checked)."""
         matched = ex_graphs.node_two_to_one(idx)
-        metric = TrackAccuracyOverTime(max_window=window, error_type="ctc")
+        metric = CompleteTracksByLength(max_length=window, error_type="ctc")
         result = metric.compute(matched)
         actual_acc = result.results["accuracy"][window - 1]
         if np.isnan(expected_acc):
@@ -108,7 +108,7 @@ class TestManyToOne:
     def test_edge_two_to_one_ctc(self, idx, window, expected_acc):
         """CTC should work with many-to-one matching for edge errors."""
         matched = ex_graphs.edge_two_to_one(idx)
-        metric = TrackAccuracyOverTime(max_window=window, error_type="ctc")
+        metric = CompleteTracksByLength(max_length=window, error_type="ctc")
         result = metric.compute(matched)
         actual_acc = result.results["accuracy"][window - 1]
         if np.isnan(expected_acc):
@@ -123,14 +123,14 @@ class TestManyToOne:
     "ignore:Division annotations already present",
 )
 class TestDefaultMaxWindow:
-    """Test that max_window=None uses the full GT time range."""
+    """Test that max_length=None uses the full GT time range."""
 
     def test_default_matches_explicit(self):
         matched = larger_example_1()
         expected_max = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
 
-        default_metric = TrackAccuracyOverTime(max_window=None)
-        explicit_metric = TrackAccuracyOverTime(max_window=expected_max)
+        default_metric = CompleteTracksByLength(max_length=None)
+        explicit_metric = CompleteTracksByLength(max_length=expected_max)
 
         default_result = default_metric.compute(matched)
         explicit_result = explicit_metric.compute(matched)
@@ -141,7 +141,7 @@ class TestDefaultMaxWindow:
         matched = larger_example_1()
         expected_max = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
 
-        metric = TrackAccuracyOverTime(max_window=None)
+        metric = CompleteTracksByLength(max_length=None)
         result = metric.compute(matched)
 
         assert len(result.results["correct"]) == expected_max

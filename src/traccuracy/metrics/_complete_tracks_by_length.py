@@ -9,7 +9,7 @@ from traccuracy.track_errors._ctc import evaluate_ctc_events
 from traccuracy.track_errors._divisions import evaluate_division_events
 
 from ._base import Metric
-from ._compute_track_accuracy import compute_track_accuracy
+from ._compute_complete_tracks_by_length import compute_complete_tracks_by_length
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -17,21 +17,26 @@ if TYPE_CHECKING:
     from traccuracy.matchers import Matched
 
 
-class TrackAccuracyOverTime(Metric):
-    """Track accuracy measured over sliding windows of different sizes.
+class CompleteTracksByLength(Metric):
+    """Fraction of fully correct tracks as a function of track length.
 
-    For each window size from 1 to max_window, computes the fraction of
-    ground truth track segments that are correctly reconstructed.
+    This is the CTC-BIO Complete Tracks metric generalized to every track
+    length: for each length from 1 to ``max_length`` (in frames), it
+    computes the accuracy (number correct / number total) of the ground
+    truth track segments that span that many frames. At the maximum length
+    this reduces to ``CompleteTracks``.
 
-    Window size is measured in frames (time difference), not edge count.
-    A segment of size N spans N frames from start to end. For example:
+    Length is measured in frames (time difference), not edge count.
+    A segment of length N spans N frames from start to end. For example:
 
-    - A segment of size 1 spans 1 frame (node at t=0 to node at t=1)
-    - A segment of size 2 spans 2 frames (node at t=0 to node at t=2)
+    - A segment of length 1 spans 1 frame (node at t=0 to node at t=1)
+    - A segment of length 2 spans 2 frames (node at t=0 to node at t=2)
 
-    Skip edges that span multiple frames count toward their actual frame
-    difference. For example, a skip edge from t=0 to t=3 contributes a
-    segment of size 3, not size 1.
+    Skip edges that span multiple frames are decomposed into individual
+    single-frame edges, each carrying the skip edge's correctness. For
+    example, a skip edge from t=0 to t=3 contributes three length-1
+    segments (t=0->1, t=1->2, t=2->3), and likewise contributes to the
+    length-2 and length-3 totals.
 
     At division points, all branches are included in the same segment -
     a segment is only correct if all branches are correct.
@@ -44,34 +49,34 @@ class TrackAccuracyOverTime(Metric):
     Important counting rules:
 
     - Isolated nodes (nodes with no outgoing edges) are NOT counted
-    - Segments only exist at their actual frame spans (no intermediate sizes
-      for skip edges)
-    - Tracks shorter than window size N do not contribute to the total for
-      window N
+    - Skip edges are decomposed into single-frame edges, so they
+      contribute at every length they span (see above)
+    - Tracks shorter than length N still contribute 1 to the total for
+      length N (correct iff the entire track is correct)
 
     This metric helps identify whether tracking errors occur more frequently
     in short or long tracks, providing granular insight into tracking quality
     at different temporal scales.
 
     Args:
-        max_window (int | None): Maximum window size in frames to evaluate. The default
+        max_length (int | None): Maximum track length in frames to evaluate. The default
             is None, which uses gt_tracks.end - gt_tracks.start
         lineages: If True, evaluate on full lineages (connected components).
             If False, evaluate on tracklets (segments between divisions).
         error_type: "basic" or "ctc" error classification scheme
 
     The compute function returns a results dictionary with three lists,
-    each indexed by window size (index 0 = window 1, index 1 = window 2, etc.):
+    each indexed by track length (index 0 = length 1, index 1 = length 2, etc.):
 
-    - ``correct`` - number of correct segments at each window size
-    - ``total`` - total number of segments at each window size
-    - ``accuracy`` - correct/total at each window size, or np.nan if total is 0
+    - ``correct`` - number of correct segments at each length
+    - ``total`` - total number of segments at each length
+    - ``accuracy`` - correct/total at each length, or np.nan if total is 0
 
     """
 
     def __init__(
         self,
-        max_window: int | None = None,
+        max_length: int | None = None,
         lineages: bool = True,
         error_type: Literal["basic", "ctc"] = "basic",
     ):
@@ -83,7 +88,7 @@ class TrackAccuracyOverTime(Metric):
 
         if error_type not in ["ctc", "basic"]:
             raise ValueError(f"Unrecognized error type {error_type}. Should be 'ctc' or 'basic'")
-        self.max_window = max_window
+        self.max_length = max_length
         self.lineages = lineages
         self.error_type: Literal["basic", "ctc"] = error_type
 
@@ -93,7 +98,7 @@ class TrackAccuracyOverTime(Metric):
         relax_skips_gt: bool = False,
         relax_skips_pred: bool = False,
     ) -> dict:
-        """Compute track accuracy over time for the matched object.
+        """Compute complete tracks by length for the matched object.
 
         Args:
             matched: Matched data object to compute metrics on
@@ -104,7 +109,7 @@ class TrackAccuracyOverTime(Metric):
 
         Returns:
             Dictionary with "correct", "total", and "accuracy" lists,
-            each of length max_window (index 0 = window 1, etc.).
+            each of length max_length (index 0 = length 1, etc.).
         """
         if matched.gt_graph.start_frame is None or matched.gt_graph.end_frame is None:
             warnings.warn(
@@ -130,27 +135,27 @@ class TrackAccuracyOverTime(Metric):
                 )
             evaluate_ctc_events(matched)
 
-        if self.max_window is None:
-            max_window = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
+        if self.max_length is None:
+            max_length = matched.gt_graph.end_frame - matched.gt_graph.start_frame - 1
         else:
-            max_window = self.max_window
+            max_length = self.max_length
 
         # Compute segment counts
-        segment_counts = compute_track_accuracy(
+        segment_counts = compute_complete_tracks_by_length(
             matched,
-            max_window,
+            max_length,
             self.lineages,
             error_type=self.error_type,
             relax_skips_gt=relax_skips_gt,
             relax_skips_pred=relax_skips_pred,
         )
 
-        # Convert to results dict with lists (index 0 = window 1, etc.)
+        # Convert to results dict with lists (index 0 = length 1, etc.)
         correct_list: list[int] = []
         total_list: list[int] = []
         accuracy_list: list[float] = []
-        for window_size in range(1, max_window + 1):
-            correct, total = segment_counts.get(window_size, (0, 0))
+        for length in range(1, max_length + 1):
+            correct, total = segment_counts.get(length, (0, 0))
             correct_list.append(correct)
             total_list.append(total)
             accuracy_list.append(correct / total if total > 0 else np.nan)

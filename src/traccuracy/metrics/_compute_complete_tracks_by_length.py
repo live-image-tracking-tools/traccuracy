@@ -15,25 +15,26 @@ CORRECT = 1
 INCORRECT = 0
 
 
-def compute_track_accuracy(
+def compute_complete_tracks_by_length(
     matched: Matched,
-    max_window: int,
+    max_length: int,
     lineages: bool = True,
     error_type: Literal["basic", "ctc"] = "basic",
     relax_skips_gt: bool = False,
     relax_skips_pred: bool = False,
 ) -> dict[int, tuple[int, int]]:
-    r"""Compute the fraction of GT track segments correctly reconstructed.
+    r"""Compute the fraction of GT track segments correctly reconstructed, by length.
 
     For each component (lineage or tracklet), builds a 2D grid of
     per-frame-step correctness values (see ``_build_grid``), then uses
-    dynamic programming to combine adjacent frame steps into larger
-    windows.
+    dynamic programming to combine adjacent frame steps into longer
+    segments. Segments are accumulated via a sliding window over the
+    timeline, one window per segment length.
 
-    Window size is measured in frames (time difference), not edge count.
+    Length is measured in frames (time difference), not edge count.
     Skip edges spanning multiple frames are interpolated to fill
     intermediate frame steps with the same correctness status.
-    This means that if a skip edge exceeds the window, the part of it
+    This means that if a skip edge exceeds the length, the part of it
     inside the window still counts towards the correctness of the segment.
 
     Example — A->A' then A' divides into B and C, with an error on
@@ -76,24 +77,24 @@ def compute_track_accuracy(
         │track. C │    │
         └─────────┴────┘
 
-    At each window size, non-empty entries are counted as segments.
-    w=1: 5 (4 correct). w=2: 3 (2 correct). w=3: 1 (0 correct).
+    At each length, non-empty entries are counted as segments.
+    length 1: 5 (4 correct). length 2: 3 (2 correct). length 3: 1 (0 correct).
 
 
-    GT tracks shorter than a given window size still count once for that
-    window size (correct iff the entire track is correct).
+    GT tracks shorter than a given length still count once for that
+    length (correct iff the entire track is correct).
 
     Args:
         matched: Matched data object with annotated errors
-        max_window: Maximum window size to evaluate (in frames)
+        max_length: Maximum track length to evaluate (in frames)
         lineages: If True, evaluate on full lineages. If False, on tracklets.
         error_type: "basic" or "ctc" - which error classification was used
         relax_skips_gt: If True, SKIP_TRUE_POS edges in GT count as correct
         relax_skips_pred: If True, SKIP_TRUE_POS edges in pred count as correct
 
     Returns:
-        Dictionary mapping window size (int) to tuple of (correct_count, total_count)
-        for each window size from 1 to max_window
+        Dictionary mapping track length (int) to tuple of (correct_count, total_count)
+        for each length from 1 to max_length
     """
     is_ctc = error_type == "ctc"
 
@@ -119,12 +120,12 @@ def compute_track_accuracy(
 
         T = len(grid)
 
-        # DP to build grids for increasing window sizes.
-        # For window w, combine base_grid[t] (w=1) with prev_grid[t+1] (w-1).
+        # DP to build grids for increasing segment lengths.
+        # For length w, combine base_grid[t] (w=1) with prev_grid[t+1] (w-1).
         base_grid = grid
         prev_grid = grid
 
-        for w in range(1, max_window + 1):
+        for w in range(1, max_length + 1):
             if w == 1:
                 cur_grid = base_grid
             else:
