@@ -1,4 +1,4 @@
-(complete-tracks-by-length)=
+(complete-tracks-by-length-metric)=
 # Complete Tracks by Length
 
 Complete Tracks by Length generalizes the CTC-BIO [Complete Tracks](complete-tracks) metric to every track length. For each length N (in frames), it measures the accuracy — the fraction of fully correct segments — of the ground truth tracklet or lineage segments that span N frames.
