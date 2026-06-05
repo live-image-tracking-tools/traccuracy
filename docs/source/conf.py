@@ -51,7 +51,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "nbsphinx",  # add notebooks to docs
     "nbsphinx_link",  # add notebooks to docs
-    "sphinx_click",  # auto document cli
+    "sphinxcontrib.typer",  # auto document cli
     "myst_nb",  # Execute and render myst md
 ]
 
