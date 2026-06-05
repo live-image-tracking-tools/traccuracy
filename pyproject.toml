@@ -29,7 +29,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "click<8.2.0",
+    "click",
     "numpy",
     "networkx",
     "pandas",
@@ -69,7 +69,7 @@ dev = [
 docs = [
     "myst-nb >=1.2.0, <2",
     "sphinx-autoapi==3.0.0",
-    "sphinx-click >=6.0.0, <7",
+    "sphinxcontrib-typer >=0.9.0",
     "sphinx-rtd-theme >=3.0.1, <4",
     "sphinx >=7.4.7, <8",
     "matplotlib",

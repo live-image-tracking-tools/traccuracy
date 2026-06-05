@@ -62,8 +62,5 @@ def run_ctc(
     logger.info(f"DET: {result[0]['results']['DET']}")
 
 
-typer_click_object = typer.main.get_command(app)
-
-
 def main() -> None:  # noqa: D103
     app()

@@ -1,7 +1,8 @@
 # CLI
 
 ```{eval-rst}
-.. click:: traccuracy.cli:typer_click_object
+.. typer:: traccuracy.cli:app
    :prog: traccuracy
-   :nested: full
+   :width: 80
+   :show-nested:
 ```

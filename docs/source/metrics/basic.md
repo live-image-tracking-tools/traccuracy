@@ -43,7 +43,7 @@ If `relax_skips_gt` or `relax_skips_pred` are set to True, the following additio
 - Skip false positives
 - Skip false negatives
 
-Using these counts, the following summary stastics are computed for both nodes and edges:
+Using these counts, the following summary statistics are computed for both nodes and edges:
 
 - {term}`Recall`
 - {term}`Precision`
