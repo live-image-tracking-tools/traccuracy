@@ -128,7 +128,7 @@ class TestMetric:
         assert m._get_f1(precision=0, recall=np.nan) == 0
         # actually not possible inputs for a real dataset, but should
         # still be 0 because denom. would be non-zero
-        assert np.isnan(m._get_f1(precision=1, recall=np.nan))
+        assert m._get_f1(precision=1, recall=np.nan) == 0
         # the only time we want a nan is if both recall and precision are nan
         # this means no TPs, no FPs, no FNs, which can only
         # happen if both GT and pred graphs are empty

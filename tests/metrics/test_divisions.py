@@ -124,10 +124,11 @@ class TestDivisionMetrics:
         results = DivisionMetrics()._compute(matched)["Frame Buffer 0"]
         assert "No ground truth divisions present. Metrics may return np.nan" in caplog.text
 
-        # No GT so recall is nan; precision is 0/1 = 0; F1 is nan (recall is nan)
+        # No GT so recall is nan; precision is 0/1 = 0;
+        # F1 is 0 (recall is nan, precision is 0)
         assert np.isnan(results["Division Recall"])
         assert results["Division Precision"] == 0
-        assert np.isnan(results["Division F1"])
+        assert results["Division F1"] == 0
         assert results["Mitotic Branching Correctness"] == 0
 
     def test_frame_buffer(self):
