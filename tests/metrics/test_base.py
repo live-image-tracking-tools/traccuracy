@@ -122,10 +122,17 @@ class TestMetric:
         assert m._get_f1(precision=0, recall=1) == 0
         assert m._get_f1(precision=1, recall=0) == 0
         assert m._get_f1(precision=1, recall=1) == 1
-        assert np.isnan(m._get_f1(precision=np.nan, recall=0))
-        assert np.isnan(m._get_f1(precision=0, recall=np.nan))
-        assert np.isnan(m._get_f1(precision=np.nan, recall=np.nan))
+        # no TPs no FPs but must've been some FNs
+        assert m._get_f1(precision=np.nan, recall=0) == 0
+        # no TPs no FNs but must've been some FPs
+        assert m._get_f1(precision=0, recall=np.nan) == 0
+        # actually not possible inputs for a real dataset, but should
+        # still be 0 because denom. would be non-zero
         assert np.isnan(m._get_f1(precision=1, recall=np.nan))
+        # the only time we want a nan is if both recall and precision are nan
+        # this means no TPs, no FPs, no FNs, which can only
+        # happen if both GT and pred graphs are empty
+        assert np.isnan(m._get_f1(precision=np.nan, recall=np.nan))
 
     def test_relax_info(self):
         m = ValidMetric()
