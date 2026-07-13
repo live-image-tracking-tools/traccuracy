@@ -82,6 +82,7 @@ results, matched = run_metrics(
     - [Track Effectiveness](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#target-effectiveness)
     - [Track Fractions](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#track-fractions)
     - [Complete Tracks](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#complete-tracks)
+- [Complete Tracks by Length](https://traccuracy.readthedocs.io/en/latest/metrics/complete-tracks-by-length.html) generalizes [Complete Tracks](https://traccuracy.readthedocs.io/en/latest/metrics/track_overlap.html#complete-tracks) to every track length, reporting the fraction of fully correct tracklets or lineages that span N frames. Based on the track accuracy evaluation from [Malin-Mayor et al. 2023](https://doi.org/10.1038/s41587-022-01427-7).
 - [CHOTA](https://traccuracy.readthedocs.io/en/latest/metrics/chota.html#chota) from [Kaiser et al. 2024](https://doi.org/10.1007/978-3-031-91721-9_8).
 
 ## Featured Works
