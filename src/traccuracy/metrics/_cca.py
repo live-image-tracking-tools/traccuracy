@@ -122,9 +122,9 @@ def _get_cumsum(lengths: np.ndarray, n_bins: int) -> np.ndarray:
     hist = np.bincount(lengths, minlength=n_bins)
 
     # Normalize
-    hist = hist / hist.sum()
+    normalized = hist / hist.sum()
 
     # Compute cumsum
-    cumsum = np.cumsum(hist)
+    cumsum = np.cumsum(normalized)
 
     return cumsum
