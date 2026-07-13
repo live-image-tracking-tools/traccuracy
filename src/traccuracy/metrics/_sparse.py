@@ -52,8 +52,9 @@ class SparseTrackingMetrics(Metric):
         total_node_ratio = (num_pred_nodes - n_gt_nodes) / n_gt_nodes
         adj_edge_jaccard = max(0, edge_jaccard * (1 - node_ratio_weight * total_node_ratio))
 
-    When ``n_gt_nodes`` is not provided, ``total_node_ratio``, ``adj_edge_jaccard`` and
-    ``score`` are ``NaN``; use ``edge_jaccard`` as the estimate-free number.
+    When ``n_gt_nodes`` is not provided, ``total_node_ratio`` and ``adj_edge_jaccard``
+    are ``NaN`` (the excess-node penalty is skipped) and the combined ``score`` falls
+    back to the raw ``edge_jaccard`` term.
 
     **Division Jaccard.** Divisions are scored with a +/- 1 frame tolerance. For each
     ground truth dividing node (out-degree >= 2), the surrounding subgraph
@@ -69,7 +70,8 @@ class SparseTrackingMetrics(Metric):
     or ``NaN`` when there are no divisions anywhere.
 
     **Combined score.** ``score = adj_edge_jaccard + division_weight * division_jaccard``
-    (the division term is dropped when there are no divisions). A single traccuracy
+    (or ``edge_jaccard`` in place of ``adj_edge_jaccard`` when ``n_gt_nodes`` is not
+    given; the division term is dropped when there are no divisions). A single traccuracy
     metric is computed on one (prediction, ground truth) pair; the competition's
     dataset-level score micro-averages the per-pair counts, which the caller can do by
     summing the ``*_tp``/``*_fp``/``*_fn`` outputs across pairs before taking the
@@ -78,8 +80,9 @@ class SparseTrackingMetrics(Metric):
     Args:
         n_gt_nodes (float | None, optional): Coarse estimate of the total number of true
             nodes for this pair (including cells the ground truth does not annotate),
-            used for the adjusted edge Jaccard. Defaults to None, which leaves the
-            adjusted Jaccard and combined score as NaN.
+            used for the adjusted edge Jaccard. Must be positive if given. Defaults to
+            None, which skips the excess-node penalty (the adjusted Jaccard is NaN and
+            the combined score falls back to the raw edge Jaccard).
         division_weight (float, optional): Weight of the division Jaccard in the combined
             score. Defaults to 0.1.
         node_ratio_weight (float, optional): Coefficient of the excess-node penalty in
@@ -101,9 +104,27 @@ class SparseTrackingMetrics(Metric):
     ) -> None:
         """Initialize the sparse tracking metrics. See class docstring for details."""
         super().__init__(valid_matches=["one-to-one"], zero_division=zero_division)
+        if n_gt_nodes is not None and n_gt_nodes <= 0:
+            raise ValueError(f"n_gt_nodes must be positive if provided, got {n_gt_nodes}")
+        if division_weight < 0 or node_ratio_weight < 0:
+            raise ValueError(
+                "division_weight and node_ratio_weight must be non-negative, got "
+                f"{division_weight} and {node_ratio_weight}"
+            )
         self.n_gt_nodes = n_gt_nodes
         self.division_weight = division_weight
         self.node_ratio_weight = node_ratio_weight
+
+    def _validate_matcher(self, matched: Matched) -> bool:
+        """Verify the matcher is one-to-one *and* distance-based.
+
+        Division scoring re-matches the prediction against each ground truth division
+        subgraph by centroid distance, so the matcher must expose a distance
+        ``threshold`` (as :class:`~traccuracy.matchers.PointMatcher` does). Going
+        through ``_validate_matcher`` means the requirement honors the ``compute``
+        ``override_matcher`` escape hatch, like every other metric.
+        """
+        return super()._validate_matcher(matched) and "threshold" in matched.matcher_info
 
     def _compute(
         self,
@@ -123,8 +144,8 @@ class SparseTrackingMetrics(Metric):
 
         Returns:
             dict: Edge and division counts, per-pair Jaccards, ``num_pred_nodes``,
-            ``node_recall``, and (when ``n_gt_nodes`` was provided) ``total_node_ratio``,
-            ``adj_edge_jaccard`` and the combined ``score``.
+            ``node_recall``, ``total_node_ratio`` and ``adj_edge_jaccard`` (NaN unless
+            ``n_gt_nodes`` was provided), and the combined ``score``.
         """
         if relax_skips_gt or relax_skips_pred:
             warnings.warn(
@@ -133,13 +154,14 @@ class SparseTrackingMetrics(Metric):
                 stacklevel=2,
             )
 
-        name = matched.matcher_info.get("name")
-        if name != "PointMatcher":
+        # The matcher is validated to expose a distance threshold in _validate_matcher,
+        # but an override_matcher=True caller can bypass that, so guard explicitly.
+        threshold = matched.matcher_info.get("threshold")
+        if threshold is None:
             raise TypeError(
-                "SparseTrackingMetrics requires a PointMatcher matching (it re-matches "
-                f"divisions by centroid distance), but got matcher {name!r}."
+                "SparseTrackingMetrics re-matches divisions by centroid distance and "
+                "needs a distance matcher exposing 'threshold' (e.g. PointMatcher)."
             )
-        threshold = matched.matcher_info["threshold"]
         scale = matched.matcher_info.get("scale_factor")
 
         gt = matched.gt_graph
@@ -150,13 +172,15 @@ class SparseTrackingMetrics(Metric):
 
         div_tp, div_fp, div_fn = self._division_counts(matched, threshold, scale)
         has_divisions = (div_tp + div_fp + div_fn) > 0
-        division_jaccard = self._jaccard(div_tp, div_fp, div_fn) if has_divisions else float("nan")
+        # _jaccard already returns self.zero_division on an empty denominator, so this
+        # is NaN (by default) when there are no divisions anywhere.
+        division_jaccard = self._jaccard(div_tp, div_fp, div_fn)
 
         num_pred_nodes = pred.graph.number_of_nodes()
         num_gt_nodes = gt.graph.number_of_nodes()
         node_recall = len(matched.gt_pred_map) / num_gt_nodes if num_gt_nodes > 0 else float("nan")
 
-        if self.n_gt_nodes is not None and self.n_gt_nodes > 0:
+        if self.n_gt_nodes is not None:
             total_node_ratio = (num_pred_nodes - self.n_gt_nodes) / self.n_gt_nodes
         else:
             total_node_ratio = float("nan")
@@ -168,10 +192,15 @@ class SparseTrackingMetrics(Metric):
         else:
             adj_edge_jaccard = float("nan")
 
+        # The combined score uses the adjusted edge Jaccard when an ``n_gt_nodes``
+        # estimate is available; otherwise it falls back to the raw ``edge_jaccard`` so
+        # the metric returns a usable score out of the box (``adj_edge_jaccard`` and
+        # ``total_node_ratio`` stay NaN to signal the excess-node penalty was skipped).
+        score_base = edge_jaccard if np.isnan(adj_edge_jaccard) else adj_edge_jaccard
         if has_divisions:
-            score = adj_edge_jaccard + self.division_weight * division_jaccard
+            score = score_base + self.division_weight * division_jaccard
         else:
-            score = adj_edge_jaccard
+            score = score_base
 
         return {
             "edge_tp": edge_tp,
@@ -388,6 +417,11 @@ class SparseTrackingMetrics(Metric):
         ``candidates`` maps each ground truth division to the predicted forks that could
         account for it. Returns only the matched pairs, so each predicted fork is
         credited to at most one ground truth division.
+
+        Uses recursive augmenting-path search (matching the competition reference). The
+        recursion depth is bounded by the number of ground truth divisions, which is
+        small in practice; datasets with many hundreds of heavily overlapping divisions
+        could in principle approach Python's recursion limit.
         """
         match_right: dict[Hashable, Hashable] = {}
         match_left: dict[Hashable, Hashable] = {}

@@ -346,10 +346,12 @@ def test_adjusted_jaccard_nan_without_estimate() -> None:
     pred = _build(_line(3), [(0, 1), (1, 2)])
     results, _ = run_metrics(gt, pred, PointMatcher(threshold=0.5), [SparseTrackingMetrics()])
     r = results[0]["results"]
+    # Without n_gt_nodes the excess-node penalty is skipped: ratio and adjusted Jaccard
+    # are NaN, but score falls back to the raw edge Jaccard so it stays usable.
     assert math.isnan(r["total_node_ratio"])
     assert math.isnan(r["adj_edge_jaccard"])
-    assert math.isnan(r["score"])
     assert r["edge_jaccard"] == pytest.approx(1.0)
+    assert r["score"] == pytest.approx(1.0)
 
 
 def test_adjusted_jaccard_penalizes_excess_nodes() -> None:
@@ -400,13 +402,28 @@ def test_relax_skips_warns_and_is_ignored() -> None:
         SparseTrackingMetrics()._compute(matched, relax_skips_gt=True)
 
 
-def test_requires_point_matcher() -> None:
+def test_requires_distance_matcher() -> None:
+    # A one-to-one matcher without a distance threshold fails validation in compute().
     gt = _build(_line(3), [(0, 1), (1, 2)])
     pred = _build(_line(3), [(0, 1), (1, 2)])
     mapping = [(0, 0), (1, 1), (2, 2)]
     matched = Matched(gt, pred, mapping, {"name": "DummyMatcher", "matching type": "one-to-one"})
-    with pytest.raises(TypeError, match="requires a PointMatcher"):
+    with pytest.raises(TypeError, match="does not meet the requirements"):
+        SparseTrackingMetrics().compute(matched)
+    # Even bypassing validation, _compute needs a distance threshold to re-match divisions.
+    with pytest.raises(TypeError, match="needs a distance matcher"):
         SparseTrackingMetrics()._compute(matched)
+
+
+def test_invalid_constructor_args() -> None:
+    with pytest.raises(ValueError, match="n_gt_nodes must be positive"):
+        SparseTrackingMetrics(n_gt_nodes=0)
+    with pytest.raises(ValueError, match="n_gt_nodes must be positive"):
+        SparseTrackingMetrics(n_gt_nodes=-5)
+    with pytest.raises(ValueError, match="must be non-negative"):
+        SparseTrackingMetrics(division_weight=-0.1)
+    with pytest.raises(ValueError, match="must be non-negative"):
+        SparseTrackingMetrics(node_ratio_weight=-1.0)
 
 
 # ---------------------------------------------------------------------------
