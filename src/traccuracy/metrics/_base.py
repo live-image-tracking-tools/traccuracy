@@ -196,8 +196,13 @@ class Metric(ABC):
         Returns:
             float: F1
         """
-        if np.isnan(precision) or np.isnan(recall):
+        # F1 can only ever be nan for an empty GT graph and empty
+        # pred graph. In all other cases, it should be 0 if either
+        # precision or recall is 0 (or nan)
+        if np.isnan(precision) and np.isnan(recall):
             return np.nan
+        if np.isnan(precision) or np.isnan(recall):
+            return 0.0
         if precision == 0 or recall == 0:
             return 0.0
         return 2 * (recall * precision) / (recall + precision)
