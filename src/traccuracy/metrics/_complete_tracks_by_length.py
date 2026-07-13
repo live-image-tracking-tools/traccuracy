@@ -74,6 +74,10 @@ class CompleteTracksByLength(Metric):
 
     """
 
+    # Only ground-truth segments are scored; predictions beyond the ground truth are
+    # never penalized, so this metric is valid on sparse ground truth.
+    supports_sparse_gt = True
+
     def __init__(
         self,
         max_length: int | None = None,

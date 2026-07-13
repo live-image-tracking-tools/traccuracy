@@ -6,6 +6,7 @@ from ._complete_tracks_by_length import CompleteTracksByLength
 from ._ctc import AOGMMetrics, CTCMetrics
 from ._divisions import DivisionMetrics
 from ._results import Results
+from ._sparse import SparseTrackingMetrics
 from ._track_overlap import TrackOverlapMetrics
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "CompleteTracksByLength",
     "DivisionMetrics",
     "Results",
+    "SparseTrackingMetrics",
     "TrackOverlapMetrics",
 ]
