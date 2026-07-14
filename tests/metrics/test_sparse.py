@@ -1,17 +1,15 @@
 """Tests for the sparse-ground-truth tracking metrics (SparseTrackingMetrics).
 
-The frozen counts in ``SANDBOX_EXPECTED`` and the exact edge-Jaccard fractions in the
-unit tests are ported verbatim from the reference implementation in the royerlab
-cell-tracking-competition
-(https://github.com/royerlab/kaggle-cell-tracking-competition), so this suite is a
-parity check that the traccuracy port reproduces the competition metric exactly.
+The exact edge-Jaccard fractions in the edge unit tests are ported from the reference
+implementation in the royerlab cell-tracking-competition
+(https://github.com/royerlab/kaggle-cell-tracking-competition) and pin parity with it.
+The division tests use minimal, hand-built graphs in the same style as the other
+traccuracy division fixtures (see ``tests/examples/graphs.py``).
 """
 
 from __future__ import annotations
 
-import json
 import math
-from pathlib import Path
 
 import networkx as nx
 import pytest
@@ -28,27 +26,6 @@ from traccuracy.metrics import (
     SparseTrackingMetrics,
 )
 
-SANDBOX_DIR = Path(__file__).resolve().parents[1] / "examples" / "sparse_sandbox"
-
-# (edge_tp, edge_fp, edge_fn, division_tp, division_fp, division_fn), copied verbatim
-# from the competition's tests/test_division_sandbox_examples.py::EXPECTED.
-SANDBOX_EXPECTED: dict[str, tuple[int, int, int, int, int, int]] = {
-    "3_division": (2, 2, 0, 0, 1, 0),
-    "edges_wrong_division_ok": (0, 5, 8, 1, 0, 1),
-    "complex": (2, 2, 8, 1, 0, 0),
-    "complex2": (4, 4, 6, 1, 0, 0),
-    "division": (4, 1, 3, 1, 1, 1),
-    "division_at_end": (5, 0, 1, 1, 0, 0),
-    "division_node_stage": (3, 3, 1, 1, 1, 0),
-    "division_test": (4, 2, 2, 1, 0, 0),
-    "duplicated_division": (0, 8, 5, 1, 0, 0),
-    "late_division": (2, 3, 4, 1, 0, 0),
-    "merge_delay": (3, 2, 2, 1, 0, 0),
-    "node_conflict": (3, 2, 4, 1, 0, 0),
-    "simple": (2, 2, 4, 0, 0, 0),
-    "successive_div": (3, 2, 3, 1, 0, 1),
-}
-
 
 def _build(nodes: dict, edges: list[tuple]) -> TrackingGraph:
     """Build a TrackingGraph from a ``{name: {t, z, y, x}}`` dict and ``[(src, tgt)]`` list.
@@ -62,14 +39,8 @@ def _build(nodes: dict, edges: list[tuple]) -> TrackingGraph:
     return TrackingGraph(graph, frame_key="t", label_key=None, location_keys=("z", "y", "x"))
 
 
-def _tg_from_sandbox(section: dict) -> TrackingGraph:
-    """Build a TrackingGraph from a sandbox JSON section (nodes carry y only; z=x=0)."""
-    graph = nx.DiGraph()
-    for node in section["nodes"]:
-        graph.add_node(int(node["uid"]), t=int(node["t"]), z=0.0, y=float(node["y"]), x=0.0)
-    for edge in section["edges"]:
-        graph.add_edge(int(edge["source"]), int(edge["target"]))
-    return TrackingGraph(graph, frame_key="t", label_key=None, location_keys=("z", "y", "x"))
+def _node(t: float, y: float) -> dict:
+    return {"t": t, "z": 0.0, "y": float(y), "x": 0.0}
 
 
 def _counts(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 7.0) -> tuple:
@@ -95,22 +66,95 @@ def _edge_jaccard(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 
 
 
 # ---------------------------------------------------------------------------
-# Parity: frozen sandbox counts (edge + division TP/FP/FN)
+# Division metrics on minimal, hand-built graphs (repo fixture style). Each isolates
+# one behavior with counts that are obvious by construction. A dividing lineage is
+# parent -> divider -> {daughter, daughter}; daughters split +/- 5 in y (< the 7 unit
+# match threshold), and tracks sit on far-apart y lanes so they never cross-match.
 # ---------------------------------------------------------------------------
 
 
-def test_all_sandbox_examples_present() -> None:
-    on_disk = {p.stem for p in SANDBOX_DIR.glob("*.json")}
-    assert on_disk == set(SANDBOX_EXPECTED)
+def test_division_true_positive() -> None:
+    # Perfect division: divider at t1, both daughters recovered.
+    nodes = {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 5), 3: _node(2, -5)}
+    edges = [(0, 1), (1, 2), (1, 3)]
+    gt = _build(nodes, edges)
+    pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
+    assert _counts(pred, gt) == (3, 0, 0, 1, 0, 0)
 
 
-@pytest.mark.parametrize("name", sorted(SANDBOX_EXPECTED))
-def test_sandbox_parity(name: str) -> None:
-    data = json.loads((SANDBOX_DIR / f"{name}.json").read_text())
-    gt = _tg_from_sandbox(data["gt"])
-    pred = _tg_from_sandbox(data["pred"])
-    max_distance = data.get("max_distance", 7.0)
-    assert _counts(pred, gt, max_distance) == SANDBOX_EXPECTED[name]
+def test_division_false_negative() -> None:
+    # GT divides but the prediction is a straight track -> the division is missed.
+    gt = _build(
+        {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 5), 3: _node(2, -5)},
+        [(0, 1), (1, 2), (1, 3)],
+    )
+    # Predicted track follows one daughter only, no fork.
+    pred = _build(
+        {10: _node(0, 0), 11: _node(1, 0), 12: _node(2, 5)},
+        [(10, 11), (11, 12)],
+    )
+    assert _counts(pred, gt) == (2, 0, 1, 0, 0, 1)
+
+
+def test_division_false_positive() -> None:
+    # GT is a straight (annotated) track; the prediction invents a fork on it.
+    gt = _build(
+        {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 0)},
+        [(0, 1), (1, 2)],
+    )
+    pred = _build(
+        {10: _node(0, 0), 11: _node(1, 0), 12: _node(2, 0), 13: _node(2, -5)},
+        [(10, 11), (11, 12), (11, 13)],  # node 11 forks; 13 is unmatched background
+    )
+    # Spurious fork on an annotated GT node -> division FP; the extra edge -> edge FP.
+    assert _counts(pred, gt) == (2, 1, 0, 0, 1, 0)
+
+
+def test_division_late_within_tolerance() -> None:
+    # Prediction forks one frame after the GT split; still a TP (+/- 1 tolerance). One
+    # daughter lineage is touched only at the grandchild frame, exercising the
+    # "lineages may be hit at different timepoints" rule.
+    gt = _build(
+        {
+            0: _node(0, 0),
+            1: _node(1, 0),  # GT divider
+            2: _node(2, 5),
+            3: _node(2, -5),
+            4: _node(3, 5),
+            5: _node(3, -5),
+        },
+        [(0, 1), (1, 2), (1, 3), (2, 4), (3, 5)],
+    )
+    pred = _build(
+        {
+            10: _node(0, 0),
+            11: _node(1, 0),
+            12: _node(2, 5),  # pred divider, one frame late
+            13: _node(3, 5),
+            14: _node(3, -5),
+        },
+        [(10, 11), (11, 12), (12, 13), (12, 14)],
+    )
+    _, _, _, div_tp, div_fp, div_fn = _counts(pred, gt)
+    assert (div_tp, div_fp, div_fn) == (1, 0, 0)
+
+
+def test_two_divisions_paired_independently() -> None:
+    # Two separate divisions on far-apart lanes, both recovered -> tp=2.
+    nodes = {
+        0: _node(0, 0),
+        1: _node(1, 0),
+        2: _node(2, 5),
+        3: _node(2, -5),
+        4: _node(0, 100),
+        5: _node(1, 100),
+        6: _node(2, 105),
+        7: _node(2, 95),
+    }
+    edges = [(0, 1), (1, 2), (1, 3), (4, 5), (5, 6), (5, 7)]
+    gt = _build(nodes, edges)
+    pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
+    assert _counts(pred, gt) == (6, 0, 0, 2, 0, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -332,13 +376,16 @@ def test_distance_threshold_inclusive() -> None:
 
 
 def test_node_recall_and_num_pred_nodes() -> None:
-    data = json.loads((SANDBOX_DIR / "simple.json").read_text())
-    gt = _tg_from_sandbox(data["gt"])
-    pred = _tg_from_sandbox(data["pred"])
-    results, _ = run_metrics(gt, pred, PointMatcher(threshold=7.0), [SparseTrackingMetrics()])
+    # GT track of 3 nodes; prediction matches 2 of them plus an extra background node.
+    gt = _build(_line(3), [(0, 1), (1, 2)])
+    pred = _build(
+        {10: _node(0, 0), 11: _node(1, 0), 12: _node(5, 500)},
+        [(10, 11)],
+    )
+    results, _ = run_metrics(gt, pred, PointMatcher(threshold=1.0), [SparseTrackingMetrics()])
     r = results[0]["results"]
-    assert r["num_pred_nodes"] == pred.graph.number_of_nodes()
-    assert 0.0 <= r["node_recall"] <= 1.0
+    assert r["num_pred_nodes"] == 3
+    assert r["node_recall"] == pytest.approx(2 / 3)  # 2 of 3 GT nodes matched
 
 
 def test_adjusted_jaccard_nan_without_estimate() -> None:
@@ -370,14 +417,17 @@ def test_adjusted_jaccard_penalizes_excess_nodes() -> None:
 
 
 def test_score_includes_division_term() -> None:
-    data = json.loads((SANDBOX_DIR / "division.json").read_text())
-    gt = _tg_from_sandbox(data["gt"])
-    pred = _tg_from_sandbox(data["pred"])
+    # A graph with a division so division_jaccard is finite and enters the score.
+    nodes = {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 5), 3: _node(2, -5)}
+    edges = [(0, 1), (1, 2), (1, 3)]
+    gt = _build(nodes, edges)
+    pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
     n_pred = pred.graph.number_of_nodes()
     results, _ = run_metrics(
         gt, pred, PointMatcher(threshold=7.0), [SparseTrackingMetrics(n_gt_nodes=n_pred)]
     )
     r = results[0]["results"]
+    assert r["division_jaccard"] == pytest.approx(1.0)
     # total_node_ratio == 0 -> adj == edge_jaccard; score = adj + 0.1 * division_jaccard
     assert r["adj_edge_jaccard"] == pytest.approx(r["edge_jaccard"])
     assert r["score"] == pytest.approx(r["adj_edge_jaccard"] + 0.1 * r["division_jaccard"])
