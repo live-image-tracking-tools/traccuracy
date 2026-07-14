@@ -18,10 +18,11 @@ if TYPE_CHECKING:
     from traccuracy.matchers._matched import Matched
 
 
-class SparseTrackingMetrics(Metric):
-    """Edge and division Jaccard metrics for *sparsely* annotated ground truth.
+class SparseWeightedEdgeJaccard(Metric):
+    """Sparse Weighted Edge Jaccard (SWEJ) for *sparsely* annotated ground truth.
 
-    This is a traccuracy implementation of the scoring used by the
+    Edge and division Jaccard for ground truth in which only a subset of the real cells
+    are annotated. This is a traccuracy implementation of the scoring used by the
     `royerlab cell tracking competition
     <https://github.com/royerlab/kaggle-cell-tracking-competition>`_ (see that
     repository's ``metrics.md``). It is designed for ground truth in which only a
@@ -149,7 +150,7 @@ class SparseTrackingMetrics(Metric):
         """
         if relax_skips_gt or relax_skips_pred:
             warnings.warn(
-                "SparseTrackingMetrics does not support relaxing skip edges. "
+                "SparseWeightedEdgeJaccard does not support relaxing skip edges. "
                 "Ignoring relax_skips_gt and relax_skips_pred.",
                 stacklevel=2,
             )
@@ -159,7 +160,7 @@ class SparseTrackingMetrics(Metric):
         threshold = matched.matcher_info.get("threshold")
         if threshold is None:
             raise TypeError(
-                "SparseTrackingMetrics re-matches divisions by centroid distance and "
+                "SparseWeightedEdgeJaccard re-matches divisions by centroid distance and "
                 "needs a distance matcher exposing 'threshold' (e.g. PointMatcher)."
             )
         scale = matched.matcher_info.get("scale_factor")
@@ -377,7 +378,7 @@ class SparseTrackingMetrics(Metric):
         children = list(sub_graph.successors(divider))
         if len(children) < 2:
             return False
-        lineages = [SparseTrackingMetrics._descendants(sub_graph, child) for child in children]
+        lineages = [SparseWeightedEdgeJaccard._descendants(sub_graph, child) for child in children]
 
         pred_graph = local.pred_graph.graph
         pred_frame_key = local.pred_graph.frame_key

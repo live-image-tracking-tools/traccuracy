@@ -1,7 +1,7 @@
-(sparse-metric)=
-# Sparse Tracking Metrics
+(swej-metric)=
+# Sparse Weighted Edge Jaccard (SWEJ)
 
-`SparseTrackingMetrics` implements the edge and division Jaccard score used by the
+`SparseWeightedEdgeJaccard` (SWEJ) implements the edge and division Jaccard score used by the
 [royerlab cell tracking competition](https://github.com/royerlab/kaggle-cell-tracking-competition).
 Unlike the other metrics in traccuracy, it is designed for **sparsely annotated ground
 truth**: ground truth in which only a subset of the real cells are annotated, so a
@@ -24,14 +24,14 @@ the per-division local re-matching.
 ```python
 from traccuracy import run_metrics
 from traccuracy.matchers import PointMatcher
-from traccuracy.metrics import SparseTrackingMetrics
+from traccuracy.metrics import SparseWeightedEdgeJaccard
 
 # gt_data and pred_data are TrackingGraphs whose nodes carry a time and a location.
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
     matcher=PointMatcher(threshold=7.0),  # maximum matching distance
-    metrics=[SparseTrackingMetrics(n_gt_nodes=estimated_total_true_nodes)],
+    metrics=[SparseWeightedEdgeJaccard(n_gt_nodes=estimated_total_true_nodes)],
 )
 ```
 

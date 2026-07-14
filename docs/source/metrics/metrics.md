@@ -30,7 +30,7 @@ predictions and can always be applied to dense ground truth as well; the reverse
 true. The default is `False` (dense-only). Currently sparse-capable:
 [Complete Tracklets and Lineages](complete-tracks),
 [Complete Tracks by Length](complete-tracks-by-length-metric), and the
-[Sparse Tracking Metrics](sparse-metric).
+[Sparse Weighted Edge Jaccard (SWEJ)](swej-metric).
 
 :::{warning}
 Metrics with `supports_sparse_gt = False` are written assuming dense ground truth annotations. Their results on sparse annotations may be unpredictable and should be interpreted cautiously.
@@ -46,4 +46,4 @@ Metrics with `supports_sparse_gt = False` are written assuming dense ground trut
 | [Track Overlap Metrics](track-overlap-metrics): Track Purity (TP), Target Effectiveness (TE), Track Fractions (TF) | `one-to-one`, `many-to-one` , `one-to-many`| No | A set of metrics that compute the maximum overlap for each track, where track is defined as the region between divisions. Target effectiveness (TE) measures how much of each ground truth track is covered by the most overlapping predicted track, weighted by track length. Track Purity (TP) is the inverse of TE, and Track Fractions (TF) is the unwighted average of TE. |
 | [Complete Tracks by Length](complete-tracks-by-length-metric) | `one-to-one`, `many-to-one` | Yes | Generalizes [Complete Tracks](complete-tracks) to every track length: the accuracy (fraction fully correct) of tracklets or lineages that span N frames, for each length N. |
 | [Cell-specific Higher Order Tracking Accuracy (CHOTA)](chota-metric) |`one-to-one`, `many-to-one`, `one-to-many`, `many-to-many` | No | A metric between 0 and 1 that unifies local correctness, global coherence, and lineage tracking. Higher scores are better.| 
-| [Sparse Tracking Metrics](sparse-metric): edge & division Jaccard | `one-to-one` | Yes | Edge and division Jaccard for **sparsely annotated** ground truth (royerlab cell tracking competition score). Requires a `PointMatcher`. Unmatched predictions are ignored rather than penalized. Has `n_gt_nodes` (for the excess-node-penalized adjusted Jaccard), `division_weight`, and `node_ratio_weight` parameters. |
+| [Sparse Weighted Edge Jaccard (SWEJ)](swej-metric): edge & division Jaccard | `one-to-one` | Yes | Edge and division Jaccard for **sparsely annotated** ground truth (royerlab cell tracking competition score). Requires a `PointMatcher`. Unmatched predictions are ignored rather than penalized. Has `n_gt_nodes` (for the excess-node-penalized adjusted Jaccard), `division_weight`, and `node_ratio_weight` parameters. |

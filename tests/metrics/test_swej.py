@@ -1,4 +1,4 @@
-"""Tests for the sparse-ground-truth tracking metrics (SparseTrackingMetrics).
+"""Tests for the sparse-ground-truth tracking metrics (SparseWeightedEdgeJaccard).
 
 The exact edge-Jaccard fractions in the edge unit tests are ported from the reference
 implementation in the royerlab cell-tracking-competition
@@ -23,7 +23,7 @@ from traccuracy.metrics import (
     CompleteTracksByLength,
     CTCMetrics,
     DivisionMetrics,
-    SparseTrackingMetrics,
+    SparseWeightedEdgeJaccard,
 )
 
 
@@ -45,7 +45,7 @@ def _node(t: float, y: float) -> dict:
 
 def _counts(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 7.0) -> tuple:
     results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=max_distance), [SparseTrackingMetrics()]
+        gt, pred, PointMatcher(threshold=max_distance), [SparseWeightedEdgeJaccard()]
     )
     r = results[0]["results"]
     return (
@@ -60,7 +60,7 @@ def _counts(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 7.0) -
 
 def _edge_jaccard(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 7.0) -> float:
     results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=max_distance), [SparseTrackingMetrics()]
+        gt, pred, PointMatcher(threshold=max_distance), [SparseWeightedEdgeJaccard()]
     )
     return results[0]["results"]["edge_jaccard"]
 
@@ -382,7 +382,7 @@ def test_node_recall_and_num_pred_nodes() -> None:
         {10: _node(0, 0), 11: _node(1, 0), 12: _node(5, 500)},
         [(10, 11)],
     )
-    results, _ = run_metrics(gt, pred, PointMatcher(threshold=1.0), [SparseTrackingMetrics()])
+    results, _ = run_metrics(gt, pred, PointMatcher(threshold=1.0), [SparseWeightedEdgeJaccard()])
     r = results[0]["results"]
     assert r["num_pred_nodes"] == 3
     assert r["node_recall"] == pytest.approx(2 / 3)  # 2 of 3 GT nodes matched
@@ -391,7 +391,7 @@ def test_node_recall_and_num_pred_nodes() -> None:
 def test_adjusted_jaccard_nan_without_estimate() -> None:
     gt = _build(_line(3), [(0, 1), (1, 2)])
     pred = _build(_line(3), [(0, 1), (1, 2)])
-    results, _ = run_metrics(gt, pred, PointMatcher(threshold=0.5), [SparseTrackingMetrics()])
+    results, _ = run_metrics(gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeJaccard()])
     r = results[0]["results"]
     # Without n_gt_nodes the excess-node penalty is skipped: ratio and adjusted Jaccard
     # are NaN, but score falls back to the raw edge Jaccard so it stays usable.
@@ -406,7 +406,7 @@ def test_adjusted_jaccard_penalizes_excess_nodes() -> None:
     gt = _build(_line(2), [(0, 1)])
     pred = _build(_line(3), [(0, 1), (1, 2)])  # extra node 2, edge (1,2) invisible -> jaccard 1.0
     results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=0.5), [SparseTrackingMetrics(n_gt_nodes=2)]
+        gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeJaccard(n_gt_nodes=2)]
     )
     r = results[0]["results"]
     assert r["edge_jaccard"] == pytest.approx(1.0)
@@ -424,7 +424,7 @@ def test_score_includes_division_term() -> None:
     pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
     n_pred = pred.graph.number_of_nodes()
     results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=7.0), [SparseTrackingMetrics(n_gt_nodes=n_pred)]
+        gt, pred, PointMatcher(threshold=7.0), [SparseWeightedEdgeJaccard(n_gt_nodes=n_pred)]
     )
     r = results[0]["results"]
     assert r["division_jaccard"] == pytest.approx(1.0)
@@ -438,7 +438,7 @@ def test_empty_prediction_scores_zero_edges() -> None:
     empty = TrackingGraph(
         nx.DiGraph(), frame_key="t", label_key=None, location_keys=("z", "y", "x")
     )
-    results, _ = run_metrics(gt, empty, PointMatcher(threshold=1.0), [SparseTrackingMetrics()])
+    results, _ = run_metrics(gt, empty, PointMatcher(threshold=1.0), [SparseWeightedEdgeJaccard()])
     r = results[0]["results"]
     assert (r["edge_tp"], r["edge_fp"], r["edge_fn"]) == (0, 0, 2)
     assert r["edge_jaccard"] == pytest.approx(0.0)
@@ -449,7 +449,7 @@ def test_relax_skips_warns_and_is_ignored() -> None:
     pred = _build(_line(3), [(0, 1), (1, 2)])
     matched = PointMatcher(threshold=0.5).compute_mapping(gt, pred)
     with pytest.warns(UserWarning, match="does not support relaxing skip edges"):
-        SparseTrackingMetrics()._compute(matched, relax_skips_gt=True)
+        SparseWeightedEdgeJaccard()._compute(matched, relax_skips_gt=True)
 
 
 def test_requires_distance_matcher() -> None:
@@ -459,21 +459,21 @@ def test_requires_distance_matcher() -> None:
     mapping = [(0, 0), (1, 1), (2, 2)]
     matched = Matched(gt, pred, mapping, {"name": "DummyMatcher", "matching type": "one-to-one"})
     with pytest.raises(TypeError, match="does not meet the requirements"):
-        SparseTrackingMetrics().compute(matched)
+        SparseWeightedEdgeJaccard().compute(matched)
     # Even bypassing validation, _compute needs a distance threshold to re-match divisions.
     with pytest.raises(TypeError, match="needs a distance matcher"):
-        SparseTrackingMetrics()._compute(matched)
+        SparseWeightedEdgeJaccard()._compute(matched)
 
 
 def test_invalid_constructor_args() -> None:
     with pytest.raises(ValueError, match="n_gt_nodes must be positive"):
-        SparseTrackingMetrics(n_gt_nodes=0)
+        SparseWeightedEdgeJaccard(n_gt_nodes=0)
     with pytest.raises(ValueError, match="n_gt_nodes must be positive"):
-        SparseTrackingMetrics(n_gt_nodes=-5)
+        SparseWeightedEdgeJaccard(n_gt_nodes=-5)
     with pytest.raises(ValueError, match="must be non-negative"):
-        SparseTrackingMetrics(division_weight=-0.1)
+        SparseWeightedEdgeJaccard(division_weight=-0.1)
     with pytest.raises(ValueError, match="must be non-negative"):
-        SparseTrackingMetrics(node_ratio_weight=-1.0)
+        SparseWeightedEdgeJaccard(node_ratio_weight=-1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -482,8 +482,8 @@ def test_invalid_constructor_args() -> None:
 
 
 def test_sparse_metric_marker() -> None:
-    assert SparseTrackingMetrics.supports_sparse_gt is True
-    assert SparseTrackingMetrics().supports_sparse_gt is True
+    assert SparseWeightedEdgeJaccard.supports_sparse_gt is True
+    assert SparseWeightedEdgeJaccard().supports_sparse_gt is True
 
 
 @pytest.mark.parametrize(
@@ -494,7 +494,7 @@ def test_sparse_metric_marker() -> None:
         (DivisionMetrics(), False),
         (CompleteTracks(), True),
         (CompleteTracksByLength(), True),
-        (SparseTrackingMetrics(), True),
+        (SparseWeightedEdgeJaccard(), True),
     ],
 )
 def test_supports_sparse_gt_values(metric, expected) -> None:
@@ -504,7 +504,7 @@ def test_supports_sparse_gt_values(metric, expected) -> None:
 def test_marker_surfaces_in_results() -> None:
     gt = _build(_line(3), [(0, 1), (1, 2)])
     pred = _build(_line(3), [(0, 1), (1, 2)])
-    results, _ = run_metrics(gt, pred, PointMatcher(threshold=0.5), [SparseTrackingMetrics()])
+    results, _ = run_metrics(gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeJaccard()])
     assert results[0]["metric"]["supports_sparse_gt"] is True
 
 
