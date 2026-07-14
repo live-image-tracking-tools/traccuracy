@@ -39,7 +39,7 @@ metrics/divisions
 metrics/chota
 metrics/complete_tracks
 metrics/complete-tracks-by-length
-metrics/swej
+metrics/swedj
 ```
 
 ```{toctree}

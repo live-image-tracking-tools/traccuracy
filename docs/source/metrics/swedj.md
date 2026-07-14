@@ -1,19 +1,20 @@
-(swej-metric)=
-# Sparse Weighted Edge Jaccard (SWEJ)
+(swedj-metric)=
+# Sparse Weighted Edge and Division Jaccard (SWEDJ)
 
-`SparseWeightedEdgeJaccard` (SWEJ) implements the edge and division Jaccard score used by the
+`SparseWeightedEdgeDivisionJaccard` (SWEDJ) implements the edge and division Jaccard score used by the
 [royerlab cell tracking competition](https://github.com/royerlab/kaggle-cell-tracking-competition).
 Unlike the other metrics in traccuracy, it is designed for **sparsely annotated ground
 truth**: ground truth in which only a subset of the real cells are annotated, so a
 correct prediction inevitably contains nodes and edges the ground truth does not cover.
 
 :::{note}
-This is the only metric in traccuracy that is valid on sparse ground truth
-(`supports_sparse_gt = True`). Predicted nodes and edges that have no ground truth
-counterpart are *ignored* rather than counted as false positives, so a method is not
-penalized for correctly tracking cells the annotator skipped. See
-[the metrics overview](sparse-annotations) for how the dense/sparse capability is
-marked across metrics.
+This metric is valid on sparse ground truth (`supports_sparse_gt = True`), as are
+[Complete Tracklets and Lineages](complete-tracks) and
+[Complete Tracks by Length](complete-tracks-by-length-metric). Predicted nodes and
+edges that have no ground truth counterpart are *ignored* rather than counted as false
+positives, so a method is not penalized for correctly tracking cells the annotator
+skipped. See [the metrics overview](sparse-annotations) for how the dense/sparse
+capability is marked across metrics.
 :::
 
 Nodes are matched one-to-one by centroid distance, so this metric requires a
@@ -24,14 +25,14 @@ the per-division local re-matching.
 ```python
 from traccuracy import run_metrics
 from traccuracy.matchers import PointMatcher
-from traccuracy.metrics import SparseWeightedEdgeJaccard
+from traccuracy.metrics import SparseWeightedEdgeDivisionJaccard
 
 # gt_data and pred_data are TrackingGraphs whose nodes carry a time and a location.
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
     matcher=PointMatcher(threshold=7.0),  # maximum matching distance
-    metrics=[SparseWeightedEdgeJaccard(n_gt_nodes=estimated_total_true_nodes)],
+    metrics=[SparseWeightedEdgeDivisionJaccard(n_gt_nodes=estimated_total_true_nodes)],
 )
 ```
 

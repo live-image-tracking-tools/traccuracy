@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from traccuracy.matchers._matched import Matched
 
 
-class SparseWeightedEdgeJaccard(Metric):
-    """Sparse Weighted Edge Jaccard (SWEJ) for *sparsely* annotated ground truth.
+class SparseWeightedEdgeDivisionJaccard(Metric):
+    """Sparse Weighted Edge and Division Jaccard (SWEDJ) for *sparsely* annotated ground truth.
 
     Edge and division Jaccard for ground truth in which only a subset of the real cells
     are annotated. This is a traccuracy implementation of the scoring used by the
@@ -150,7 +150,7 @@ class SparseWeightedEdgeJaccard(Metric):
         """
         if relax_skips_gt or relax_skips_pred:
             warnings.warn(
-                "SparseWeightedEdgeJaccard does not support relaxing skip edges. "
+                "SparseWeightedEdgeDivisionJaccard does not support relaxing skip edges. "
                 "Ignoring relax_skips_gt and relax_skips_pred.",
                 stacklevel=2,
             )
@@ -160,7 +160,7 @@ class SparseWeightedEdgeJaccard(Metric):
         threshold = matched.matcher_info.get("threshold")
         if threshold is None:
             raise TypeError(
-                "SparseWeightedEdgeJaccard re-matches divisions by centroid distance and "
+                "SparseWeightedEdgeDivisionJaccard re-matches divisions by centroid distance and "
                 "needs a distance matcher exposing 'threshold' (e.g. PointMatcher)."
             )
         scale = matched.matcher_info.get("scale_factor")
@@ -378,7 +378,9 @@ class SparseWeightedEdgeJaccard(Metric):
         children = list(sub_graph.successors(divider))
         if len(children) < 2:
             return False
-        lineages = [SparseWeightedEdgeJaccard._descendants(sub_graph, child) for child in children]
+        lineages = [
+            SparseWeightedEdgeDivisionJaccard._descendants(sub_graph, child) for child in children
+        ]
 
         pred_graph = local.pred_graph.graph
         pred_frame_key = local.pred_graph.frame_key
