@@ -49,6 +49,13 @@ or end) are ignored.
 
 $$edge\ Jaccard = \frac{TP}{TP + FP + FN}$$
 
+```{figure} figures/edge_jaccard.svg
+:alt: Predicted edges labelled TP, FP and FN against sparse ground truth
+
+How predicted edges are labelled true positive, false positive and false negative
+against sparse ground truth on the `simple` example.
+```
+
 ### Adjusted edge Jaccard
 
 To penalize excess predicted nodes, the edge Jaccard is scaled by a penalty on the total
@@ -76,6 +83,19 @@ that is not recovered is a **false negative**.
 
 $$division\ Jaccard = \frac{TP}{TP + FP + FN}$$
 
+```{figure} figures/division_jaccard.svg
+:alt: A recovered division on the simple example
+
+A recovered division on the `simple` example.
+```
+
+```{figure} figures/late_division.svg
+:alt: A predicted fork one timepoint after the ground truth split
+
+A predicted fork one timepoint after the ground truth split is still counted as a true
+positive under the ±1-timepoint tolerance.
+```
+
 ## Combined score
 
 $$score = adjusted\ edge\ Jaccard + w \cdot division\ Jaccard$$
@@ -85,3 +105,10 @@ when there are no divisions. A single call computes metrics on one (prediction, 
 truth) pair; the competition's dataset-level score micro-averages the counts across all
 videos, which you can reproduce by summing the per-pair `*_tp`/`*_fp`/`*_fn` outputs
 before taking the Jaccard.
+
+:::{note}
+The three figures on this page are by Thibaut Goldsborough, reused from the
+[royerlab cell-tracking-competition](https://github.com/royerlab/kaggle-cell-tracking-competition)
+under the BSD 3-Clause License. The upstream license and copyright notice are retained in
+`docs/source/metrics/figures/LICENSE-kaggle-cell-tracking-competition.txt`.
+:::
