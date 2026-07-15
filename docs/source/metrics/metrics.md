@@ -17,49 +17,12 @@ Many metrics support relaxing skip edges for the ground truth and/or the predict
 (sparse-annotations)=
 ## Dense vs. sparse ground truth
 
-Most metrics assume **dense** ground truth: every real cell is annotated, so a predicted
-node/edge with no ground truth match is a genuine false positive. On **sparse** ground
-truth — where only a subset of cells are annotated — such a prediction may simply be a
-correctly tracked cell the annotator skipped, so dense-only metrics over-penalize and
-their results are unreliable.
+Most metrics assume **dense** ground truth (every real cell is annotated), so a predicted node or edge with no ground truth match is a false positive. On **sparse** ground truth, where only a subset of cells are annotated, that would over-penalize correct predictions of unannotated cells.
 
-Each metric declares whether it is valid on sparse ground truth via the
-`supports_sparse_gt` attribute (also surfaced under the metric metadata in
-{class}`~traccuracy.metrics.Results`). A sparse-capable metric does not treat a
-prediction as an error *solely* because it has no ground truth counterpart — it scores
-the reconstruction of the annotated structure and ignores predictions the annotation
-cannot judge (it may still count errors the annotation *can* judge, and it can always be
-applied to dense ground truth too; the reverse is not true). The default is `False`
-(dense-only). Currently sparse-capable:
-[Complete Tracklets and Lineages](complete-tracks),
-[Complete Tracks by Length](complete-tracks-by-length-metric), and the
-[Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric).
-
-The marker applies to a metric *object* as a whole. [Track Overlap
-Metrics](track-overlap-metrics) is therefore marked dense-only even though two of its
-three outputs (Target Effectiveness and Track Fractions) are sparse-tolerant, because
-its Track Purity output penalizes predicted tracks that are absent from the ground
-truth.
-
-This "score only the reconstruction of annotated tracks, ignore unmatched predictions"
-design follows sparse-annotation tracking evaluation in the literature: the fraction of
-perfectly reconstructed lineages over time in [Malin-Mayor et al., *Nat. Biotechnol.*
-2023](https://doi.org/10.1038/s41587-022-01427-7) (the basis for Complete Tracks by
-Length; Malin-Mayor et al. state that false-positive edges cannot be computed under
-sparse ground truth), and the sparse-ground-truth edge/division Jaccard of the CZ Biohub "Cell
-Tracking During Development" competition (SWEDJ). Complete Tracks itself is the Cell
-Tracking Challenge "CT" measure ([Maška et al., *Nat. Methods*
-2023](https://doi.org/10.1038/s41592-023-01879-y)); the challenge applies it to
-*complete* annotations, so its suitability for sparse ground truth is a property of how
-it is computed here (scoring only ground-truth reconstruction) rather than a claim from
-the CTC literature.
+Each metric declares whether it tolerates sparse ground truth via the `supports_sparse_gt` attribute (also surfaced in {class}`~traccuracy.metrics.Results`). A sparse-capable metric does not flag a prediction as an error *solely* for having no ground truth match, so it can also be run on dense ground truth; the reverse is not true. The default is `False` (dense-only). Sparse-capable metrics are [Complete Tracklets and Lineages](complete-tracks), [Complete Tracks by Length](complete-tracks-by-length-metric), and the [Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric).
 
 :::{warning}
-`supports_sparse_gt = True` means a metric never penalizes *unmatched* predictions — not that it is immune to every sparse-annotation artifact. Errors *within* an annotated track are still counted, so e.g. a biologically correct division can be mis-flagged when only part of a lineage is annotated; read sparse-ground-truth results as "reconstruction of the annotated subset", not absolute accuracy.
-:::
-
-:::{warning}
-Metrics with `supports_sparse_gt = False` are written assuming dense ground truth annotations. Their results on sparse annotations may be unpredictable and should be interpreted cautiously.
+Sparse-capability means unmatched predictions are not penalized, not that a metric is immune to every sparse-annotation artifact (errors *within* an annotated track are still counted). Metrics with `supports_sparse_gt = False` assume dense annotations and may be unreliable on sparse ground truth.
 :::
 
 | Metric category | Matching Type(s) | Sparse GT | Description |
