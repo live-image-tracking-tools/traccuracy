@@ -27,10 +27,14 @@ class Metric(ABC):
     #: Whether the metric is valid on *sparsely* annotated ground truth, i.e. ground
     #: truth in which only a subset of the real cells are annotated so that correctly
     #: predicted cells may have no ground truth counterpart. A metric is
-    #: sparse-capable only if it never penalizes a predicted node/edge/division that
-    #: is unmatched to the ground truth (it scores ground-truth-matched structure
-    #: only). Metrics that count unmatched predictions as false positives are
-    #: dense-only and will over-penalize predictions on sparse ground truth.
+    #: sparse-capable if it does not treat a predicted node/edge/division as an error
+    #: *solely* because it has no ground truth counterpart: it scores the
+    #: reconstruction of the annotated structure and ignores predictions the
+    #: annotation cannot judge. (It may still count errors that the annotation *can*
+    #: judge — e.g. a predicted edge conflicting with a known ground truth link, or a
+    #: soft penalty on the total predicted-node count.) Metrics that count any
+    #: unmatched prediction as a false positive are dense-only and will over-penalize
+    #: on sparse ground truth.
     #:
     #: Defaults to ``False`` (dense-only): any metric that does not explicitly opt in
     #: is treated as requiring dense annotations. A sparse-capable metric can always

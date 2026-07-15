@@ -3,17 +3,19 @@
 
 `SparseWeightedEdgeDivisionJaccard` (SWEDJ) implements the edge and division Jaccard score used by the
 [royerlab cell tracking competition](https://github.com/royerlab/kaggle-cell-tracking-competition).
-Unlike the other metrics in traccuracy, it is designed for **sparsely annotated ground
-truth**: ground truth in which only a subset of the real cells are annotated, so a
-correct prediction inevitably contains nodes and edges the ground truth does not cover.
+It is one of traccuracy's [sparse-ground-truth-capable metrics](sparse-annotations)
+(`supports_sparse_gt = True`), built for ground truth in which only a subset of the real
+cells are annotated, so a correct prediction inevitably contains nodes and edges the
+ground truth does not cover.
 
 :::{note}
 This metric is valid on sparse ground truth (`supports_sparse_gt = True`), as are
 [Complete Tracklets and Lineages](complete-tracks) and
-[Complete Tracks by Length](complete-tracks-by-length-metric). Predicted nodes and
-edges that have no ground truth counterpart are *ignored* rather than counted as false
-positives, so a method is not penalized for correctly tracking cells the annotator
-skipped. See [the metrics overview](sparse-annotations) for how the dense/sparse
+[Complete Tracks by Length](complete-tracks-by-length-metric). A predicted node or edge
+is not counted as a false positive *solely* because it has no ground truth counterpart,
+so a method is not penalized for correctly tracking cells the annotator skipped.
+(Predictions the annotation *can* judge are still scored — see the false-positive rules
+below.) See [the metrics overview](sparse-annotations) for how the dense/sparse
 capability is marked across metrics.
 :::
 
@@ -65,8 +67,8 @@ number of predicted nodes relative to a coarse estimate of the true node count
 $$adjusted\ Jaccard = \max\left(0,\ Jaccard \cdot \left(1 - a \cdot \frac{N_{pred} - N_{true}}{N_{true}}\right)\right)$$
 
 with $a = 0.1$ (`node_ratio_weight`) by default. When `n_gt_nodes` is not provided, the
-adjusted Jaccard and the combined score are `NaN`; use `edge_jaccard` as the
-estimate-free number.
+adjusted Jaccard and `total_node_ratio` are `NaN` (the excess-node penalty is skipped)
+and the combined `score` falls back to the raw `edge_jaccard` term.
 
 ## Division Jaccard
 

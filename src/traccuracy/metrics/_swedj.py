@@ -103,7 +103,7 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
         node_ratio_weight: float = 0.1,
         zero_division: float = np.nan,
     ) -> None:
-        """Initialize the sparse tracking metrics. See class docstring for details."""
+        """Initialize SWEDJ. See the class docstring for details."""
         super().__init__(valid_matches=["one-to-one"], zero_division=zero_division)
         if n_gt_nodes is not None and n_gt_nodes <= 0:
             raise ValueError(f"n_gt_nodes must be positive if provided, got {n_gt_nodes}")
