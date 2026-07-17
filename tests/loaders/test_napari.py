@@ -92,3 +92,12 @@ class Test_load_napari_data:
         data = np.array([[1, 0, 0, 0], [1, 2, 0, 0]], dtype=float)
         tg = load_napari_data(data)
         assert tg.graph.number_of_edges() == 1
+
+
+    def test_scalar_parent_in_graph(self):
+        # napari allows {child: parent} with a bare int parent, not just a list.
+        data = np.array([[1, 0, 0, 0], [1, 1, 0, 0], [2, 2, 1, 1]], dtype=float)
+        graph = {2: 1}  # scalar parent
+        tg = load_napari_data(data, graph=graph)
+        # within-track edge (track 1) + one division edge parent->child
+        assert tg.graph.number_of_edges() == 2

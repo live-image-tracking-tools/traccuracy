@@ -42,7 +42,8 @@ def load_napari_data(
             with columns ``[track_id, t, (z), y, x]``. ``D`` is 2 or 3.
         graph (Mapping[int, Sequence[int]] | None, optional): The napari Tracks
             ``graph``, mapping each child track id to its parent track id(s).
-            Defaults to None (no divisions).
+            The parent may be a bare int or a list. Defaults to None (no
+            divisions).
         properties (Mapping[str, Sequence] | None, optional): Per-detection
             properties (same length/order as ``data`` rows), e.g. the napari
             Tracks layer ``properties``. Used to read segmentation label ids.
@@ -138,6 +139,9 @@ def load_napari_data(
     # child track's first detection. napari graph is {child: [parents]}.
     if graph:
         for child_track, parent_tracks in graph.items():
+            # napari allows a bare int or a list of parent track ids.
+            if np.isscalar(parent_tracks):
+                parent_tracks = [parent_tracks]
             if len(parent_tracks) > 1:
                 raise ValueError(
                     f"track {child_track} has multiple parents "
