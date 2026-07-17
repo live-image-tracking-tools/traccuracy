@@ -24,6 +24,25 @@ class Metric(ABC):
     Kwargs should be specified in the constructor
     """
 
+    #: Whether the metric is valid on *sparsely* annotated ground truth, i.e. ground
+    #: truth in which only a subset of the real cells are annotated so that correctly
+    #: predicted cells may have no ground truth counterpart. A metric is
+    #: sparse-capable if it does not treat a predicted node/edge/division as an error
+    #: *solely* because it has no ground truth counterpart: it scores the
+    #: reconstruction of the annotated structure and ignores predictions the
+    #: annotation cannot judge. (It may still count errors that the annotation *can*
+    #: judge — e.g. a predicted edge conflicting with a known ground truth link, or a
+    #: soft penalty on the total predicted-node count.) Metrics that count any
+    #: unmatched prediction as a false positive are dense-only and will over-penalize
+    #: on sparse ground truth.
+    #:
+    #: Defaults to ``False`` (dense-only): any metric that does not explicitly opt in
+    #: is treated as requiring dense annotations. A sparse-capable metric can always
+    #: be applied to dense ground truth, but not the other way around. The value
+    #: surfaces in :class:`~traccuracy.metrics._results.Results` under the metric
+    #: metadata so downstream consumers can filter metrics by ground-truth density.
+    supports_sparse_gt: bool = False
+
     def __init__(self, valid_matches: list, zero_division: float = np.nan):
         """Initialize metric.
 
@@ -45,6 +64,10 @@ class Metric(ABC):
 
         self.valid_match_types = valid_matches
         self.zero_division = zero_division
+        # Mirror the (possibly subclass-overridden) class attribute onto the instance so
+        # it surfaces in ``Metric.info`` (which spreads ``self.__dict__``) and therefore
+        # in ``Results.metric_info``.
+        self.supports_sparse_gt = type(self).supports_sparse_gt
 
     def _validate_matcher(self, matched: Matched) -> bool:
         """Verifies that the matched meets the assumptions of the metric

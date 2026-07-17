@@ -4,6 +4,13 @@ import pytest
 
 from traccuracy import TrackingGraph
 from traccuracy.matchers._matched import Matched
+from traccuracy.metrics import (
+    BasicMetrics,
+    CompleteTracks,
+    CompleteTracksByLength,
+    CTCMetrics,
+    DivisionMetrics,
+)
 from traccuracy.metrics._base import Metric
 
 
@@ -149,3 +156,44 @@ class TestMetric:
         results = m.compute(self.matched, relax_skips_gt=True, relax_skips_pred=False)
         assert results.metric_info["relax_skips_gt"] is True
         assert results.metric_info["relax_skips_pred"] is False
+
+    def test_supports_sparse_gt_default_false(self):
+        # A metric that does not opt in is dense-only by default.
+        m = ValidMetric()
+        assert m.supports_sparse_gt is False
+        assert m.info["supports_sparse_gt"] is False
+
+    def test_supports_sparse_gt_opt_in(self):
+        # A subclass can declare sparse capability via the class attribute.
+        class SparseMetric(ValidMetric):
+            supports_sparse_gt = True
+
+        assert SparseMetric().supports_sparse_gt is True
+        assert SparseMetric().info["supports_sparse_gt"] is True
+
+    def test_supports_sparse_gt_surfaces_in_results(self):
+        # Fresh matched with the matching type set so no "empty mapping" warning fires.
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        results = ValidMetric().compute(matched)
+        assert results.metric_info["supports_sparse_gt"] is False
+
+
+@pytest.mark.parametrize(
+    ("metric", "expected"),
+    [
+        (BasicMetrics(), False),
+        (CTCMetrics(), False),
+        (DivisionMetrics(), False),
+        (CompleteTracks(), True),
+        (CompleteTracksByLength(), True),
+    ],
+)
+def test_metric_sparse_classification(metric, expected):
+    # Existing metrics are dense-only by default; the two that only score
+    # ground-truth structure are marked sparse-capable.
+    assert metric.supports_sparse_gt is expected

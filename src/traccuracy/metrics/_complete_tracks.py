@@ -52,6 +52,10 @@ class CompleteTracks(Metric):
 
     """
 
+    # Only ground-truth tracklets/lineages are scored; predictions beyond the ground
+    # truth are never penalized, so this metric is valid on sparse ground truth.
+    supports_sparse_gt = True
+
     def __init__(self, error_type: str = "basic"):
         valid_matches = ["one-to-one", "many-to-one"]
         super().__init__(valid_matches)
