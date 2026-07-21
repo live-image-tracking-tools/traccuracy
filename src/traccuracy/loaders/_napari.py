@@ -60,6 +60,7 @@ def load_napari_data(
 
     Raises:
         ValueError: data does not have shape (N, 2 + D) with D in {2, 3}.
+        ValueError: times (column 1) are not integer-valued.
         ValueError: duplicate (track_id, t) rows (ambiguous within-track edges).
         ValueError: a child track has more than one parent (merges are not
             supported by CTC-style evaluation).
@@ -81,6 +82,15 @@ def load_napari_data(
     ndim = data.shape[1] - 2
     location_keys = ("y", "x") if ndim == 2 else ("z", "y", "x")
     frame_key = "t"
+
+    # Times are cast to int frame indices below; reject non-integer values so
+    # distinct times (e.g. 1.4, 1.6) can't silently truncate to the same frame.
+    times_col = data[:, 1]
+    if not np.all(times_col == np.floor(times_col)):
+        raise ValueError(
+            "napari tracks times (column 1) must be integer-valued; got "
+            "non-integer values."
+        )
 
     if (segmentation is None) != (seg_id_key is None):
         raise ValueError(
@@ -139,9 +149,9 @@ def load_napari_data(
     # child track's first detection. napari graph is {child: [parents]}.
     if graph:
         for child_track, parent_tracks in graph.items():
-            # napari allows a bare int or a list of parent track ids.
-            if np.isscalar(parent_tracks):
-                parent_tracks = [parent_tracks]
+            # napari allows a bare int or a list of parent track ids;
+            # atleast_1d also normalizes numpy scalars/0-d arrays to a sequence.
+            parent_tracks = np.atleast_1d(parent_tracks)
             if len(parent_tracks) > 1:
                 raise ValueError(
                     f"track {child_track} has multiple parents "

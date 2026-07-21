@@ -101,3 +101,17 @@ class Test_load_napari_data:
         tg = load_napari_data(data, graph=graph)
         # within-track edge (track 1) + one division edge parent->child
         assert tg.graph.number_of_edges() == 2
+
+    def test_numpy_scalar_parent_in_graph(self):
+        # A numpy 0-d array / numpy scalar parent (from a numpy-backed graph
+        # dict) must be treated as a scalar, not raise on len().
+        data = np.array([[1, 0, 0, 0], [1, 1, 0, 0], [2, 2, 1, 1]], dtype=float)
+        graph = {2: np.array(1)}  # 0-d array parent
+        tg = load_napari_data(data, graph=graph)
+        assert tg.graph.number_of_edges() == 2
+
+    def test_non_integer_time_raises(self):
+        # Distinct-but-close times must not silently truncate to one frame.
+        data = np.array([[1, 1.4, 0, 0], [1, 1.6, 0, 0]], dtype=float)
+        with pytest.raises(ValueError, match="integer-valued"):
+            load_napari_data(data)
