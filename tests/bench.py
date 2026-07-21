@@ -2,6 +2,7 @@ import copy
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -11,6 +12,7 @@ from traccuracy.loaders import (
     load_tiffs,
 )
 from traccuracy.loaders._ctc import _check_ctc, _get_node_attributes
+from traccuracy.loaders._napari import load_napari_data
 from traccuracy.loaders._point import load_point_data
 from traccuracy.matchers import CTCMatcher, IOUMatcher, PointMatcher, PointSegMatcher
 from traccuracy.metrics import (
@@ -139,6 +141,37 @@ def test_load_points(benchmark, tmpdir):
     filepath = os.path.join(tmpdir, "test.csv")
     df.to_csv(filepath)
     benchmark(load_point_data, filepath)
+
+
+def test_load_napari(benchmark):
+    nrows = 300
+    # One single-frame track per detection: [track_id, t, y, x].
+    data = np.column_stack(
+        [
+            np.arange(1, nrows + 1),  # track_id
+            np.arange(nrows),  # t
+            np.arange(nrows),  # y
+            np.arange(nrows),  # x
+        ]
+    ).astype(float)
+    benchmark(load_napari_data, data)
+
+
+def test_load_napari_implicit_seg(benchmark):
+    nrows = 300
+    # One detection per frame so labels are trivially unique within a frame.
+    data = np.column_stack(
+        [
+            np.arange(1, nrows + 1),  # track_id
+            np.arange(nrows),  # t
+            np.ones(nrows),  # y
+            np.ones(nrows),  # x
+        ]
+    ).astype(float)
+    # Segmentation where each frame's (y=1, x=1) pixel holds a unique label.
+    segmentation = np.zeros((nrows, 3, 3), dtype=np.uint16)
+    segmentation[np.arange(nrows), 1, 1] = np.arange(1, nrows + 1)
+    benchmark(load_napari_data, data, segmentation=segmentation)
 
 
 @pytest.mark.parametrize(
