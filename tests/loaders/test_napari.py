@@ -70,10 +70,59 @@ class Test_load_napari_data:
         with pytest.raises(ValueError, match="multiple parents"):
             load_napari_data(data, graph=graph)
 
-    def test_seg_without_key_raises(self):
+    def test_seg_id_key_without_segmentation_raises(self):
         data = np.array([[1, 0, 0, 0]], dtype=float)
-        with pytest.raises(ValueError, match="must be provided together"):
-            load_napari_data(data, segmentation=np.ones((1, 2, 2), int))
+        with pytest.raises(ValueError, match="without segmentation"):
+            load_napari_data(data, properties={"seg": [1]}, seg_id_key="seg")
+
+    def test_implicit_matching_from_positions(self):
+        # No seg_id_key: label is read from the pixel under each position.
+        # Two detections of one track sitting on distinct labels in each frame.
+        data = np.array([[1, 0, 1, 1], [1, 1, 3, 3]], dtype=float)
+        seg = np.zeros((2, 5, 5), dtype=int)
+        seg[0, 1, 1] = 4
+        seg[1, 3, 3] = 9
+        tg = load_napari_data(data, segmentation=seg)
+        assert tg.graph.nodes[1]["segmentation_id"] == 4
+        assert tg.graph.nodes[2]["segmentation_id"] == 9
+        assert tg.segmentation is not None
+
+    def test_implicit_matching_rounds_position(self):
+        # Float positions are rounded to the nearest voxel before indexing.
+        data = np.array([[1, 0, 1.4, 2.6]], dtype=float)
+        seg = np.zeros((1, 5, 5), dtype=int)
+        seg[0, 1, 3] = 5  # round(1.4)=1, round(2.6)=3
+        tg = load_napari_data(data, segmentation=seg)
+        assert tg.graph.nodes[1]["segmentation_id"] == 5
+
+    def test_implicit_matching_background_raises(self):
+        # A point landing on label 0 has no mask to match.
+        data = np.array([[1, 0, 0, 0]], dtype=float)
+        seg = np.zeros((1, 4, 4), dtype=int)  # all background
+        with pytest.raises(ValueError, match="background"):
+            load_napari_data(data, segmentation=seg)
+
+    def test_implicit_matching_out_of_bounds_raises(self):
+        data = np.array([[1, 0, 10, 10]], dtype=float)  # outside a 4x4 frame
+        seg = np.ones((1, 4, 4), dtype=int)
+        with pytest.raises(ValueError, match="outside the segmentation"):
+            load_napari_data(data, segmentation=seg)
+
+    def test_implicit_matching_dim_mismatch_raises(self):
+        # 3D data (z,y,x) but a 2D+time segmentation.
+        data = np.array([[1, 0, 1, 1, 1]], dtype=float)
+        seg = np.ones((1, 4, 4), dtype=int)  # only (T, Y, X)
+        with pytest.raises(ValueError, match="dims"):
+            load_napari_data(data, segmentation=seg)
+
+    def test_duplicate_label_in_frame_raises(self):
+        # Two detections in the same frame resolving to the same label.
+        data = np.array([[1, 0, 1, 1], [2, 0, 2, 2]], dtype=float)
+        seg = np.zeros((1, 5, 5), dtype=int)
+        seg[0, 1, 1] = 3
+        seg[0, 2, 2] = 3  # same label -> ambiguous match
+        with pytest.raises(ValueError, match="same segmentation label"):
+            load_napari_data(data, segmentation=seg)
 
     def test_seg_id_length_mismatch_raises(self):
         data = np.array([[1, 0, 0, 0], [1, 1, 0, 0]], dtype=float)

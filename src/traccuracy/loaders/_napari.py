@@ -13,6 +13,68 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
 
+def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int) -> np.ndarray:
+    """Read the segmentation label under each detection's ``(t, (z), y, x)``.
+
+    Implicit matching: assumes each detection sits inside its own mask, so the
+    pixel at the detection's position is that object's label. Positions are
+    rounded to the nearest voxel; times are already validated integer-valued.
+
+    Returns an ``(N,)`` int array of label ids, one per row of ``data``.
+    """
+    if segmentation.ndim != ndim + 1:
+        raise ValueError(
+            f"segmentation has {segmentation.ndim} dims but data implies a "
+            f"{ndim}D image plus time ({ndim + 1} dims); cannot match labels "
+            "from positions. Pass precomputed labels via seg_id_key instead."
+        )
+
+    t_idx = data[:, 1].astype(np.intp)
+    pos_idx = np.rint(data[:, 2:]).astype(np.intp)  # (N, ndim)
+    index = (t_idx, *(pos_idx[:, d] for d in range(ndim)))
+
+    # Bounds-check before indexing so out-of-range positions give a clear error.
+    for axis, ix in enumerate(index):
+        if ix.min() < 0 or ix.max() >= segmentation.shape[axis]:
+            raise ValueError(
+                f"a detection position falls outside the segmentation on axis "
+                f"{axis} (index range [{ix.min()}, {ix.max()}], axis size "
+                f"{segmentation.shape[axis]}). Pass precomputed labels via "
+                "seg_id_key if positions don't sit inside their masks."
+            )
+
+    seg_ids = segmentation[index].astype(int)
+    if np.any(seg_ids == 0):
+        n_bg = int(np.sum(seg_ids == 0))
+        raise ValueError(
+            f"{n_bg} of {len(data)} detections land on background (label 0) in "
+            "the segmentation, so no unique mask can be matched. Pass "
+            "precomputed labels via seg_id_key if positions don't sit inside "
+            "their masks."
+        )
+    return seg_ids
+
+
+def _check_unique_labels_per_frame(data: np.ndarray, seg_ids: np.ndarray) -> None:
+    """Enforce that each label id is unique within a frame.
+
+    Downstream matchers require this (IoU asserts it, CTC silently collapses
+    collisions), so we fail loudly at load time instead.
+    """
+    t = data[:, 1].astype(np.intp)
+    order = np.lexsort((seg_ids, t))
+    t_sorted, s_sorted = t[order], seg_ids[order]
+    dup = (t_sorted[1:] == t_sorted[:-1]) & (s_sorted[1:] == s_sorted[:-1])
+    if np.any(dup):
+        i = int(np.argmax(dup))
+        raise ValueError(
+            f"two detections resolve to the same segmentation label "
+            f"{int(s_sorted[i])} in frame {int(t_sorted[i])}; each detection "
+            "must match a unique segmentation. Pass precomputed labels via "
+            "seg_id_key for explicit control."
+        )
+
+
 def load_napari_data(
     data: np.ndarray,
     graph: Mapping[int, Sequence[int]] | None = None,
@@ -65,9 +127,20 @@ def load_napari_data(
             graph = {2: [1], 3: [1]}
             tg = load_napari_data(data, graph=graph)
 
-        To enable CTC-style (segmentation-based) matching, also pass a
-        ``segmentation`` array and the ``properties`` key holding each
-        detection's label id::
+        To enable CTC-style (segmentation-based) matching, pass a
+        ``segmentation`` array. By default each detection's label is read
+        implicitly from the pixel under its ``(t, (z), y, x)`` position, so no
+        extra bookkeeping is needed::
+
+            tg = load_napari_data(
+                data,
+                graph=graph,
+                segmentation=segmentation,  # (T, (Z), Y, X)
+            )
+
+        If you already have the label ids precomputed (e.g. positions don't sit
+        cleanly inside their masks), match explicitly instead by passing the
+        ``properties`` key that holds them::
 
             tg = load_napari_data(
                 data,
@@ -86,15 +159,17 @@ def load_napari_data(
             divisions).
         properties (Mapping[str, Sequence] | None, optional): Per-detection
             properties (same length/order as ``data`` rows), e.g. the napari
-            Tracks layer ``properties``. Used to read segmentation label ids.
-            Defaults to None.
-        segmentation (np.ndarray | None, optional): Segmentation array whose
-            label ids match ``properties[seg_id_key]``. Required for CTC
-            matching. Defaults to None.
+            Tracks layer ``properties``. Only read when ``seg_id_key`` is given,
+            to look up precomputed segmentation label ids. Defaults to None.
+        segmentation (np.ndarray | None, optional): Segmentation array of shape
+            ``(T, (Z), Y, X)``. When given, each node carries a
+            ``segmentation_id`` for CTC/IoU matching. Unless ``seg_id_key`` is
+            also given, each label is read implicitly from the pixel under the
+            detection's position. Defaults to None.
         seg_id_key (str | None, optional): Key in ``properties`` holding each
-            detection's segmentation label id. Required when ``segmentation`` is
-            given so nodes carry a ``segmentation_id`` attribute. Defaults to
-            None.
+            detection's precomputed segmentation label id. Pass this to match
+            explicitly instead of reading labels from positions. Requires
+            ``segmentation``. Defaults to None.
         name (str | None, optional): Optional name for the dataset. Defaults to
             None.
 
@@ -104,9 +179,12 @@ def load_napari_data(
         ValueError: duplicate (track_id, t) rows (ambiguous within-track edges).
         ValueError: a child track has more than one parent (merges are not
             supported by CTC-style evaluation).
-        ValueError: segmentation given without seg_id_key (or vice versa).
+        ValueError: seg_id_key given without segmentation.
         ValueError: seg_id_key not present in properties, or its length does not
             match the number of detections.
+        ValueError: (implicit matching) segmentation dims don't match the data,
+            a detection falls outside the segmentation or on background, or two
+            detections in a frame resolve to the same label.
 
     Returns:
         TrackingGraph
@@ -131,22 +209,29 @@ def load_napari_data(
             "napari tracks times (column 1) must be integer-valued; got non-integer values."
         )
 
-    if (segmentation is None) != (seg_id_key is None):
+    if seg_id_key is not None and segmentation is None:
         raise ValueError(
-            "segmentation and seg_id_key must be provided together: pass both "
-            "to enable segmentation-based matching, or neither."
+            "seg_id_key was given without segmentation; pass a segmentation to "
+            "enable label matching, or drop seg_id_key."
         )
 
+    # Resolve each detection's segmentation label id (or None if no matching).
+    # Two modes when a segmentation is given: explicit (read from a properties
+    # column) or, by default, implicit (read the pixel under each position).
     seg_ids = None
-    if seg_id_key is not None:
-        if properties is None or seg_id_key not in properties:
-            raise ValueError(f"seg_id_key {seg_id_key!r} not present in properties.")
-        seg_ids = np.asarray(properties[seg_id_key])
-        if len(seg_ids) != len(data):
-            raise ValueError(
-                f"properties[{seg_id_key!r}] has {len(seg_ids)} entries but "
-                f"data has {len(data)} detections; they must align."
-            )
+    if segmentation is not None:
+        if seg_id_key is not None:
+            if properties is None or seg_id_key not in properties:
+                raise ValueError(f"seg_id_key {seg_id_key!r} not present in properties.")
+            seg_ids = np.asarray(properties[seg_id_key]).astype(int)
+            if len(seg_ids) != len(data):
+                raise ValueError(
+                    f"properties[{seg_id_key!r}] has {len(seg_ids)} entries but "
+                    f"data has {len(data)} detections; they must align."
+                )
+        else:
+            seg_ids = _labels_from_positions(data, np.asarray(segmentation), ndim)
+        _check_unique_labels_per_frame(data, seg_ids)
 
     # Node id per detection: row index + 1 (node ids must be positive integers).
     G: nx.DiGraph = nx.DiGraph()
