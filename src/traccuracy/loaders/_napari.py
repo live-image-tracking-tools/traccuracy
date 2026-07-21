@@ -37,6 +37,46 @@ def load_napari_data(
     ``.properties`` of a napari Tracks layer) rather than a layer object, so
     traccuracy does not depend on napari.
 
+    Example:
+        A napari ``Tracks`` layer exposes its contents as three plain
+        attributes; pass those straight in (no napari import needed on the
+        traccuracy side)::
+
+            # `tracks_layer` is a napari Tracks layer (viewer.add_tracks(...))
+            tg = load_napari_data(
+                data=tracks_layer.data,        # (N, 2+D) [track_id, t, (z), y, x]
+                graph=tracks_layer.graph,      # {child_track_id: [parent_track_id]}
+                properties=tracks_layer.properties,
+            )
+
+        If you have the raw arrays instead of a layer, build them by hand. Here
+        track 1 spans frames 0-1 and divides into tracks 2 and 3 at frame 2::
+
+            import numpy as np
+
+            data = np.array(
+                [
+                    [1, 0, 10, 20],  # track 1, t=0
+                    [1, 1, 11, 21],  # track 1, t=1
+                    [2, 2, 12, 22],  # track 2, t=2 (child of 1)
+                    [3, 2, 8, 18],   # track 3, t=2 (child of 1)
+                ]
+            )
+            graph = {2: [1], 3: [1]}
+            tg = load_napari_data(data, graph=graph)
+
+        To enable CTC-style (segmentation-based) matching, also pass a
+        ``segmentation`` array and the ``properties`` key holding each
+        detection's label id::
+
+            tg = load_napari_data(
+                data,
+                graph=graph,
+                properties={"label": [11, 12, 13, 14]},
+                segmentation=segmentation,  # (T, (Z), Y, X), label ids match above
+                seg_id_key="label",
+            )
+
     Args:
         data (np.ndarray): The napari Tracks layer ``data``, shape ``(N, 2 + D)``
             with columns ``[track_id, t, (z), y, x]``. ``D`` is 2 or 3.
