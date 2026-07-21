@@ -88,8 +88,7 @@ def load_napari_data(
     times_col = data[:, 1]
     if not np.all(times_col == np.floor(times_col)):
         raise ValueError(
-            "napari tracks times (column 1) must be integer-valued; got "
-            "non-integer values."
+            "napari tracks times (column 1) must be integer-valued; got non-integer values."
         )
 
     if (segmentation is None) != (seg_id_key is None):
@@ -101,9 +100,7 @@ def load_napari_data(
     seg_ids = None
     if seg_id_key is not None:
         if properties is None or seg_id_key not in properties:
-            raise ValueError(
-                f"seg_id_key {seg_id_key!r} not present in properties."
-            )
+            raise ValueError(f"seg_id_key {seg_id_key!r} not present in properties.")
         seg_ids = np.asarray(properties[seg_id_key])
         if len(seg_ids) != len(data):
             raise ValueError(
@@ -174,6 +171,4 @@ def load_napari_data(
             label_key="segmentation_id",
             name=name,
         )
-    return TrackingGraph(
-        G, frame_key=frame_key, location_keys=location_keys, name=name
-    )
+    return TrackingGraph(G, frame_key=frame_key, location_keys=location_keys, name=name)

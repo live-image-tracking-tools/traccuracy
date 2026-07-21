@@ -8,9 +8,7 @@ from traccuracy.loaders._napari import load_napari_data
 class Test_load_napari_data:
     def test_simple_2d_track(self):
         # One track over three frames: [track_id, t, y, x].
-        data = np.array(
-            [[1, 0, 10, 20], [1, 1, 11, 21], [1, 2, 12, 22]], dtype=float
-        )
+        data = np.array([[1, 0, 10, 20], [1, 1, 11, 21], [1, 2, 12, 22]], dtype=float)
         tg = load_napari_data(data)
         assert isinstance(tg, TrackingGraph)
         assert tg.graph.number_of_nodes() == 3
@@ -92,7 +90,6 @@ class Test_load_napari_data:
         data = np.array([[1, 0, 0, 0], [1, 2, 0, 0]], dtype=float)
         tg = load_napari_data(data)
         assert tg.graph.number_of_edges() == 1
-
 
     def test_scalar_parent_in_graph(self):
         # napari allows {child: parent} with a bare int parent, not just a list.
