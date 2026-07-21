@@ -99,6 +99,17 @@ def load_napari_data(
     ``.properties`` of a napari Tracks layer) rather than a layer object, so
     traccuracy does not depend on napari.
 
+    To match tracks to a ``segmentation`` there are two modes:
+
+    - **Implicit (default):** the label for each detection is read by indexing
+      the segmentation at the detection's ``(t, (z), y, x)`` position, i.e.
+      ``segmentation[t, (z), y, x]``. This assumes each point lies inside its
+      own mask. Just pass ``segmentation``.
+    - **Explicit:** the label for each detection is taken from a precomputed
+      ``properties`` column. Pass ``segmentation`` together with ``seg_id_key``
+      naming that column. Use this when positions don't sit cleanly inside
+      their masks.
+
     Example:
         A napari ``Tracks`` layer exposes its contents as three plain
         attributes; pass those straight in (no napari import needed on the
