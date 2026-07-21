@@ -148,16 +148,16 @@ def load_napari_data(
         for child_track, parent_tracks in graph.items():
             # napari allows a bare int or a list of parent track ids;
             # atleast_1d also normalizes numpy scalars/0-d arrays to a sequence.
-            parent_tracks = np.atleast_1d(parent_tracks)
-            if len(parent_tracks) > 1:
+            parents = np.atleast_1d(parent_tracks)
+            if len(parents) > 1:
                 raise ValueError(
                     f"track {child_track} has multiple parents "
-                    f"{list(parent_tracks)}; merges are not supported."
+                    f"{list(parents)}; merges are not supported."
                 )
             child_track = int(child_track)
             if child_track not in first_node:
                 continue
-            for parent_track in parent_tracks:
+            for parent_track in parents:
                 parent_track = int(parent_track)
                 if parent_track in last_node:
                     G.add_edge(last_node[parent_track], first_node[child_track])
