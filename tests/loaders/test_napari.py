@@ -138,6 +138,31 @@ class Test_load_napari_data:
                 seg_id_key="seg",
             )
 
+    def test_explicit_non_integer_label_raises(self):
+        # A float label column must not silently truncate (6.9 -> 6).
+        data = np.array([[1, 0, 1, 1]], dtype=float)
+        seg = np.zeros((1, 5, 5), dtype=int)
+        seg[0, 1, 1] = 7
+        with pytest.raises(ValueError, match="integer label ids"):
+            load_napari_data(
+                data,
+                properties={"seg": [6.9]},
+                segmentation=seg,
+                seg_id_key="seg",
+            )
+
+    def test_non_integer_track_id_raises(self):
+        # Float track ids must not silently truncate/merge (1.4 & 1.9 -> 1).
+        data = np.array([[1.4, 0, 0, 0], [1.9, 1, 1, 1]], dtype=float)
+        with pytest.raises(ValueError, match="track ids"):
+            load_napari_data(data)
+
+    def test_empty_data_with_segmentation(self):
+        # Empty data + segmentation must not crash on the implicit label read.
+        data = np.zeros((0, 4), dtype=float)
+        tg = load_napari_data(data, segmentation=np.ones((1, 4, 4), int))
+        assert tg.graph.number_of_nodes() == 0
+
     def test_time_gap_within_track(self):
         # Missing frame 1: skip edge from frame 0 to frame 2 is allowed.
         data = np.array([[1, 0, 0, 0], [1, 2, 0, 0]], dtype=float)

@@ -29,6 +29,9 @@ def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int
             "from positions. Pass precomputed labels via seg_id_key instead."
         )
 
+    if len(data) == 0:
+        return np.empty(0, dtype=int)
+
     t_idx = data[:, 1].astype(np.intp)
     pos_idx = np.rint(data[:, 2:]).astype(np.intp)  # (N, ndim)
     index = (t_idx, *(pos_idx[:, d] for d in range(ndim)))
@@ -186,11 +189,12 @@ def load_napari_data(
 
     Raises:
         ValueError: data does not have shape (N, 2 + D) with D in {2, 3}.
-        ValueError: times (column 1) are not integer-valued.
+        ValueError: track ids (column 0) or times (column 1) are not
+            integer-valued.
         ValueError: duplicate (track_id, t) rows (ambiguous within-track edges).
         ValueError: seg_id_key given without segmentation.
-        ValueError: seg_id_key not present in properties, or its length does not
-            match the number of detections.
+        ValueError: seg_id_key not present in properties, its length does not
+            match the number of detections, or its values are not integer-valued.
         ValueError: (implicit matching) segmentation dims don't match the data,
             a detection falls outside the segmentation or on background, or two
             detections in a frame resolve to the same label.
@@ -210,13 +214,15 @@ def load_napari_data(
     location_keys = ("y", "x") if ndim == 2 else ("z", "y", "x")
     frame_key = "t"
 
-    # Times are cast to int frame indices below; reject non-integer values so
-    # distinct times (e.g. 1.4, 1.6) can't silently truncate to the same frame.
-    times_col = data[:, 1]
-    if not np.all(times_col == np.floor(times_col)):
-        raise ValueError(
-            "napari tracks times (column 1) must be integer-valued; got non-integer values."
-        )
+    # Track ids and times are cast to int below; reject non-integer values so
+    # distinct ids/times (e.g. 1.4, 1.6) can't silently collapse into one.
+    for col, label in ((0, "track ids"), (1, "times")):
+        values = data[:, col]
+        if not np.all(values == np.floor(values)):
+            raise ValueError(
+                f"napari tracks {label} (column {col}) must be integer-valued; "
+                "got non-integer values."
+            )
 
     if seg_id_key is not None and segmentation is None:
         raise ValueError(
@@ -232,12 +238,17 @@ def load_napari_data(
         if seg_id_key is not None:
             if properties is None or seg_id_key not in properties:
                 raise ValueError(f"seg_id_key {seg_id_key!r} not present in properties.")
-            seg_ids = np.asarray(properties[seg_id_key]).astype(int)
+            seg_ids = np.asarray(properties[seg_id_key])
             if len(seg_ids) != len(data):
                 raise ValueError(
                     f"properties[{seg_id_key!r}] has {len(seg_ids)} entries but "
                     f"data has {len(data)} detections; they must align."
                 )
+            if not np.all(seg_ids == np.floor(seg_ids)):
+                raise ValueError(
+                    f"properties[{seg_id_key!r}] must be integer label ids; got non-integer values."
+                )
+            seg_ids = seg_ids.astype(int)
         else:
             seg_ids = _labels_from_positions(data, np.asarray(segmentation), ndim)
         _check_unique_labels_per_frame(data, seg_ids)
