@@ -58,8 +58,8 @@ def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int
 def _check_unique_labels_per_frame(data: np.ndarray, seg_ids: np.ndarray) -> None:
     """Enforce that each label id is unique within a frame.
 
-    Downstream matchers require this (IoU asserts it, CTC silently collapses
-    collisions), so we fail loudly at load time instead.
+    Segmentation-based matchers require this (the IoU matcher asserts it, the
+    CTC matcher silently collapses collisions), so we fail loudly at load time.
     """
     t = data[:, 1].astype(np.intp)
     order = np.lexsort((seg_ids, t))
@@ -138,7 +138,7 @@ def load_napari_data(
             graph = {2: [1], 3: [1]}
             tg = load_napari_data(data, graph=graph)
 
-        To enable CTC-style (segmentation-based) matching, pass a
+        To enable segmentation-based matching, pass a
         ``segmentation`` array. By default each detection's label is read
         implicitly from the pixel under its ``(t, (z), y, x)`` position, so no
         extra bookkeeping is needed::
@@ -174,7 +174,7 @@ def load_napari_data(
             to look up precomputed segmentation label ids. Defaults to None.
         segmentation (np.ndarray | None, optional): Segmentation array of shape
             ``(T, (Z), Y, X)``. When given, each node carries a
-            ``segmentation_id`` for CTC/IoU matching. Unless ``seg_id_key`` is
+            ``segmentation_id`` for segmentation-based matching. Unless ``seg_id_key`` is
             also given, each label is read implicitly from the pixel under the
             detection's position. Defaults to None.
         seg_id_key (str | None, optional): Key in ``properties`` holding each
@@ -188,8 +188,6 @@ def load_napari_data(
         ValueError: data does not have shape (N, 2 + D) with D in {2, 3}.
         ValueError: times (column 1) are not integer-valued.
         ValueError: duplicate (track_id, t) rows (ambiguous within-track edges).
-        ValueError: a child track has more than one parent (merges are not
-            supported by CTC-style evaluation).
         ValueError: seg_id_key given without segmentation.
         ValueError: seg_id_key not present in properties, or its length does not
             match the number of detections.
@@ -279,17 +277,13 @@ def load_napari_data(
         last_node[track_id] = ordered[-1] + 1
 
     # Cross-track edges: connect each parent track's last detection to each
-    # child track's first detection. napari graph is {child: [parents]}.
+    # child track's first detection. napari graph is {child: [parents]}. A
+    # child with multiple parents produces a merge node (in-degree >= 2).
     if graph:
         for child_track, parent_tracks in graph.items():
             # napari allows a bare int or a list of parent track ids;
             # atleast_1d also normalizes numpy scalars/0-d arrays to a sequence.
             parents = np.atleast_1d(parent_tracks)
-            if len(parents) > 1:
-                raise ValueError(
-                    f"track {child_track} has multiple parents "
-                    f"{list(parents)}; merges are not supported."
-                )
             child_track = int(child_track)
             if child_track not in first_node:
                 continue

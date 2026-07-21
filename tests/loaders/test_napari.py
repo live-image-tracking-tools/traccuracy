@@ -64,11 +64,15 @@ class Test_load_napari_data:
         with pytest.raises(ValueError, match="same time"):
             load_napari_data(data)
 
-    def test_merge_raises(self):
+    def test_merge_via_graph(self):
+        # Tracks 1 and 2 (frame 0) merge into track 3 (frame 1).
         data = np.array([[1, 0, 0, 0], [2, 0, 1, 1], [3, 1, 2, 2]], dtype=float)
-        graph = {3: [1, 2]}  # track 3 has two parents -> merge
-        with pytest.raises(ValueError, match="multiple parents"):
-            load_napari_data(data, graph=graph)
+        graph = {3: [1, 2]}  # track 3 has two parents -> merge node
+        tg = load_napari_data(data, graph=graph)
+        # both parents' last nodes connect to track 3's first node.
+        assert tg.graph.number_of_edges() == 2
+        merge_node = 3  # node id of track 3's frame-1 detection (row idx 2 + 1)
+        assert tg.graph.in_degree(merge_node) == 2
 
     def test_seg_id_key_without_segmentation_raises(self):
         data = np.array([[1, 0, 0, 0]], dtype=float)
