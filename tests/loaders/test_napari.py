@@ -80,8 +80,8 @@ class Test_load_napari_data:
             load_napari_data(data, properties={"seg": [1]}, seg_id_key="seg")
 
     def test_implicit_matching_from_positions(self):
-        # No seg_id_key: label is read from the pixel under each position.
-        # Two detections of one track sitting on distinct labels in each frame.
+        # No seg_id_key: each detection is matched to a mask per frame by nearest
+        # center of mass. One detection per frame, one mask per frame.
         data = np.array([[1, 0, 1, 1], [1, 1, 3, 3]], dtype=float)
         seg = np.zeros((2, 5, 5), dtype=int)
         seg[0, 1, 1] = 4
@@ -91,26 +91,31 @@ class Test_load_napari_data:
         assert tg.graph.nodes[2]["segmentation_id"] == 9
         assert tg.segmentation is not None
 
-    def test_implicit_matching_rounds_position(self):
-        # Float positions are rounded to the nearest voxel before indexing.
+    def test_implicit_matching_nearest_com(self):
+        # A near-but-not-exact position matches the single mask in the frame.
         data = np.array([[1, 0, 1.4, 2.6]], dtype=float)
         seg = np.zeros((1, 5, 5), dtype=int)
-        seg[0, 1, 3] = 5  # round(1.4)=1, round(2.6)=3
+        seg[0, 1, 3] = 5
         tg = load_napari_data(data, segmentation=seg)
         assert tg.graph.nodes[1]["segmentation_id"] == 5
 
-    def test_implicit_matching_background_raises(self):
-        # A point landing on label 0 has no mask to match.
-        data = np.array([[1, 0, 0, 0]], dtype=float)
-        seg = np.zeros((1, 4, 4), dtype=int)  # all background
-        with pytest.raises(ValueError, match="background"):
-            load_napari_data(data, segmentation=seg)
+    def test_implicit_matching_point_off_mask_still_matches(self):
+        # A point that does NOT sit inside any mask is matched to the nearest
+        # mask by center of mass, rather than erroring (bipartite matching).
+        data = np.array([[1, 0, 0, 0]], dtype=float)  # far from the mask
+        seg = np.zeros((1, 10, 10), dtype=int)
+        seg[0, 6:9, 6:9] = 5  # single mask, CoM ~ (7, 7)
+        tg = load_napari_data(data, segmentation=seg)
+        assert tg.graph.nodes[1]["segmentation_id"] == 5
 
-    def test_implicit_matching_out_of_bounds_raises(self):
+    def test_implicit_matching_out_of_bounds_still_matches(self):
+        # A position outside the frame is fine: matching uses mask centers of
+        # mass, not pixel indexing, so no bounds error.
         data = np.array([[1, 0, 10, 10]], dtype=float)  # outside a 4x4 frame
-        seg = np.ones((1, 4, 4), dtype=int)
-        with pytest.raises(ValueError, match="outside the segmentation"):
-            load_napari_data(data, segmentation=seg)
+        seg = np.zeros((1, 4, 4), dtype=int)
+        seg[0, 1:3, 1:3] = 2
+        tg = load_napari_data(data, segmentation=seg)
+        assert tg.graph.nodes[1]["segmentation_id"] == 2
 
     def test_implicit_matching_dim_mismatch_raises(self):
         # 3D data (z,y,x) but a 2D+time segmentation.
@@ -119,13 +124,23 @@ class Test_load_napari_data:
         with pytest.raises(ValueError, match="dims"):
             load_napari_data(data, segmentation=seg)
 
-    def test_duplicate_label_in_frame_raises(self):
-        # Two detections in the same frame resolving to the same label.
-        data = np.array([[1, 0, 1, 1], [2, 0, 2, 2]], dtype=float)
-        seg = np.zeros((1, 5, 5), dtype=int)
-        seg[0, 1, 1] = 3
-        seg[0, 2, 2] = 3  # same label -> ambiguous match
-        with pytest.raises(ValueError, match="same segmentation label"):
+    def test_implicit_matching_distinct_masks_per_detection(self):
+        # Two detections in a frame get matched to two distinct masks by optimal
+        # assignment (nearest each), even if neither sits exactly on a CoM.
+        data = np.array([[1, 0, 2, 2], [2, 0, 8, 8]], dtype=float)
+        seg = np.zeros((1, 12, 12), dtype=int)
+        seg[0, 1:4, 1:4] = 3  # CoM ~ (2, 2)
+        seg[0, 7:10, 7:10] = 4  # CoM ~ (8, 8)
+        tg = load_napari_data(data, segmentation=seg)
+        assert tg.graph.nodes[1]["segmentation_id"] == 3
+        assert tg.graph.nodes[2]["segmentation_id"] == 4
+
+    def test_implicit_matching_more_detections_than_masks_raises(self):
+        # A frame with fewer masks than detections cannot match them all.
+        data = np.array([[1, 0, 2, 2], [2, 0, 8, 8]], dtype=float)
+        seg = np.zeros((1, 12, 12), dtype=int)
+        seg[0, 1:4, 1:4] = 3  # only one mask for two detections
+        with pytest.raises(ValueError, match="cannot be matched"):
             load_napari_data(data, segmentation=seg)
 
     def test_seg_id_length_mismatch_raises(self):

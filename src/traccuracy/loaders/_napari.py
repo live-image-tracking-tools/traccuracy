@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+from scipy.ndimage import center_of_mass
+from scipy.optimize import linear_sum_assignment
 
 from traccuracy._tracking_graph import TrackingGraph
 
@@ -58,6 +60,61 @@ def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int
     return seg_ids
 
 
+def _labels_by_matching(data: np.ndarray, segmentation: np.ndarray, ndim: int) -> np.ndarray:
+    """Assign each detection a segmentation label by per-frame optimal matching.
+
+    Per frame, solve a bipartite assignment between the detection positions and
+    the segmentation masks' centers of mass, minimizing total Euclidean
+    distance (``scipy.optimize.linear_sum_assignment``). Each detection takes
+    the label of the mask it is matched to. This is robust to points that don't
+    sit inside their own mask (off-centroid markers, sub-pixel positions), which
+    the pixel lookup in :func:`_labels_from_positions` rejects.
+
+    Every detection must receive a mask: if a frame has fewer masks than
+    detections, the surplus detections cannot be matched and a ``ValueError`` is
+    raised naming the frame. Surplus masks (more masks than detections) are
+    simply left unassigned.
+
+    Returns an ``(N,)`` int array of label ids, one per row of ``data``.
+    """
+    if segmentation.ndim != ndim + 1:
+        raise ValueError(
+            f"segmentation has {segmentation.ndim} dims but data implies a "
+            f"{ndim}D image plus time ({ndim + 1} dims); cannot match labels to "
+            "masks. Pass precomputed labels via seg_id_key instead."
+        )
+    if len(data) == 0:
+        return np.empty(0, dtype=int)
+
+    seg_ids = np.zeros(len(data), dtype=int)
+    times = data[:, 1].astype(np.intp)
+    for t in np.unique(times):
+        rows = np.nonzero(times == t)[0]
+        frame = segmentation[int(t)]
+        labels = np.unique(frame)
+        labels = labels[labels != 0]  # drop background
+        if len(labels) == 0:
+            raise ValueError(
+                f"frame {int(t)} has {len(rows)} detection(s) but no "
+                "segmentation masks to match them to."
+            )
+        # Mask centers of mass, in the same (z,)y,x coordinate order as data[:, 2:].
+        coms = np.asarray(center_of_mass(frame > 0, frame, labels))  # (M, ndim)
+        points = data[rows, 2:].astype(float)  # (K, ndim)
+        # Cost = pairwise Euclidean distance (K detections x M masks).
+        cost = np.linalg.norm(points[:, None, :] - coms[None, :, :], axis=2)
+        det_idx, mask_idx = linear_sum_assignment(cost)
+        if len(det_idx) < len(rows):
+            n_unmatched = len(rows) - len(det_idx)
+            raise ValueError(
+                f"frame {int(t)} has {len(rows)} detection(s) but only "
+                f"{len(labels)} mask(s); {n_unmatched} detection(s) cannot be "
+                "matched to a unique mask."
+            )
+        seg_ids[rows[det_idx]] = labels[mask_idx].astype(int)
+    return seg_ids
+
+
 def _check_unique_labels_per_frame(data: np.ndarray, seg_ids: np.ndarray) -> None:
     """Enforce that each label id is unique within a frame.
 
@@ -104,14 +161,15 @@ def load_napari_data(
 
     To match tracks to a ``segmentation`` there are two modes:
 
-    - **Implicit (default):** the label for each detection is read by indexing
-      the segmentation at the detection's ``(t, (z), y, x)`` position, i.e.
-      ``segmentation[t, (z), y, x]``. This assumes each point lies inside its
-      own mask. Just pass ``segmentation``.
+    - **Implicit (default):** per frame, detections are matched to segmentation
+      masks by optimal bipartite assignment between detection positions and mask
+      centers of mass (minimizing total Euclidean distance), and each detection
+      takes its matched mask's label. This does not require points to sit inside
+      their own mask. Just pass ``segmentation``. A frame with fewer masks than
+      detections raises an error (some detection cannot be matched).
     - **Explicit:** the label for each detection is taken from a precomputed
       ``properties`` column. Pass ``segmentation`` together with ``seg_id_key``
-      naming that column. Use this when positions don't sit cleanly inside
-      their masks.
+      naming that column. Use this when you already know the labels.
 
     Example:
         A napari ``Tracks`` layer exposes its contents as three plain
@@ -250,7 +308,10 @@ def load_napari_data(
                 )
             seg_ids = seg_ids.astype(int)
         else:
-            seg_ids = _labels_from_positions(data, np.asarray(segmentation), ndim)
+            # Implicit matching: assign each detection a mask per frame by optimal
+            # bipartite matching (detection positions <-> mask centers of mass,
+            # Euclidean cost). Robust to points that don't sit inside their mask.
+            seg_ids = _labels_by_matching(data, np.asarray(segmentation), ndim)
         _check_unique_labels_per_frame(data, seg_ids)
 
     # Node id per detection: row index + 1 (node ids must be positive integers).
