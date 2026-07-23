@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
-from scipy.ndimage import center_of_mass
 from scipy.optimize import linear_sum_assignment
+from tqdm import tqdm
 
 from traccuracy._tracking_graph import TrackingGraph
 
@@ -60,7 +60,39 @@ def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int
     return seg_ids
 
 
-def _labels_by_matching(data: np.ndarray, segmentation: np.ndarray, ndim: int) -> np.ndarray:
+def _mask_centroids(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Per-label centroids of one segmentation frame, vectorized.
+
+    Returns ``(labels, centroids)`` where ``labels`` is the sorted non-zero
+    label ids and ``centroids[i]`` is label ``labels[i]``'s mean coordinate (in
+    the frame's ``(z,)y,x`` axis order). One pass over the non-zero voxels via
+    ``np.bincount`` -- much faster than ``scipy.ndimage.center_of_mass`` called
+    per label, which matters on large 3D+t volumes (this is the compute hot
+    spot of implicit matching).
+    """
+    coords = np.nonzero(frame)  # tuple of ndim index arrays over non-zero voxels
+    ids = frame[coords].astype(np.intp)
+    if len(ids) == 0:
+        return np.empty(0, dtype=int), np.empty((0, frame.ndim))
+    # Bin over DISTINCT labels (via unique+inverse) rather than raw label ids, so
+    # memory is O(#masks) not O(max_label): tracking segmentations often carry
+    # large sparse global ids that would otherwise make bincount allocate a huge
+    # array per frame regardless of how few masks it has.
+    labels, inv = np.unique(ids, return_inverse=True)  # labels sorted, non-zero
+    counts = np.bincount(inv)
+    centroids = np.empty((len(labels), frame.ndim))
+    for d, coord in enumerate(coords):
+        centroids[:, d] = np.bincount(inv, weights=coord.astype(float))
+    centroids /= counts[:, None]
+    return labels.astype(int), centroids
+
+
+def _labels_by_matching(
+    data: np.ndarray,
+    segmentation: np.ndarray,
+    ndim: int,
+    progbar_class=tqdm,
+) -> np.ndarray:
     """Assign each detection a segmentation label by per-frame optimal matching.
 
     Per frame, solve a bipartite assignment between the detection positions and
@@ -75,6 +107,10 @@ def _labels_by_matching(data: np.ndarray, segmentation: np.ndarray, ndim: int) -
     raised naming the frame. Surplus masks (more masks than detections) are
     simply left unassigned.
 
+    ``progbar_class`` is the tqdm-compatible class wrapping the per-frame loop;
+    pass e.g. ``napari.utils.progress`` to show it in napari's activity dock
+    (the default plain ``tqdm`` prints to the terminal).
+
     Returns an ``(N,)`` int array of label ids, one per row of ``data``.
     """
     if segmentation.ndim != ndim + 1:
@@ -88,18 +124,23 @@ def _labels_by_matching(data: np.ndarray, segmentation: np.ndarray, ndim: int) -
 
     seg_ids = np.zeros(len(data), dtype=int)
     times = data[:, 1].astype(np.intp)
-    for t in np.unique(times):
+    unique_times = np.unique(times)
+    for t in progbar_class(
+        unique_times,
+        total=len(unique_times),
+        desc="Matching detections to masks",
+        leave=False,
+    ):
         rows = np.nonzero(times == t)[0]
         frame = segmentation[int(t)]
-        labels = np.unique(frame)
-        labels = labels[labels != 0]  # drop background
+        # Mask labels and centers of mass, in the same (z,)y,x coordinate order
+        # as data[:, 2:].
+        labels, coms = _mask_centroids(frame)  # labels (M,), coms (M, ndim)
         if len(labels) == 0:
             raise ValueError(
                 f"frame {int(t)} has {len(rows)} detection(s) but no "
                 "segmentation masks to match them to."
             )
-        # Mask centers of mass, in the same (z,)y,x coordinate order as data[:, 2:].
-        coms = np.asarray(center_of_mass(frame > 0, frame, labels))  # (M, ndim)
         points = data[rows, 2:].astype(float)  # (K, ndim)
         # Cost = pairwise Euclidean distance (K detections x M masks).
         cost = np.linalg.norm(points[:, None, :] - coms[None, :, :], axis=2)
@@ -142,6 +183,7 @@ def load_napari_data(
     segmentation: np.ndarray | None = None,
     seg_id_key: str | None = None,
     name: str | None = None,
+    progbar_class=tqdm,
 ) -> TrackingGraph:
     """Load a napari Tracks layer into a TrackingGraph.
 
@@ -244,6 +286,10 @@ def load_napari_data(
             ``segmentation``. Defaults to None.
         name (str | None, optional): Optional name for the dataset. Defaults to
             None.
+        progbar_class (optional): tqdm-compatible class wrapping the per-frame
+            implicit-matching loop. Pass e.g. ``napari.utils.progress`` to show
+            the bar in napari's activity dock; defaults to plain ``tqdm``
+            (terminal).
 
     Raises:
         ValueError: data does not have shape (N, 2 + D) with D in {2, 3}.
@@ -311,7 +357,9 @@ def load_napari_data(
             # Implicit matching: assign each detection a mask per frame by optimal
             # bipartite matching (detection positions <-> mask centers of mass,
             # Euclidean cost). Robust to points that don't sit inside their mask.
-            seg_ids = _labels_by_matching(data, np.asarray(segmentation), ndim)
+            seg_ids = _labels_by_matching(
+                data, np.asarray(segmentation), ndim, progbar_class=progbar_class
+            )
         _check_unique_labels_per_frame(data, seg_ids)
 
     # Node id per detection: row index + 1 (node ids must be positive integers).
