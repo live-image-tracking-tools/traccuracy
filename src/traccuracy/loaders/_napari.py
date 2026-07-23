@@ -91,7 +91,7 @@ def _labels_by_matching(
     data: np.ndarray,
     segmentation: np.ndarray,
     ndim: int,
-    progbar_class=tqdm,
+    progbar_class: type[tqdm] = tqdm,
 ) -> np.ndarray:
     """Assign each detection a segmentation label by per-frame optimal matching.
 
@@ -183,7 +183,7 @@ def load_napari_data(
     segmentation: np.ndarray | None = None,
     seg_id_key: str | None = None,
     name: str | None = None,
-    progbar_class=tqdm,
+    progbar_class: type[tqdm] = tqdm,
 ) -> TrackingGraph:
     """Load a napari Tracks layer into a TrackingGraph.
 
