@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections import Counter, deque
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 
@@ -16,6 +15,10 @@ if TYPE_CHECKING:
     import networkx as nx
 
     from traccuracy.matchers._matched import Matched
+
+# Bipartite matching is used both for (gt division -> pred fork) node-id pairing and for
+# (gt daughter lineage -> pred child-branch index) pairing, so it is generic in its key.
+_MatchKey = TypeVar("_MatchKey", bound="Hashable")
 
 
 class SparseWeightedEdgeDivisionJaccard(Metric):
@@ -57,18 +60,23 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
     are ``NaN`` (the excess-node penalty is skipped) and the combined ``score`` falls
     back to the raw ``edge_jaccard`` term.
 
-    **Division Jaccard.** Divisions are scored with a +/- 1 frame tolerance. For each
-    ground truth dividing node (out-degree >= 2), the surrounding subgraph
-    (parent, divider, children, grandchildren) is extracted and the prediction is
-    re-matched against it locally. A ground truth division is recovered (true positive)
-    when a single weakly connected component of the prediction (a) has a matched node at
-    a pre-split ("one-node-stage") timepoint, (b) touches both daughter lineages (at
-    possibly different timepoints, which absorbs the +/- 1 tolerance), and (c) contains a
-    predicted dividing node. A maximum-cardinality bipartite matching pairs each
-    predicted fork with at most one ground truth division. A predicted fork whose
-    (global) match lands on an annotated ground truth node but that is not paired to any
-    ground truth division is a false positive. ``division_jaccard = TP / (TP + FP + FN)``,
-    or ``NaN`` when there are no divisions anywhere.
+    **Division Jaccard.** Divisions are scored with a +/- 1 frame tolerance using a local
+    window. For each ground truth dividing node (out-degree >= 2), the surrounding
+    subgraph (parent, divider, children, grandchildren) is extracted and the prediction
+    is re-matched against it locally. A predicted fork recovers a ground truth division
+    (true positive) only under *directed local topology*: the fork or its immediate
+    predecessor matches a ground truth parent-side node, and a bipartite matching
+    associates the two ground truth daughter lineages with two *distinct* child branches
+    of that same fork (the two supporting matches may fall at different timepoints, which
+    absorbs the +/- 1 tolerance). Merely sharing a weakly connected component is not
+    enough. Forks whose two child branches have nearest matched evidence in different
+    ground truth connected components, or whose local branches merge, are rejected. A
+    maximum-cardinality bipartite matching pairs each predicted fork with at most one
+    ground truth division; unpaired ground truth divisions are false negatives. A
+    predicted fork is a false positive if it was considered for a division, matches an
+    annotated ground truth node, or is cross-component/merged, and is not itself a true
+    positive. ``division_jaccard = TP / (TP + FP + FN)``, or ``NaN`` when there are no
+    divisions anywhere.
 
     **Combined score.** ``score = adj_edge_jaccard + division_weight * division_jaccard``
     (or ``edge_jaccard`` in place of ``adj_edge_jaccard`` when ``n_gt_nodes`` is not
@@ -225,17 +233,36 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
         return tp / denom if denom > 0 else float(self.zero_division)
 
     def _edge_counts(self, matched: Matched) -> tuple[int, int, int]:
-        """Count true/false positive and false negative edges under the sparse rule."""
+        """Count true/false positive and false negative edges under the sparse rule.
+
+        Predicted edges are first hardened against implausible topology (mirroring the
+        competition): only strictly consecutive forward edges (``t_target == t_source + 1``)
+        are scored, and a source keeps at most two outgoing edges (a division has at most
+        two children), keeping the first two in insertion order. Backward, same-frame,
+        gap-closing and surplus edges are dropped, not penalized.
+        """
         gt_graph = matched.gt_graph.graph
-        pred_graph = matched.pred_graph.graph
+        pred = matched.pred_graph
+        pred_graph = pred.graph
+        frame_key = pred.frame_key
         gt_num_edges = gt_graph.number_of_edges()
 
-        if pred_graph.number_of_edges() == 0:
+        kept: list[tuple[Hashable, Hashable]] = []
+        out_kept: dict[Hashable, int] = {}
+        for u, v in pred_graph.edges():
+            if pred_graph.nodes[v][frame_key] - pred_graph.nodes[u][frame_key] != 1:
+                continue
+            if out_kept.get(u, 0) >= 2:
+                continue
+            out_kept[u] = out_kept.get(u, 0) + 1
+            kept.append((u, v))
+
+        if not kept:
             return 0, 0, gt_num_edges
 
         edge_tp = 0
         valid_pred = 0
-        for u, v in pred_graph.edges():
+        for u, v in kept:
             gu = matched.get_pred_gt_match(u)
             gv = matched.get_pred_gt_match(v)
             out_valid = gu is not None and gt_graph.out_degree(gu) >= 1
@@ -258,48 +285,59 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
     ) -> tuple[int, int, int]:
         """Count true/false positive and false negative divisions.
 
-        True positives and false negatives come from a per-division local re-matching
-        plus a bipartite pairing; false positives use the global matching, mirroring
-        the competition reference implementation.
+        For each GT division, the prediction is re-matched locally against its
+        parent/divider/children/grandchildren window. A candidate predicted fork must
+        have *directed local topology*: the fork or its immediate predecessor matches a
+        GT parent-side node, and matches from two GT daughter lineages lie on two
+        distinct child branches of that fork. Forks whose child branches point at
+        different GT connected components, or whose local branches merge, are rejected
+        (computed from the global matching). A maximum-cardinality bipartite matching
+        then pairs GT divisions with forks: paired divisions are true positives,
+        unpaired GT divisions are false negatives. False positives are the set of
+        predicted forks that were considered for a division, are matched onto an
+        annotated GT node, or are cross-component/merged, minus the true-positive forks.
         """
         gt = matched.gt_graph
         pred = matched.pred_graph
-        gt_graph = gt.graph
+        pred_graph = pred.graph
         pred_forks = set(pred.get_divisions())
 
         matcher = PointMatcher(threshold=threshold, scale_factor=scale)
 
-        # For each GT division, locally re-match the prediction and collect the
-        # predicted forks that could account for it.
+        evaluable_forks, cross_component_forks, malformed_forks = self._pred_division_fork_sets(
+            matched
+        )
+        invalid_forks = cross_component_forks | malformed_forks
+
         candidates: dict[Hashable, set[Hashable]] = {}
+        considered: set[Hashable] = set()
         for divider in gt.get_divisions():
             sub_nodes = self._division_subgraph_nodes(gt, divider)
             gt_sub = self._subgraph_tracking_graph(gt, sub_nodes)
             local = matcher.compute_mapping(gt_sub, pred)
-            matched_pred_nodes = set(local.pred_gt_map.keys())
+            grouped = self._matched_division_nodes(local, gt_sub, divider)
+            if grouped is None:
+                candidates[divider] = set()
+                continue
 
-            div_candidates: set[Hashable] = set()
-            for component, visited in self._weakly_connected_components(
-                pred.graph, matched_pred_nodes
-            ):
-                if self._covers_division(local, gt_sub, divider, component):
-                    div_candidates |= visited & pred_forks
-            candidates[divider] = div_candidates
+            parent_ids, daughter_ids = grouped
+            local_nodes = set(parent_ids)
+            for parent_id in parent_ids:
+                local_nodes.update(pred_graph.successors(parent_id))
+            local_forks = local_nodes & pred_forks
+            considered |= local_forks
+            candidates[divider] = {
+                fork
+                for fork in local_forks - invalid_forks
+                if self._fork_has_local_topology(pred_graph, fork, parent_ids, daughter_ids)
+            }
 
         pairing = self._bipartite_max_matching(candidates)
-        div_tp = sum(1 for divider in candidates if divider in pairing)
+        tp_forks = set(pairing.values())
+        div_tp = len(pairing)
         div_fn = len(candidates) - div_tp
-
-        # False positives: predicted forks matched (globally) onto an annotated GT node
-        # that are not paired to any GT division.
-        matched_pred_divs = 0
-        for fork in pred_forks:
-            gt_node = matched.get_pred_gt_match(fork)
-            if gt_node is not None and gt_graph.out_degree(gt_node) >= 1:
-                matched_pred_divs += 1
-        div_fp = max(0, matched_pred_divs - div_tp)
-
-        return div_tp, div_fp, div_fn
+        fp_forks = (considered | evaluable_forks | invalid_forks) - tp_forks
+        return div_tp, len(fp_forks), div_fn
 
     @staticmethod
     def _division_subgraph_nodes(tg: TrackingGraph, divider: Hashable) -> set[Hashable]:
@@ -323,113 +361,179 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
         )
 
     @staticmethod
-    def _weakly_connected_components(
-        graph: nx.DiGraph, node_ids: set[Hashable]
-    ) -> list[tuple[set[Hashable], set[Hashable]]]:
-        """Partition *node_ids* into weakly connected components of *graph*.
+    def _matched_division_nodes(
+        local: Matched, gt_sub: TrackingGraph, divider: Hashable
+    ) -> tuple[set[Hashable], list[set[Hashable]]] | None:
+        """Group locally-matched prediction nodes by their role in a GT division window.
 
-        Returns one ``(component, visited)`` pair per component, where ``component`` is
-        the subset of *node_ids* in that component and ``visited`` is every graph node
-        reachable from it (including unmatched intermediaries, so callers can find
-        predicted forks sitting between matched nodes).
+        Returns ``(parent_ids, daughter_ids)`` where *parent_ids* are prediction nodes
+        matched to the GT divider or its immediate predecessor (grandparent), and
+        *daughter_ids* is one set per GT child of prediction nodes matched to that child
+        or its immediate successors (grandchildren). Returns None if there are fewer than
+        two GT children, no parent-side match, or fewer than two daughter lineages hit.
         """
-        remaining = set(node_ids)
-        components: list[tuple[set[Hashable], set[Hashable]]] = []
-        while remaining:
-            seed = next(iter(remaining))
-            visited: set[Hashable] = {seed}
-            component: set[Hashable] = {seed}
-            queue: deque[Hashable] = deque([seed])
-            while queue:
-                current = queue.popleft()
-                neighbors = list(graph.successors(current)) + list(graph.predecessors(current))
-                for neighbor in neighbors:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
-                        queue.append(neighbor)
-                        if neighbor in remaining:
-                            component.add(neighbor)
-            components.append((component, visited))
-            remaining -= component
-        return components
-
-    @staticmethod
-    def _covers_division(
-        local: Matched,
-        gt_sub: TrackingGraph,
-        divider: Hashable,
-        component: set[Hashable],
-    ) -> bool:
-        """Check whether a predicted component recovers a ground truth division.
-
-        Requires a matched prediction node at a pre-split (one-node-stage) timepoint and
-        matched nodes touching at least two distinct daughter lineages of *divider*.
-        """
-        if not component:
-            return False
-
+        node_to_gt = {pred_id: gts[0] for pred_id, gts in local.pred_gt_map.items()}
+        if not node_to_gt:
+            return None
         sub_graph = gt_sub.graph
-        frame_key = gt_sub.frame_key
-        time_counts = Counter(sub_graph.nodes[n][frame_key] for n in sub_graph.nodes)
-        one_node_times = {t for t, count in time_counts.items() if count == 1}
-        if not one_node_times:
-            return False
+        gt_children = list(sub_graph.successors(divider))
+        if len(gt_children) < 2:
+            return None
 
-        children = list(sub_graph.successors(divider))
-        if len(children) < 2:
-            return False
-        lineages = [
-            SparseWeightedEdgeDivisionJaccard._descendants(sub_graph, child) for child in children
+        gt_parent_ids = {divider, *sub_graph.predecessors(divider)}
+        parent_ids = {p for p, g in node_to_gt.items() if g in gt_parent_ids}
+        daughter_ids = [
+            {p for p, g in node_to_gt.items() if g in {child, *sub_graph.successors(child)}}
+            for child in gt_children
         ]
+        if not parent_ids or sum(bool(ids) for ids in daughter_ids) < 2:
+            return None
+        return parent_ids, daughter_ids
 
-        pred_graph = local.pred_graph.graph
-        pred_frame_key = local.pred_graph.frame_key
-        has_one_node_stage = False
-        matched_gt_ids: set[Hashable] = set()
-        for pred_node in component:
-            gt_node = local.get_pred_gt_match(pred_node)
-            if gt_node is None:
-                continue
-            matched_gt_ids.add(gt_node)
-            if pred_graph.nodes[pred_node][pred_frame_key] in one_node_times:
-                has_one_node_stage = True
+    def _fork_has_local_topology(
+        self,
+        pred_graph: nx.DiGraph,
+        pred_div: Hashable,
+        parent_ids: set[Hashable],
+        daughter_ids: list[set[Hashable]],
+    ) -> bool:
+        """Check a predicted fork's directed local topology against a GT division.
 
-        if not has_one_node_stage:
+        The fork or its immediate predecessor must be a matched parent-side node, and a
+        bipartite matching between the GT daughter lineages and the fork's own child
+        branches (each a direct child plus its immediate successors) must associate at
+        least two GT lineages with two *distinct* predicted branches. Merely sharing a
+        weakly connected component is not sufficient.
+        """
+        pred_parent_ids = {pred_div, *pred_graph.predecessors(pred_div)}
+        if pred_parent_ids.isdisjoint(parent_ids):
             return False
-        lineages_covered = sum(1 for lineage in lineages if lineage & matched_gt_ids)
-        return lineages_covered >= 2
+
+        pred_lineages = [
+            {child, *pred_graph.successors(child)} for child in pred_graph.successors(pred_div)
+        ]
+        lineage_edges = {
+            gt_lineage: {
+                branch
+                for branch, branch_ids in enumerate(pred_lineages)
+                if not matched_ids.isdisjoint(branch_ids)
+            }
+            for gt_lineage, matched_ids in enumerate(daughter_ids)
+        }
+        return len(self._bipartite_max_matching(lineage_edges)) >= 2
+
+    def _pred_division_fork_sets(
+        self, matched: Matched
+    ) -> tuple[set[Hashable], set[Hashable], set[Hashable]]:
+        """Return (evaluable, cross-component, malformed) predicted forks from the global match.
+
+        - *evaluable*: forks matched to an annotated GT node (out-degree >= 1) — these are
+          judgeable, hence false-positive candidates.
+        - *cross-component*: forks whose two distinct child branches have nearest matched
+          evidence in different GT connected components (direct-child evidence takes
+          precedence; an unmatched child may fall back to an unambiguous grandchild).
+        - *malformed*: forks with a locally merged branch (a child with a parent other
+          than the fork, or a grandchild with a parent other than its child).
+        """
+        gt_graph = matched.gt_graph.graph
+        pred_graph = matched.pred_graph.graph
+        pred_to_gt = {pred_id: gts[0] for pred_id, gts in matched.pred_gt_map.items()}
+        pred_forks = {n for n in pred_graph.nodes if pred_graph.out_degree(n) >= 2}
+
+        evaluable_forks = {
+            fork
+            for fork in pred_forks
+            if fork in pred_to_gt and gt_graph.out_degree(pred_to_gt[fork]) >= 1
+        }
+
+        gt_component = self._gt_weak_component_ids(gt_graph)
+        cross_component_forks: set[Hashable] = set()
+        malformed_forks: set[Hashable] = set()
+        for fork in pred_forks:
+            branch_evidence: list[Hashable] = []
+            malformed = False
+            for child in pred_graph.successors(fork):
+                component, is_malformed = self._branch_component_evidence(
+                    pred_graph, fork, child, pred_to_gt, gt_component
+                )
+                if is_malformed:
+                    malformed_forks.add(fork)
+                    malformed = True
+                    break
+                if component is not None:
+                    branch_evidence.append(component)
+            if not malformed and len({*branch_evidence}) >= 2:
+                cross_component_forks.add(fork)
+
+        return evaluable_forks, cross_component_forks, malformed_forks
 
     @staticmethod
-    def _descendants(graph: nx.DiGraph, seed: Hashable) -> set[Hashable]:
-        """Return *seed* and all nodes reachable from it going forward in time."""
-        out: set[Hashable] = {seed}
-        stack = [seed]
-        while stack:
-            for nxt in graph.successors(stack.pop()):
-                if nxt not in out:
-                    out.add(nxt)
-                    stack.append(nxt)
-        return out
+    def _gt_weak_component_ids(gt_graph: nx.DiGraph) -> dict[Hashable, Hashable]:
+        """Map each GT node to a representative id of its weakly connected component."""
+        component_ids: dict[Hashable, Hashable] = {}
+        for seed in gt_graph.nodes:
+            if seed in component_ids:
+                continue
+            component_ids[seed] = seed
+            stack = [seed]
+            while stack:
+                current = stack.pop()
+                for neighbor in (*gt_graph.successors(current), *gt_graph.predecessors(current)):
+                    if neighbor not in component_ids:
+                        component_ids[neighbor] = seed
+                        stack.append(neighbor)
+        return component_ids
+
+    @staticmethod
+    def _branch_component_evidence(
+        pred_graph: nx.DiGraph,
+        pred_div: Hashable,
+        child: Hashable,
+        pred_to_gt: dict[Hashable, Hashable],
+        gt_component: dict[Hashable, Hashable],
+    ) -> tuple[Hashable | None, bool]:
+        """Return one GT component id for a predicted child branch, and a malformed flag.
+
+        Direct-child evidence takes precedence over grandchildren so downstream errors do
+        not invalidate a correctly matched division. Grandchildren are fallback evidence
+        only when the child is unmatched. The boolean marks a locally merged branch that
+        cannot be assigned uniquely to this fork.
+        """
+        if set(pred_graph.predecessors(child)) != {pred_div}:
+            return None, True
+        if child in pred_to_gt:
+            return gt_component[pred_to_gt[child]], False
+
+        grandchildren = list(pred_graph.successors(child))
+        if any(set(pred_graph.predecessors(node)) != {child} for node in grandchildren):
+            return None, True
+
+        components = {
+            gt_component[pred_to_gt[node]] for node in grandchildren if node in pred_to_gt
+        }
+        if len(components) == 1:
+            return next(iter(components)), False
+        return None, False
 
     @staticmethod
     def _bipartite_max_matching(
-        candidates: dict[Hashable, set[Hashable]],
-    ) -> dict[Hashable, Hashable]:
-        """Maximum-cardinality bipartite matching (GT division -> predicted fork).
+        candidates: dict[_MatchKey, set[_MatchKey]],
+    ) -> dict[_MatchKey, _MatchKey]:
+        """Maximum-cardinality bipartite matching over a left->candidates adjacency.
 
-        ``candidates`` maps each ground truth division to the predicted forks that could
-        account for it. Returns only the matched pairs, so each predicted fork is
-        credited to at most one ground truth division.
+        Used both to pair ground truth divisions with predicted forks and to pair a
+        ground truth division's daughter lineages with a fork's child branches. Returns
+        only the matched pairs, so each right vertex is used at most once.
 
         Uses recursive augmenting-path search (matching the competition reference). The
-        recursion depth is bounded by the number of ground truth divisions, which is
-        small in practice; datasets with many hundreds of heavily overlapping divisions
-        could in principle approach Python's recursion limit.
+        recursion depth is bounded by the number of left vertices, which is small in
+        practice; datasets with many hundreds of heavily overlapping divisions could in
+        principle approach Python's recursion limit.
         """
-        match_right: dict[Hashable, Hashable] = {}
-        match_left: dict[Hashable, Hashable] = {}
+        match_right: dict[_MatchKey, _MatchKey] = {}
+        match_left: dict[_MatchKey, _MatchKey] = {}
 
-        def augment(left: Hashable, seen: set[Hashable]) -> bool:
+        def augment(left: _MatchKey, seen: set[_MatchKey]) -> bool:
             for right in candidates.get(left, ()):
                 if right in seen:
                     continue

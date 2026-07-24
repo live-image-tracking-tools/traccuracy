@@ -40,14 +40,18 @@ results, matched = run_metrics(
 
 ## Edge Jaccard
 
-A predicted edge $(u, v)$ is a **true positive** when both endpoints are matched to
-ground truth nodes $g_u$ and $g_v$ that are connected by a ground truth edge. Every
-ground truth edge without such a match is a **false negative**. A predicted edge that is
-not a true positive is a **false positive** only when there is ground truth evidence
-against it — either its source is matched to a ground truth node with an outgoing edge,
-or its target is matched to a ground truth node with an incoming edge. Predicted edges
-with no such evidence (both endpoints unmatched, or matched to a ground truth track start
-or end) are ignored.
+Predicted edges are first hardened against implausible topology: only edges spanning a
+single forward timepoint ($t_{target} = t_{source} + 1$) are scored — backward,
+same-frame and gap-closing edges are dropped — and each source keeps at most two
+outgoing edges (a division has at most two children), so surplus children are dropped
+too. A surviving predicted edge $(u, v)$ is a **true positive** when both endpoints are
+matched to ground truth nodes $g_u$ and $g_v$ that are connected by a ground truth edge.
+Every ground truth edge without such a match is a **false negative**. A surviving edge
+that is not a true positive is a **false positive** only when there is ground truth
+evidence against it — either its source is matched to a ground truth node with an
+outgoing edge, or its target is matched to a ground truth node with an incoming edge.
+Edges with no such evidence (both endpoints unmatched, or matched to a ground truth track
+start or end) are ignored.
 
 $$edge\ Jaccard = \frac{TP}{TP + FP + FN}$$
 
@@ -72,16 +76,22 @@ and the combined `score` falls back to the raw `edge_jaccard` term.
 
 ## Division Jaccard
 
-Divisions are scored with a tolerance of ±1 timepoint. For each ground truth dividing
-node, the surrounding division subgraph (parent, divider, children, grandchildren) is
-extracted and the prediction is re-matched against it locally. A ground truth division is
-a **true positive** when a single connected component of the prediction has a matched node
-at a pre-split timepoint, touches both daughter lineages (possibly at different
-timepoints, which absorbs the ±1 tolerance), and contains a predicted dividing cell. A
-maximum-cardinality bipartite matching ensures each predicted fork is credited to at most
-one ground truth division. A predicted fork matched to an annotated ground truth node but
-not paired to any ground truth division is a **false positive**; a ground truth division
-that is not recovered is a **false negative**.
+Divisions are scored with a tolerance of ±1 timepoint using a local window. For each
+ground truth dividing node, the surrounding division subgraph (parent, divider, children,
+grandchildren) is extracted and the prediction is re-matched against it locally. A
+predicted fork recovers a ground truth division (**true positive**) only under *directed
+local topology*: the fork or its immediate predecessor matches a ground truth
+parent-side node, and a bipartite matching associates the two ground truth daughter
+lineages with two *distinct* child branches of that same fork (the two supporting matches
+may fall at different timepoints, which absorbs the ±1 tolerance). Sharing a weakly
+connected component is not enough — this closes an exploit where a fork placed anywhere
+in the neighborhood could claim a division. Forks whose two child branches have nearest
+matched evidence in different ground truth connected components, or whose local branches
+merge, are rejected. A maximum-cardinality bipartite matching then pairs each predicted
+fork with at most one ground truth division; unpaired ground truth divisions are
+**false negatives**. A predicted fork is a **false positive** if it was considered for a
+division, matches an annotated ground truth node, or is cross-component/merged, and is
+not itself a true positive.
 
 $$division\ Jaccard = \frac{TP}{TP + FP + FN}$$
 
