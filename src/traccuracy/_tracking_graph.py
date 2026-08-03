@@ -374,22 +374,20 @@ class TrackingGraph:
             node (int): Node id
             attrs (dict): Attributes extracted from the graph for the given node
         """
-        assert self.frame_key in attrs.keys(), (
-            f"Frame key {self.frame_key} not present for node {node}."
-        )
+        assert self.frame_key in attrs, f"Frame key {self.frame_key} not present for node {node}."
 
         if self.location_keys is not None:
             if isinstance(self.location_keys, str):
-                assert self.location_keys in attrs.keys(), (
+                assert self.location_keys in attrs, (
                     f"Location key {self.location_keys} not present for node {node}."
                 )
             else:
                 for key in self.location_keys:
-                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+                    assert key in attrs, f"Location key {key} not present for node {node}."
 
         # seg id check
         if self.segmentation is not None:
-            assert self.label_key in attrs.keys(), {
+            assert self.label_key in attrs, {
                 f"Segmentation label key {self.label_key} not present for node {node}"
             }
 

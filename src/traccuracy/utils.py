@@ -121,10 +121,7 @@ def get_corrected_division_graphs_with_delta(
         if (
             corrected_gt_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
             <= frame_buffer
-        ):
-            corrected_gt_graph.remove_flag_from_node(node, NodeFlag.FN_DIV)
-            corrected_gt_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
-        elif (
+        ) or (
             relax_skip_edges
             and corrected_gt_graph.graph.nodes[node].get(
                 NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan
@@ -137,10 +134,7 @@ def get_corrected_division_graphs_with_delta(
         if (
             corrected_pred_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
             <= frame_buffer
-        ):
-            corrected_pred_graph.remove_flag_from_node(node, NodeFlag.FP_DIV)
-            corrected_pred_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
-        elif (
+        ) or (
             relax_skip_edges
             and corrected_pred_graph.graph.nodes[node].get(
                 NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan

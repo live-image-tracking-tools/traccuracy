@@ -77,10 +77,7 @@ def _classify_divisions(
         # Find possible matching nodes
         pred_node = matched_data.get_gt_pred_match(gt_node)
         # No matching node so division missed
-        if pred_node is None:
-            g_gt.set_flag_on_node(gt_node, NodeFlag.FN_DIV)
-        # Pred node not labeled as division then fn div
-        elif pred_node not in div_pred:
+        if pred_node is None or pred_node not in div_pred:
             g_gt.set_flag_on_node(gt_node, NodeFlag.FN_DIV)
         # Check if the division has the correct daughters
         else:
