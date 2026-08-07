@@ -15,51 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
 
-def _labels_from_positions(data: np.ndarray, segmentation: np.ndarray, ndim: int) -> np.ndarray:
-    """Read the segmentation label under each detection's ``(t, (z), y, x)``.
-
-    Implicit matching: assumes each detection sits inside its own mask, so the
-    pixel at the detection's position is that object's label. Positions are
-    rounded to the nearest voxel; times are already validated integer-valued.
-
-    Returns an ``(N,)`` int array of label ids, one per row of ``data``.
-    """
-    if segmentation.ndim != ndim + 1:
-        raise ValueError(
-            f"segmentation has {segmentation.ndim} dims but data implies a "
-            f"{ndim}D image plus time ({ndim + 1} dims); cannot match labels "
-            "from positions. Pass precomputed labels via seg_id_key instead."
-        )
-
-    if len(data) == 0:
-        return np.empty(0, dtype=int)
-
-    t_idx = data[:, 1].astype(np.intp)
-    pos_idx = np.rint(data[:, 2:]).astype(np.intp)  # (N, ndim)
-    index = (t_idx, *(pos_idx[:, d] for d in range(ndim)))
-
-    # Bounds-check before indexing so out-of-range positions give a clear error.
-    for axis, ix in enumerate(index):
-        if ix.min() < 0 or ix.max() >= segmentation.shape[axis]:
-            raise ValueError(
-                f"a detection position falls outside the segmentation on axis "
-                f"{axis} (index range [{ix.min()}, {ix.max()}], axis size "
-                f"{segmentation.shape[axis]}). Pass precomputed labels via "
-                "seg_id_key if positions don't sit inside their masks."
-            )
-
-    seg_ids = segmentation[index].astype(int)
-    if np.any(seg_ids == 0):
-        n_bg = int(np.sum(seg_ids == 0))
-        raise ValueError(
-            f"{n_bg} of {len(data)} detections land on background (label 0) in "
-            "the segmentation, so no unique mask can be matched. Pass "
-            "precomputed labels via seg_id_key if positions don't sit inside "
-            "their masks."
-        )
-    return seg_ids
-
-
 def _mask_centroids(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Per-label centroids of one segmentation frame, vectorized.
 
@@ -99,8 +54,7 @@ def _labels_by_matching(
     the segmentation masks' centers of mass, minimizing total Euclidean
     distance (``scipy.optimize.linear_sum_assignment``). Each detection takes
     the label of the mask it is matched to. This is robust to points that don't
-    sit inside their own mask (off-centroid markers, sub-pixel positions), which
-    the pixel lookup in :func:`_labels_from_positions` rejects.
+    sit inside their own mask (off-centroid markers, sub-pixel positions).
 
     Every detection must receive a mask: if a frame has fewer masks than
     detections, the surplus detections cannot be matched and a ``ValueError`` is
@@ -242,9 +196,9 @@ def load_napari_data(
             tg = load_napari_data(data, graph=graph)
 
         To enable segmentation-based matching, pass a
-        ``segmentation`` array. By default each detection's label is read
-        implicitly from the pixel under its ``(t, (z), y, x)`` position, so no
-        extra bookkeeping is needed::
+        ``segmentation`` array. By default each detection is matched implicitly
+        to the nearest mask centroid per frame, so no extra bookkeeping is
+        needed::
 
             tg = load_napari_data(
                 data,
@@ -278,11 +232,11 @@ def load_napari_data(
         segmentation (np.ndarray | None, optional): Segmentation array of shape
             ``(T, (Z), Y, X)``. When given, each node carries a
             ``segmentation_id`` for segmentation-based matching. Unless ``seg_id_key`` is
-            also given, each label is read implicitly from the pixel under the
-            detection's position. Defaults to None.
+            also given, each detection is matched implicitly to the nearest mask
+            centroid per frame. Defaults to None.
         seg_id_key (str | None, optional): Key in ``properties`` holding each
             detection's precomputed segmentation label id. Pass this to match
-            explicitly instead of reading labels from positions. Requires
+            explicitly instead of matching detections to mask centroids. Requires
             ``segmentation``. Defaults to None.
         name (str | None, optional): Optional name for the dataset. Defaults to
             None.
@@ -300,8 +254,8 @@ def load_napari_data(
         ValueError: seg_id_key not present in properties, its length does not
             match the number of detections, or its values are not integer-valued.
         ValueError: (implicit matching) segmentation dims don't match the data,
-            a detection falls outside the segmentation or on background, or two
-            detections in a frame resolve to the same label.
+            a frame has fewer masks than detections (some detection cannot be
+            matched), or two detections in a frame resolve to the same label.
 
     Returns:
         TrackingGraph
