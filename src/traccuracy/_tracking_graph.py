@@ -286,6 +286,8 @@ class TrackingGraph:
 
         # store edge id in edges_by_flag
         for edge, attrs in self.graph.edges.items():
+            if validate:
+                self._validate_edge(edge)
             for edge_flag in EdgeFlag:
                 if attrs.get(edge_flag.value):
                     self.edges_by_flag[edge_flag.value].add(edge)
@@ -396,6 +398,29 @@ class TrackingGraph:
         # Node ids must be positive integers
         assert np.issubdtype(type(node), np.integer), f"Node id of node {node} is not an integer"
         assert node >= 0, f"Node id of node {node} is not positive"
+
+    def _validate_edge(self, edge: tuple[Hashable, Hashable]) -> None:
+        """Check that an edge goes strictly forward in time.
+
+        TrackingGraph represents a tracking solution whose edges go forward in
+        time, so every edge (src, dst) must satisfy frame[dst] > frame[src].
+        This rules out self-loops (frame[dst] == frame[src]) and, because the
+        frame strictly increases along every edge, guarantees the graph is
+        acyclic. Skip edges (spanning more than one frame) still go forward and
+        are allowed.
+
+        Args:
+            edge (tuple): The (source, target) node ids of the edge.
+        """
+        src, dst = edge
+        src_frame = self.graph.nodes[src][self.frame_key]
+        dst_frame = self.graph.nodes[dst][self.frame_key]
+        assert dst_frame > src_frame, (
+            f"Edge {edge} does not go forward in time: source node {src} is at "
+            f"frame {src_frame} but target node {dst} is at frame {dst_frame}. "
+            "TrackingGraph edges must go strictly forward in time (no "
+            "self-loops or cycles)."
+        )
 
     @property
     def nodes(self) -> NodeView:
