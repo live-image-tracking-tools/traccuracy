@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786125539900,
+  "lastUpdate": 1786127859111,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -25301,6 +25301,240 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 1.9468902209999897 sec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92ca27ee9d0d91c4a4a9fe5fd7fa991617642a59",
+          "message": "ci(dependabot): bump actions/setup-python from 6 to 7 (#360)\n\nBumps [actions/setup-python](https://github.com/actions/setup-python)\nfrom 6 to 7.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/actions/setup-python/releases\">actions/setup-python's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v7.0.0</h2>\n<h2>What's Changed</h2>\n<h3>Enhancements</h3>\n<ul>\n<li>Migrate to ESM and upgrade dependencies by <a\nhref=\"https://github.com/priyagupta108\"><code>@​priyagupta108</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1330\">actions/setup-python#1330</a></li>\n<li>Pin SHA commits and update docs with latest versions by <a\nhref=\"https://github.com/HarithaVattikuti\"><code>@​HarithaVattikuti</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1338\">actions/setup-python#1338</a></li>\n<li>Remove the pip-install input by <a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a> in\n<a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1336\">actions/setup-python#1336</a></li>\n</ul>\n<h3>Bug Fix</h3>\n<ul>\n<li>Fix to Classify stderr warning messages as warnings instead of\nerrors in annotations by <a\nhref=\"https://github.com/lmvysakh\"><code>@​lmvysakh</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1335\">actions/setup-python#1335</a></li>\n<li>Validate and retry manifest fetch to prevent silent failures by <a\nhref=\"https://github.com/priyagupta108\"><code>@​priyagupta108</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1332\">actions/setup-python#1332</a></li>\n</ul>\n<h3>Dependency Upgrade</h3>\n<ul>\n<li>Bump certifi from 2020.6.20 to 2024.7.4 in\n/<strong>tests</strong>/data by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1328\">actions/setup-python#1328</a></li>\n<li>Remove EOL Python versions and Bumps numpy text fixture by <a\nhref=\"https://github.com/priya-kinthali\"><code>@​priya-kinthali</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1333\">actions/setup-python#1333</a></li>\n<li>Upgrade <code>@​actions/cache</code> to 6.2.0 by <a\nhref=\"https://github.com/philip-gai\"><code>@​philip-gai</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1337\">actions/setup-python#1337</a></li>\n</ul>\n<h2>New Contributors</h2>\n<ul>\n<li><a href=\"https://github.com/lmvysakh\"><code>@​lmvysakh</code></a>\nmade their first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1335\">actions/setup-python#1335</a></li>\n<li><a\nhref=\"https://github.com/philip-gai\"><code>@​philip-gai</code></a> made\ntheir first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1337\">actions/setup-python#1337</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/actions/setup-python/compare/v6...v7.0.0\">https://github.com/actions/setup-python/compare/v6...v7.0.0</a></p>\n<h2>v6.3.0</h2>\n<h2>What's Changed</h2>\n<h3>Enhancement</h3>\n<ul>\n<li>Add RHEL support and include Linux distro in cache keys by <a\nhref=\"https://github.com/priyagupta108\"><code>@​priyagupta108</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1323\">actions/setup-python#1323</a></li>\n<li>Fix pip cache error handling on Windows by <a\nhref=\"https://github.com/priyagupta108\"><code>@​priyagupta108</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1040\">actions/setup-python#1040</a></li>\n</ul>\n<h3>Dependency update</h3>\n<ul>\n<li>Upgrade minimatch from 3.1.2 to 3.1.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1281\">actions/setup-python#1281</a></li>\n<li>Upgrade actions dependencies by <a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a>\nwith <a href=\"https://github.com/Copilot\"><code>@​Copilot</code></a> in\n<a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1303\">actions/setup-python#1303</a></li>\n<li>Upgrade <code>@​actions/cache</code> to 5.1.0, log cache write\ndenied by <a\nhref=\"https://github.com/jasongin\"><code>@​jasongin</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1324\">actions/setup-python#1324</a></li>\n<li>Upgrade dependency versions and test workflow configuration by <a\nhref=\"https://github.com/HarithaVattikuti\"><code>@​HarithaVattikuti</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1322\">actions/setup-python#1322</a></li>\n</ul>\n<h3>Documentation</h3>\n<ul>\n<li>Update advanced-usage.md by <a\nhref=\"https://github.com/Dunky-Z\"><code>@​Dunky-Z</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/811\">actions/setup-python#811</a></li>\n</ul>\n<h2>New Contributors</h2>\n<ul>\n<li><a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a>\nwith <a href=\"https://github.com/Copilot\"><code>@​Copilot</code></a>\nmade their first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1303\">actions/setup-python#1303</a></li>\n<li><a href=\"https://github.com/jasongin\"><code>@​jasongin</code></a>\nmade their first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1324\">actions/setup-python#1324</a></li>\n<li><a href=\"https://github.com/Dunky-Z\"><code>@​Dunky-Z</code></a> made\ntheir first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/811\">actions/setup-python#811</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/actions/setup-python/compare/v6.2.0...v6.3.0\">https://github.com/actions/setup-python/compare/v6.2.0...v6.3.0</a></p>\n<h2>v6.2.0</h2>\n<h2>What's Changed</h2>\n<h3>Dependency Upgrades</h3>\n<ul>\n<li>Upgrade dependencies to Node 24 compatible versions by <a\nhref=\"https://github.com/salmanmkc\"><code>@​salmanmkc</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-python/pull/1259\">actions/setup-python#1259</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/5fda3b95a4ea91299a34e894583c3862153e4b97\"><code>5fda3b9</code></a>\nPin SHA commits and update docs with latest versions (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1338\">#1338</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/4ab7e95f05e168b4356aebde89dd84f59c283d8e\"><code>4ab7e95</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1337\">#1337</a>\nfrom actions/philip-gai/bump-actions-cache-6-2-0</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/0f3a009f475dbea83c0371cd85d099690fee8c5c\"><code>0f3a009</code></a>\nRemove the pip-install input (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1336\">#1336</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/f8cf4291c8b8e273ddd26e569454615c7315d932\"><code>f8cf429</code></a>\nMigrate to ESM and upgrade dependencies (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1330\">#1330</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/54baeea5b34417d10a7479663a23cca53ea209b5\"><code>54baeea</code></a>\nValidate and retry manifest fetch to prevent silent failures (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1332\">#1332</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/c7092773a316760f4ecfe498e4af668a4dafeac5\"><code>c709277</code></a>\nAnnotation code fix (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1335\">#1335</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/6849080452e69b330395e8a6d23cf90f56d76a1a\"><code>6849080</code></a>\nremove EOL Python versions and Bumps numpy text fixture (<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1333\">#1333</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-python/commit/0903b469fbf4441aadfe4f4b249dc5b1fba3a73e\"><code>0903b46</code></a>\nBump certifi from 2020.6.20 to 2024.7.4 in /<strong>tests</strong>/data\n(<a\nhref=\"https://redirect.github.com/actions/setup-python/issues/1328\">#1328</a>)</li>\n<li>See full diff in <a\nhref=\"https://github.com/actions/setup-python/compare/v6...v7\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=actions/setup-python&package-manager=github_actions&previous-version=6&new-version=7)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Morgan Schwartz <msschwartz21@gmail.com>",
+          "timestamp": "2026-08-07T14:28:47-04:00",
+          "tree_id": "672a9b90c4fa3108d4126690339e0a56ead780d4",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/92ca27ee9d0d91c4a4a9fe5fd7fa991617642a59"
+        },
+        "date": 1786127857461,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.17528763714824908,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 5.704908892999981 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.07419839685165969,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 13.477380138000001 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.981385061653139,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.018968027000028 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 7.481191993432108,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0011836370131714903",
+            "extra": "mean: 133.66853850000382 msec\nrounds: 8"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 1.1581809657237616,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00397434669668392",
+            "extra": "mean: 863.4229275000109 msec\nrounds: 2"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.12732223224702463,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 7.85408787099999 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 5.899023303430375,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 169.5195880000142 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 1.9223448756641892,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 520.1980209999988 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 7.920244594261261,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 126.25872699999263 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.6636350593025786,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 375.4268050000178 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 5.572864594342075,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 179.44092900000896 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 1.8021099950814987,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 554.905084999973 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 12.785277905910545,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 78.21496000002526 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 2.382224886078917,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 419.7756500000196 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 43.49488158751512,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 22.991211000032763 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 4.072161138674297,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 245.56984999998122 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 11.570535150903597,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 86.42642600000272 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 2.313284882090598,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 432.28571099996316 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 12.197262273246816,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 81.98561100005008 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 4.101617911896365,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 243.80623000001833 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 3.614624339212755,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 276.6539220000368 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.2303362235887425,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 812.7859530000023 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.401800896529907,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 2.4887948449999726 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 8.845932803301933,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 113.04630300003282 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 1.7543225600016203,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 570.0206010000102 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 0.9223179462200081,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.0842248100000234 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 5.623103081320525,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 177.8377499999806 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 1.8642650364302296,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 536.4044170000852 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[2d]",
+            "value": 2.0069034468214477,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 498.28007500002514 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[3d]",
+            "value": 0.5043590748644243,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.982714398999974 sec\nrounds: 1"
           }
         ]
       }
