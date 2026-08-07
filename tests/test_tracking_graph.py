@@ -355,14 +355,14 @@ def test_get_cells_by_frame(simple_graph):
 def test_get_nodes_with_flag(simple_graph):
     assert Counter(simple_graph.get_nodes_with_flag(NodeFlag.TP_DIV)) == Counter([2])
     assert Counter(simple_graph.get_nodes_with_flag(NodeFlag.FP_DIV)) == Counter([])
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError, match="Function takes NodeFlag arguments"):
         assert simple_graph.get_nodes_with_flag("tp_division")
 
 
 def test_get_edges_with_flag(simple_graph):
     assert Counter(simple_graph.get_edges_with_flag(EdgeFlag.TRUE_POS)) == Counter([(1, 2)])
     assert Counter(simple_graph.get_edges_with_flag(EdgeFlag.CTC_FALSE_NEG)) == Counter([])
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError, match="Function takes NodeFlag arguments"):
         assert simple_graph.get_nodes_with_flag("tp")
 
 
@@ -416,7 +416,7 @@ def test_set_flag_on_node(simple_graph):
         assert simple_graph.nodes[node][NodeFlag.CTC_FALSE_POS] is False
     assert not simple_graph.nodes_by_flag[NodeFlag.CTC_FALSE_POS]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError, match="Provided  flag x is not of type NodeFlag"):
         simple_graph.set_flag_on_node(1, "x", 2)
 
 
@@ -462,7 +462,7 @@ def test_set_flag_on_edge(simple_graph):
         assert simple_graph.edges[edge][EdgeFlag.CTC_FALSE_POS] is False
     assert not simple_graph.edges_by_flag[EdgeFlag.CTC_FALSE_POS]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         simple_graph.set_flag_on_edge((2, 3), "x", 2)
 
 

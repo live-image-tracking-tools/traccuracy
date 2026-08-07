@@ -56,7 +56,7 @@ def get_annotated_image(img_size=256, num_labels=3, sequential=True, seed=1):
     trial = 0
     while num_labels != num_labels_act:
         if trial > 10:
-            raise Exception(
+            raise Exception(  # noqa: TRY002
                 "Labels have merged despite 10 different random seeds."
                 " Increase image size or reduce the number of labels"
             )
@@ -327,19 +327,19 @@ class Test_export_graphs_to_geff:
             assert NodeFlag.TRUE_POS.value in gt_reloaded.graph.nodes[node]
 
     def test_bad_inputs(self, tmp_path):
-        with pytest.raises(ValueError, match="matched argument must be an instance of `Matched`"):
+        with pytest.raises(TypeError, match="matched argument must be an instance of `Matched`"):
             export_graphs_to_geff("path", "bad matched", [])
 
         matched = larger_example_1()
         results = BasicMetrics().compute(matched)
 
         # not a list
-        with pytest.raises(ValueError, match="results argument must be a list"):
+        with pytest.raises(TypeError, match="results argument must be a list"):
             export_graphs_to_geff("path", matched, results)
 
         # not a list of results
         with pytest.raises(
-            ValueError, match="results argument must be a list of Results objects or dictionaries"
+            TypeError, match="results argument must be a list of Results objects or dictionaries"
         ):
             export_graphs_to_geff("path", matched, ["not a result"])
 
@@ -369,12 +369,12 @@ class Test_save_results_json:
         out_path = tmp_path / "test.json"
 
         # results must be list
-        with pytest.raises(ValueError, match="results argument must be a list"):
+        with pytest.raises(TypeError, match="results argument must be a list"):
             save_results_json(results, out_path)
 
         # must be list of results or dict
         with pytest.raises(
-            ValueError, match="results argument must be a list of Results objects or dictionaries"
+            TypeError, match="results argument must be a list of Results objects or dictionaries"
         ):
             save_results_json(["bad results"], out_path)
 

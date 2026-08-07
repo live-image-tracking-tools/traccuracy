@@ -231,13 +231,13 @@ def _correct_shifted_divisions(
 
         # Move on if this division has already been corrected by a smaller buffer value
         if (
-            fp_node_info.get("min_buffer_correct", np.nan) is not np.nan
-            or fn_node_info.get("min_buffer_correct", np.nan) is not np.nan
+            not np.isnan(fp_node_info.get("min_buffer_correct", np.nan))
+            or not np.isnan(fn_node_info.get("min_buffer_correct", np.nan))
         ) or (
             skip_div
             and (
-                fp_node_info.get("min_buffer_skip_correct", np.nan) is not np.nan
-                or fn_node_info.get("min_buffer_skip_correct", np.nan) is not np.nan
+                not np.isnan(fp_node_info.get("min_buffer_skip_correct", np.nan))
+                or not np.isnan(fn_node_info.get("min_buffer_skip_correct", np.nan))
             )
         ):
             continue

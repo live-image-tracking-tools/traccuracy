@@ -161,8 +161,8 @@ class CHOTAMetric(Metric):
             gt_track_id = gt_track_ids[gt_node]
             tracklets_overlap[gt_track_id, pred_track_id] += 1
 
-        LOG.info("tracklets_overlap.sum()={}", tracklets_overlap.sum().item())
-        LOG.info("tracklets_overlap.shape={}", tracklets_overlap.shape)
+        LOG.info("tracklets_overlap.sum()=%s", tracklets_overlap.sum().item())
+        LOG.info("tracklets_overlap.shape=%s", tracklets_overlap.shape)
 
         pred_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
         gt_tracklet_mask = np.zeros_like(tracklets_overlap, dtype=bool)
@@ -190,13 +190,13 @@ class CHOTAMetric(Metric):
                 fna = gt_overlap_sum - tpa
 
                 LOG.info(
-                    "tracklets_overlap[i, j]={}, pred_overlap_sum={} gt_overlap_sum={}",
+                    "tracklets_overlap[i, j]=%s, pred_overlap_sum=%s gt_overlap_sum=%s",
                     tracklets_overlap[i, j].item(),
                     pred_overlap_sum.item(),
                     gt_overlap_sum.item(),
                 )
                 LOG.info(
-                    "tpa={} fpa={} fna={} pred_tracklet_size={} gt_tracklet_size={}",
+                    "tpa=%s fpa=%s fna=%s pred_tracklet_size=%s gt_tracklet_size=%s",
                     tpa.item(),
                     fpa.item(),
                     fna.item(),
@@ -213,8 +213,8 @@ class CHOTAMetric(Metric):
 
         union = fp + fn + len(matched.mapping)
 
-        LOG.info("fp={} fn={} len(matched.mapping)={}", fp, fn, len(matched.mapping))
-        LOG.info("total_A_sigma={} union={}", total_A_sigma, union)
+        LOG.info("fp=%s fn=%s len(matched.mapping)=%s", fp, fn, len(matched.mapping))
+        LOG.info("total_A_sigma=%s union=%s", total_A_sigma, union)
 
         return {
             "CHOTA": np.sqrt(total_A_sigma / union).item(),

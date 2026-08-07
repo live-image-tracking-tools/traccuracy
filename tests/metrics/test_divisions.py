@@ -82,7 +82,7 @@ def test_division_metrics_perfect():
     frame_buffer = 2
 
     results = DivisionMetrics(max_frame_buffer=frame_buffer)._compute(matched)
-    for _, r in results.items():
+    for r in results.values():
         # All correct regardless of frame buffer
         assert r["True Positive Divisions"] == 1
         assert r["False Positive Divisions"] == 0
