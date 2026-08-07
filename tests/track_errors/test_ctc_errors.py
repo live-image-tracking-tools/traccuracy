@@ -236,9 +236,14 @@ def test_assign_edge_errors():
     comp_g.add_nodes_from(comp_ids)
     comp_g.add_edges_from(comp_edges)
     nx.set_node_attributes(comp_g, True, NodeFlag.CTC_TRUE_POS)
+    # Edge sources sit in frame 0, targets in frame 1 (edges go forward in time).
+    comp_targets = {dst for _, dst in comp_edges}
     nx.set_node_attributes(
         comp_g,
-        {idx: {"t": 0, "segmentation_id": 1, "y": 0, "x": 0} for idx in comp_ids},
+        {
+            idx: {"t": 1 if idx in comp_targets else 0, "segmentation_id": 1, "y": 0, "x": 0}
+            for idx in comp_ids
+        },
     )
     G_comp = TrackingGraph(comp_g)
 
@@ -247,8 +252,13 @@ def test_assign_edge_errors():
     gt_g.add_nodes_from(gt_ids)
     gt_g.add_edges_from(gt_edges)
     nx.set_node_attributes(gt_g, False, NodeFlag.CTC_FALSE_NEG)
+    gt_targets = {dst for _, dst in gt_edges}
     nx.set_node_attributes(
-        gt_g, {idx: {"t": 0, "segmentation_id": 1, "y": 0, "x": 0} for idx in gt_ids}
+        gt_g,
+        {
+            idx: {"t": 1 if idx in gt_targets else 0, "segmentation_id": 1, "y": 0, "x": 0}
+            for idx in gt_ids
+        },
     )
     G_gt = TrackingGraph(gt_g)
 
