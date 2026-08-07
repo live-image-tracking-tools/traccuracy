@@ -65,7 +65,7 @@ def test_ctc_single_nodes():
         {"Cell_ID": 2, "Start": 0, "End": 2, "Parent_ID": 0},
         {"Cell_ID": 3, "Start": 3, "End": 3, "Parent_ID": 2},
         {"Cell_ID": 4, "Start": 3, "End": 3, "Parent_ID": 2},
-        {"Cell_ID": 5, "Start": 3, "End": 3, "Parent_ID": 4},
+        {"Cell_ID": 5, "Start": 4, "End": 4, "Parent_ID": 4},
     ]
 
     detections = [
@@ -78,7 +78,7 @@ def test_ctc_single_nodes():
         {"segmentation_id": 2, "x": 2, "y": 1, "z": 1, "t": 2},
         {"segmentation_id": 3, "x": 1, "y": 1, "z": 1, "t": 3},
         {"segmentation_id": 4, "x": 1, "y": 2, "z": 2, "t": 3},
-        {"segmentation_id": 5, "x": 1, "y": 1, "z": 2, "t": 3},
+        {"segmentation_id": 5, "x": 1, "y": 1, "z": 2, "t": 4},
     ]
     df = pd.DataFrame(data)
     G = _ctc.ctc_to_graph(df, pd.DataFrame.from_records(detections))

@@ -91,9 +91,9 @@ def nx_comp1_pos_list():
     ]
 
     edges = [
-        {"source": 1, "target": 3, "tp": True},
-        {"source": 3, "target": 5, "tp": False},
-        {"source": 3, "target": 3},
+        {"source": 1, "target": 2, "tp": True},
+        {"source": 2, "target": 5, "tp": False},
+        {"source": 2, "target": 3},
         {"source": 3, "target": 4},
     ]
     graph = nx.DiGraph()
@@ -294,6 +294,55 @@ def test_validate_node():
     tg = TrackingGraph(nx.DiGraph(), segmentation=np.zeros((5, 5), dtype="int"))
     with pytest.raises(AssertionError, match=r"Segmentation label key .* not present for node .*"):
         tg._validate_node(node, attrs)
+
+
+def _graph_with_edges(nodes, edges):
+    """Build a DiGraph from {id: t} nodes and a list of (src, dst) edges."""
+    g = nx.DiGraph()
+    g.add_nodes_from([(nid, {"t": t, "y": 0, "x": 0}) for nid, t in nodes.items()])
+    g.add_edges_from(edges)
+    return g
+
+
+def test_validate_edge_self_loop_raises():
+    g = _graph_with_edges({1: 0}, [(1, 1)])
+    with pytest.raises(AssertionError, match=r"does not go forward in time"):
+        TrackingGraph(g, location_keys=("y", "x"))
+
+
+def test_validate_edge_backward_raises():
+    # Edge from a later frame to an earlier one.
+    g = _graph_with_edges({1: 0, 2: 1}, [(2, 1)])
+    with pytest.raises(AssertionError, match=r"does not go forward in time"):
+        TrackingGraph(g, location_keys=("y", "x"))
+
+
+def test_validate_edge_same_frame_raises():
+    # Both endpoints in the same frame (e.g. a merge/link within a frame).
+    g = _graph_with_edges({1: 0, 2: 0}, [(1, 2)])
+    with pytest.raises(AssertionError, match=r"does not go forward in time"):
+        TrackingGraph(g, location_keys=("y", "x"))
+
+
+def test_validate_edge_forward_and_skip_edges_pass():
+    # Consecutive-frame edge and a skip edge (spanning 2 frames) both allowed.
+    g = _graph_with_edges({1: 0, 2: 1, 3: 3}, [(1, 2), (2, 3)])
+    tg = TrackingGraph(g, location_keys=("y", "x"))
+    assert tg.graph.number_of_edges() == 2
+
+
+def test_validate_edge_merge_passes():
+    # Two parents in frame 0 merge into one child in frame 1 (in-degree 2).
+    g = _graph_with_edges({1: 0, 2: 0, 3: 1}, [(1, 3), (2, 3)])
+    tg = TrackingGraph(g, location_keys=("y", "x"))
+    assert tg.graph.in_degree(3) == 2
+
+
+def test_validate_edge_skipped_when_validate_false():
+    # validate=False bypasses edge validation, mirroring node validation.
+    g = _graph_with_edges({1: 0}, [(1, 1)])  # self-loop
+    tg = TrackingGraph(g, location_keys=("y", "x"), validate=False)
+    assert tg.graph.number_of_edges() == 1
 
 
 def test_get_cells_by_frame(simple_graph):
