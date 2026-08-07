@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783978559882,
+  "lastUpdate": 1786085045674,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -24833,6 +24833,240 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 2.0556982780000226 sec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bgallusser@googlemail.com",
+            "name": "Benjamin Gallusser",
+            "username": "bentaculum"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fbbc6a6ddfe879fe556d21c1d8ff7774e6f5cc9c",
+          "message": "Validate that TrackingGraph edges go forward in time (#359)\n\n## Summary\n\n`TrackingGraph` is documented as \"a directed graph representing a\ntracking solution where edges go forward in time,\" but nothing enforced\nit. Self-loops, same-frame edges, and cycles all passed through\nconstruction silently — even though downstream code assumes strictly\nforward edges (`is_skip_edge` computes `frame[src] + 1 != frame[dst]`,\nthe complete-tracks metric computes `target_frame - source_frame`\nexpecting a positive span, and the matchers rely on the DAG/forward\nstructure).\n\nThis came up while reviewing the napari loader (#358): a self-parent\nentry `{1: [1]}` would build a 2-cycle that no layer caught. Rather than\nspecial-case it in one loader, this enforces the invariant centrally\nwhere it belongs.\n\n## Change\n\nAdds `TrackingGraph._validate_edge`, called per edge in `_set_attrs`\nunder the existing `validate` flag. Every edge `(src, dst)` must satisfy\n`frame[dst] > frame[src]`. This:\n\n- rejects **self-loops** (`frame[dst] == frame[src]`),\n- rejects **backward** and **same-frame** edges,\n- **guarantees acyclicity** — since the frame strictly increases along\nevery edge, no cycle can exist,\n- still **allows skip edges** (spanning more than one frame — they go\nforward),\n- and is **bypassed by `validate=False`**, consistent with the existing\nnode validation. (`clear_annotations()` already calls\n`_set_attrs(validate=False)`, so it's unaffected.)\n\nUses `assert` to match the style of the sibling `_validate_node` rather\nthan mixing in a `ValueError`.\n\n## Fixture fixes\n\nFour pre-existing tests built degenerate graphs with same-frame edges\nthat only worked because nothing validated them. I verified each is\naccidental (not testing same-frame behavior) and that no production code\npath legitimately produces such edges — the CTC public loader, for\ninstance, already rejects a daughter that starts before its parent ends:\n\n- **`nx_comp1_pos_list`** — its edge list was a copy-paste error vs. the\nsibling `nx_comp1` (a self-loop `(3,3)` and same-frame `(3,5)`);\nrestored to the intended edges.\n- **`test_ctc_single_nodes`** — a daughter tracklet started in its\nparent's final frame (invalid CTC); moved it one frame later.\n- **`test_assign_edge_errors`** — all nodes were at `t=0`; edge sources\nnow sit in frame 0, targets in frame 1.\n- **`test_simple_2d` (geff)** — the synthetic geff sample graph is\nnon-temporal (paired nodes share a frame); reassigns a unique increasing\ntime per node so the loaded graph is forward-in-time.\n\n## Testing\n\n- 6 new tests: self-loop / backward / same-frame all raise; forward +\nskip edges pass; merge (in-degree 2) passes; `validate=False` bypasses.\n- Full suite: 661 passed, no regressions. ruff / ruff-format / mypy /\ntypos clean.\n\nIndependent design review by Codex confirmed the acyclicity argument,\nthe skip-edge compatibility, and the `assert`-over-`ValueError`\nconsistency call.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+          "timestamp": "2026-08-06T23:31:38-07:00",
+          "tree_id": "62786619d89d80b0f21c2c0348a74da806e68b81",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/fbbc6a6ddfe879fe556d21c1d8ff7774e6f5cc9c"
+        },
+        "date": 1786085044252,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.22422874485528657,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 4.45973151499993 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.09104816676033627,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 10.983197526999902 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 1.2527799829875015,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 798.2247589998224 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 9.602443688252757,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0010052036669770548",
+            "extra": "mean: 104.14015769999878 msec\nrounds: 10"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 1.477282444014088,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0006666892647489064",
+            "extra": "mean: 676.9186244999901 msec\nrounds: 2"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.14906258931942054,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 6.708591368000043 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 7.379042314099382,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 135.51894099987294 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 2.3667908177049632,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 422.5130469999385 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 8.92108233924751,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 112.0940220000648 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 3.1022846548866636,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 322.34308300007797 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 6.764843075360857,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 147.82308899998498 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 2.1582705087761687,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 463.3339500001057 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 16.320942854307482,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 61.27097000012327 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 2.7060184236448896,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 369.54663400001664 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 53.77171187425511,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 18.597139000121388 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 14.807187906512304,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 67.53476800008684 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 14.543392874114247,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 68.75974599984147 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 2.72582676785941,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 366.8611709999823 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 14.151892974900678,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 70.6619249999676 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 5.031923301372415,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 198.73116899998422 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 4.516180703194873,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 221.42603799989047 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.5611859644100157,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 640.5386819999421 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.5264162562932545,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.899637384000016 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 3.6652135316741163,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 272.83540000007633 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 3.669843673577818,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 272.491170999956 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 1.1195132170246502,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 893.2453719999103 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 7.032484706516571,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 142.1972520001873 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 2.23551844008768,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 447.32352999994873 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[2d]",
+            "value": 2.581599080470301,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 387.35681600019234 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[3d]",
+            "value": 0.5752158554012483,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.73847780899996 sec\nrounds: 1"
           }
         ]
       }
