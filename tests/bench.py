@@ -143,34 +143,43 @@ def test_load_points(benchmark, tmpdir):
     benchmark(load_point_data, filepath)
 
 
+# Match the size of the 2D CTC loader benchmark (Fluo-N2DL-HeLa 01_GT):
+# ~92 frames, ~90 cells per frame -> ~8k detections.
+NAPARI_N_FRAMES = 92
+NAPARI_CELLS_PER_FRAME = 90
+
+
+def _synthetic_napari_data():
+    """Fluo-N2DL-HeLa-sized napari tracks data: one track per cell, each
+    present in every frame, laid out on a grid so per-frame labels are unique.
+
+    Returns ``(data, segmentation)``: ``data`` has columns [track_id, t, y, x]
+    and ``segmentation`` is (T, Y, X) with each cell's label at its grid pixel.
+    """
+    n_cells = NAPARI_CELLS_PER_FRAME
+    grid = int(np.ceil(np.sqrt(n_cells)))  # square-ish grid of cell positions
+    ys, xs = np.divmod(np.arange(n_cells), grid)
+
+    track_ids = np.tile(np.arange(1, n_cells + 1), NAPARI_N_FRAMES)
+    times = np.repeat(np.arange(NAPARI_N_FRAMES), n_cells)
+    y = np.tile(ys, NAPARI_N_FRAMES)
+    x = np.tile(xs, NAPARI_N_FRAMES)
+    data = np.column_stack([track_ids, times, y, x]).astype(float)
+
+    # Each cell's label lives at its grid pixel; labels are unique within a frame.
+    segmentation = np.zeros((NAPARI_N_FRAMES, grid, grid), dtype=np.uint16)
+    for cell in range(n_cells):
+        segmentation[:, ys[cell], xs[cell]] = cell + 1
+    return data, segmentation
+
+
 def test_load_napari(benchmark):
-    nrows = 300
-    # One single-frame track per detection: [track_id, t, y, x].
-    data = np.column_stack(
-        [
-            np.arange(1, nrows + 1),  # track_id
-            np.arange(nrows),  # t
-            np.arange(nrows),  # y
-            np.arange(nrows),  # x
-        ]
-    ).astype(float)
+    data, _ = _synthetic_napari_data()
     benchmark(load_napari_data, data)
 
 
 def test_load_napari_implicit_seg(benchmark):
-    nrows = 300
-    # One detection per frame so labels are trivially unique within a frame.
-    data = np.column_stack(
-        [
-            np.arange(1, nrows + 1),  # track_id
-            np.arange(nrows),  # t
-            np.ones(nrows),  # y
-            np.ones(nrows),  # x
-        ]
-    ).astype(float)
-    # Segmentation where each frame's (y=1, x=1) pixel holds a unique label.
-    segmentation = np.zeros((nrows, 3, 3), dtype=np.uint16)
-    segmentation[np.arange(nrows), 1, 1] = np.arange(1, nrows + 1)
+    data, segmentation = _synthetic_napari_data()
     benchmark(load_napari_data, data, segmentation=segmentation)
 
 
