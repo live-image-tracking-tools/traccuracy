@@ -336,7 +336,7 @@ def load_napari_data(
 
     # Resolve each detection's segmentation label id (or None if no matching).
     # Two modes when a segmentation is given: explicit (read from a properties
-    # column) or, by default, implicit (read the pixel under each position).
+    # column) or, by default, implicit (match detection positions to the centroid of each label).
     seg_ids = None
     if segmentation is not None:
         if seg_id_key is not None:
