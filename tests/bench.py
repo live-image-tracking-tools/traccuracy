@@ -2,6 +2,7 @@ import copy
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -11,6 +12,7 @@ from traccuracy.loaders import (
     load_tiffs,
 )
 from traccuracy.loaders._ctc import _check_ctc, _get_node_attributes
+from traccuracy.loaders._napari import load_napari_data
 from traccuracy.loaders._point import load_point_data
 from traccuracy.matchers import CTCMatcher, IOUMatcher, PointMatcher, PointSegMatcher
 from traccuracy.metrics import (
@@ -139,6 +141,46 @@ def test_load_points(benchmark, tmpdir):
     filepath = os.path.join(tmpdir, "test.csv")
     df.to_csv(filepath)
     benchmark(load_point_data, filepath)
+
+
+# Match the size of the 2D CTC loader benchmark (Fluo-N2DL-HeLa 01_GT):
+# ~92 frames, ~90 cells per frame -> ~8k detections.
+NAPARI_N_FRAMES = 92
+NAPARI_CELLS_PER_FRAME = 90
+
+
+def _synthetic_napari_data():
+    """Fluo-N2DL-HeLa-sized napari tracks data: one track per cell, each
+    present in every frame, laid out on a grid so per-frame labels are unique.
+
+    Returns ``(data, segmentation)``: ``data`` has columns [track_id, t, y, x]
+    and ``segmentation`` is (T, Y, X) with each cell's label at its grid pixel.
+    """
+    n_cells = NAPARI_CELLS_PER_FRAME
+    grid = int(np.ceil(np.sqrt(n_cells)))  # square-ish grid of cell positions
+    ys, xs = np.divmod(np.arange(n_cells), grid)
+
+    track_ids = np.tile(np.arange(1, n_cells + 1), NAPARI_N_FRAMES)
+    times = np.repeat(np.arange(NAPARI_N_FRAMES), n_cells)
+    y = np.tile(ys, NAPARI_N_FRAMES)
+    x = np.tile(xs, NAPARI_N_FRAMES)
+    data = np.column_stack([track_ids, times, y, x]).astype(float)
+
+    # Each cell's label lives at its grid pixel; labels are unique within a frame.
+    segmentation = np.zeros((NAPARI_N_FRAMES, grid, grid), dtype=np.uint16)
+    for cell in range(n_cells):
+        segmentation[:, ys[cell], xs[cell]] = cell + 1
+    return data, segmentation
+
+
+def test_load_napari(benchmark):
+    data, _ = _synthetic_napari_data()
+    benchmark(load_napari_data, data)
+
+
+def test_load_napari_implicit_seg(benchmark):
+    data, segmentation = _synthetic_napari_data()
+    benchmark(load_napari_data, data, segmentation=segmentation)
 
 
 @pytest.mark.parametrize(
