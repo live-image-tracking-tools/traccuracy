@@ -146,6 +146,7 @@ class Test_load_geff_data:
             load_geff_data(geff_path, seg_path=seg_path / seg_group, seg_property=seg_prop)
 
     def test_load_rel_obj(self, tmp_path):
+        """Load segmentation via related_objects using the current ``node_prop`` field."""
         zarr_path = tmp_path / "test.zarr"
         geff_path = zarr_path / "tracks"
         seg_group = "seg"
@@ -159,7 +160,7 @@ class Test_load_geff_data:
         )
         graph, meta = read(geff_store, backend="networkx")
         meta.related_objects = [
-            {"type": "labels", "path": f"../{seg_group}", "label_prop": seg_prop}
+            {"type": "labels", "path": f"../{seg_group}", "node_prop": seg_prop}
         ]
         write(graph=graph, metadata=meta, store=geff_path)
 
