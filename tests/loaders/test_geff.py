@@ -19,7 +19,15 @@ class Test_load_geff_data:
     def test_simple_2d(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
         store, _ = create_simple_2d_geff(directed=True)
-        self.geff_to_disk(store, zarr_path)
+        # The synthetic geff sample places multiple nodes in the same frame,
+        # which isn't a valid forward-in-time tracking graph. Reassign a unique
+        # increasing time per node id (all sample edges go low->high id) so the
+        # loaded graph respects the TrackingGraph forward-in-time contract.
+        graph, meta = read(store, backend="networkx")
+        time_key = next(ax.name for ax in meta.axes if ax.type == "time")
+        for node in graph.nodes:
+            graph.nodes[node][time_key] = float(node)
+        write(graph, zarr_path, meta)
         tg = load_geff_data(zarr_path)
         assert len(tg.get_location(0)) == 2
 
