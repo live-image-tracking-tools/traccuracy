@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786128177353,
+  "lastUpdate": 1786128375020,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -26003,6 +26003,240 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 1.9189413850000392 sec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5ff63564167853d74c2823902e1b315603e6dab0",
+          "message": "ci(dependabot): bump codecov/codecov-action from 6 to 7 (#350)\n\nBumps\n[codecov/codecov-action](https://github.com/codecov/codecov-action) from\n6 to 7.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/codecov/codecov-action/releases\">codecov/codecov-action's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v7.0.0</h2>\n<p>⚠️ Due to migration issues with keybase, we are unable to update our\nkeys under the <code>codecovsecurity</code> account. We have deleted the\naccount and are using <code>codecovsecops</code> with the original gpg\nkey</p>\n<h2>What's Changed</h2>\n<ul>\n<li>ci: remove Enforce License Compliance workflow by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1950\">codecov/codecov-action#1950</a></li>\n<li>chore(release): 7.0.0 by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1957\">codecov/codecov-action#1957</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v6.0.1...v7.0.0\">https://github.com/codecov/codecov-action/compare/v6.0.1...v7.0.0</a></p>\n<h2>v6.0.2</h2>\n<p>This is a copy of the <code>v7.0.0</code> release to make updates\neasier</p>\n<h2>What's Changed</h2>\n<ul>\n<li>ci: remove Enforce License Compliance workflow by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1950\">codecov/codecov-action#1950</a></li>\n<li>chore(release): 7.0.0 by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1957\">codecov/codecov-action#1957</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v6.0.1...v6.0.2\">https://github.com/codecov/codecov-action/compare/v6.0.1...v6.0.2</a></p>\n<h2>v6.0.1</h2>\n<h2>What's Changed</h2>\n<ul>\n<li>fix: prevent template injection in run: steps (VULN-1652) by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1947\">codecov/codecov-action#1947</a></li>\n<li>chore(release): 6.0.1 by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1949\">codecov/codecov-action#1949</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v6.0.0...v6.0.1\">https://github.com/codecov/codecov-action/compare/v6.0.0...v6.0.1</a></p>\n</blockquote>\n</details>\n<details>\n<summary>Changelog</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/codecov/codecov-action/blob/main/CHANGELOG.md\">codecov/codecov-action's\nchangelog</a>.</em></p>\n<blockquote>\n<h2>v5.5.2</h2>\n<h3>What's Changed</h3>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v5.5.1..v5.5.2\">https://github.com/codecov/codecov-action/compare/v5.5.1..v5.5.2</a></p>\n<h2>v5.5.1</h2>\n<h3>What's Changed</h3>\n<ul>\n<li>fix: overwrite pr number on fork by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1871\">codecov/codecov-action#1871</a></li>\n<li>build(deps): bump actions/checkout from 4.2.2 to 5.0.0 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1868\">codecov/codecov-action#1868</a></li>\n<li>build(deps): bump github/codeql-action from 3.29.9 to 3.29.11 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1867\">codecov/codecov-action#1867</a></li>\n<li>fix: update to use local app/ dir by <a\nhref=\"https://github.com/thomasrockhu-codecov\"><code>@​thomasrockhu-codecov</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1872\">codecov/codecov-action#1872</a></li>\n<li>docs: fix typo in README by <a\nhref=\"https://github.com/datalater\"><code>@​datalater</code></a> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1866\">codecov/codecov-action#1866</a></li>\n<li>Document a <code>codecov-cli</code> version reference example by <a\nhref=\"https://github.com/webknjaz\"><code>@​webknjaz</code></a> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1774\">codecov/codecov-action#1774</a></li>\n<li>build(deps): bump github/codeql-action from 3.28.18 to 3.29.9 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1861\">codecov/codecov-action#1861</a></li>\n<li>build(deps): bump ossf/scorecard-action from 2.4.1 to 2.4.2 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1833\">codecov/codecov-action#1833</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v5.5.0..v5.5.1\">https://github.com/codecov/codecov-action/compare/v5.5.0..v5.5.1</a></p>\n<h2>v5.5.0</h2>\n<h3>What's Changed</h3>\n<ul>\n<li>feat: upgrade wrapper to 0.2.4 by <a\nhref=\"https://github.com/jviall\"><code>@​jviall</code></a> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1864\">codecov/codecov-action#1864</a></li>\n<li>Pin actions/github-script by Git SHA by <a\nhref=\"https://github.com/martincostello\"><code>@​martincostello</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1859\">codecov/codecov-action#1859</a></li>\n<li>fix: check reqs exist by <a\nhref=\"https://github.com/joseph-sentry\"><code>@​joseph-sentry</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1835\">codecov/codecov-action#1835</a></li>\n<li>fix: Typo in README by <a\nhref=\"https://github.com/spalmurray\"><code>@​spalmurray</code></a> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1838\">codecov/codecov-action#1838</a></li>\n<li>docs: Refine OIDC docs by <a\nhref=\"https://github.com/spalmurray\"><code>@​spalmurray</code></a> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1837\">codecov/codecov-action#1837</a></li>\n<li>build(deps): bump github/codeql-action from 3.28.17 to 3.28.18 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1829\">codecov/codecov-action#1829</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v5.4.3..v5.5.0\">https://github.com/codecov/codecov-action/compare/v5.4.3..v5.5.0</a></p>\n<h2>v5.4.3</h2>\n<h3>What's Changed</h3>\n<ul>\n<li>build(deps): bump github/codeql-action from 3.28.13 to 3.28.17 by\n<code>@​app/dependabot</code> in <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1822\">codecov/codecov-action#1822</a></li>\n<li>fix: OIDC on forks by <a\nhref=\"https://github.com/joseph-sentry\"><code>@​joseph-sentry</code></a>\nin <a\nhref=\"https://redirect.github.com/codecov/codecov-action/pull/1823\">codecov/codecov-action#1823</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/codecov/codecov-action/compare/v5.4.2..v5.4.3\">https://github.com/codecov/codecov-action/compare/v5.4.2..v5.4.3</a></p>\n<h2>v5.4.2</h2>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li>See full diff in <a\nhref=\"https://github.com/codecov/codecov-action/compare/v6...v7\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=codecov/codecov-action&package-manager=github_actions&previous-version=6&new-version=7)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nYou can trigger a rebase of this PR by commenting `@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\n> **Note**\n> Automatic rebases have been disabled on this pull request as it has\nbeen open for over 30 days.\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Morgan Schwartz <msschwartz21@gmail.com>",
+          "timestamp": "2026-08-07T14:30:34-04:00",
+          "tree_id": "6e014a37227eb14fb6f72310213cf86855ee3eca",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/5ff63564167853d74c2823902e1b315603e6dab0"
+        },
+        "date": 1786128372622,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.14912526288955216,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 6.705771916999993 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.07004501676602604,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 14.27653309499999 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.8336980553901729,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1994750299999168 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 6.13813608244531,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0008911946078264167",
+            "extra": "mean: 162.91590583335847 msec\nrounds: 6"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 0.9056970990353321,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1041218980000167 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.10670688598873854,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 9.37146643099993 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 5.358331593439354,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 186.62525499996718 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 1.811483525192827,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 552.0337260001043 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 7.692341893645026,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 129.99942199996894 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.6497753451569013,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 377.39048399998865 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 5.1062808009569185,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 195.83725200004665 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 1.6825979810875151,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 594.3190300000651 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 11.23576758297407,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 89.00148500003979 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 2.2696848118207424,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 440.58981000000585 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 41.6393321801724,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 24.01575499993669 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 4.375241138678912,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 228.55883100010033 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 11.073697761937165,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 90.3040719999808 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 2.411095994932394,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 414.74914399998397 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 11.91994862883809,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 83.89297899998382 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 3.93693187883056,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 254.0049030000091 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 3.4261935836571293,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 291.86908900010167 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.2167377363177583,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 821.8698000000586 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.37493984291750715,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 2.6670945189999884 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 8.434001433886118,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 118.5676819999344 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 1.6558266841307054,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 603.9279410000518 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 0.86590607826249,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1548596609999322 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 5.082822741339875,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 196.74107299999832 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 1.700920668896644,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 587.9168960000243 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[2d]",
+            "value": 1.907034675996944,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 524.3743139999424 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[3d]",
+            "value": 0.5183807726516532,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.9290838950000762 sec\nrounds: 1"
           }
         ]
       }
