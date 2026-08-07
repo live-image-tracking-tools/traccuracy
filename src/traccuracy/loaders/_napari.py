@@ -90,7 +90,7 @@ def _labels_by_matching(
         # Mask labels and centers of mass, in the same (z,)y,x coordinate order
         # as data[:, 2:].
         labels, coms = _mask_centroids(frame)  # labels (M,), coms (M, ndim)
-        if len(labels) == 0:
+        if len(labels) == 0 and len(rows) != 0:
             raise ValueError(
                 f"frame {int(t)} has {len(rows)} detection(s) but no "
                 "segmentation masks to match them to."
