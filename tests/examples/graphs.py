@@ -88,7 +88,7 @@ def fp_node_matched(time_to_add):  # 0, 1, or 2
     gt = basic_graph()
     pred_node_ids = (4, 5, 6)
     pred = basic_graph(node_ids=pred_node_ids, y_offset=1)
-    pred.graph.add_node(7, **{"t": time_to_add, "x": time_to_add, "y": 2})
+    pred.graph.add_node(7, t=time_to_add, x=time_to_add, y=2)
     mapping = [(1, 4), (2, 5), (3, 6)]
     return Matched(gt, pred, mapping, {})
 
@@ -99,8 +99,8 @@ def fp_edge_matched(edge_to_add):  # 0 or 1
     gt = basic_graph()
     pred_node_ids = (4, 5, 6)
     pred = basic_graph(node_ids=pred_node_ids, y_offset=1)
-    pred.graph.add_node(7, **{"t": edge_to_add, "y": 2})
-    pred.graph.add_node(8, **{"t": edge_to_add + 1, "y": 2})
+    pred.graph.add_node(7, t=edge_to_add, y=2)
+    pred.graph.add_node(8, t=edge_to_add + 1, y=2)
     pred.graph.add_edge(7, 8)
     mapping = [(1, 4), (2, 5), (3, 6)]
     return Matched(gt, pred, mapping, {})
@@ -126,7 +126,7 @@ def node_one_to_two(time):  # 0, 1, or 2
     gt = basic_graph(node_ids=gt_node_ids, y_offset=1)
     pred_node_ids = (4, 5, 6)
     pred = basic_graph(node_ids=pred_node_ids, y_offset=0)
-    pred.graph.add_node(7, **{"t": time, "y": 2})
+    pred.graph.add_node(7, t=time, y=2)
     mapping = [(1, 4), (2, 5), (3, 6)]
     if time == 1:
         pred.graph.remove_edge(5, 6)
@@ -161,7 +161,7 @@ def node_two_to_one(time):  # 0, 1, or 2
     gt = basic_graph(node_ids=gt_node_ids, y_offset=0)
     pred_node_ids = (4, 5, 6)
     pred = basic_graph(node_ids=pred_node_ids, y_offset=1)
-    gt.graph.add_node(7, **{"t": time, "y": 2})
+    gt.graph.add_node(7, t=time, y=2)
     mapping = [(1, 4), (2, 5), (3, 6)]
     if time == 1:
         gt.graph.remove_edge(1, 2)

@@ -29,7 +29,7 @@ def test_get_labels_with_overlap(overlap):
     assert iou == (1.0,) * n_labels
 
     # testing without providing bounding boxes and labels
-    with pytest.warns(UserWarning, match="using 'regionprops' to get them"):
+    with pytest.warns(UserWarning, match="using 'regionprops' to get them"):  # noqa: PT031
         other_ious = get_labels_with_overlap(image1, image1)
         other_gt, other_res, other_iou = tuple(zip(*other_ious, strict=False))
         assert other_gt == gt

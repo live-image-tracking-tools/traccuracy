@@ -273,16 +273,15 @@ class TrackingGraph:
 
             # store node id in nodes_by_frame mapping
             frame = attrs[self.frame_key]
-            if frame not in self.nodes_by_frame.keys():
+            if frame not in self.nodes_by_frame:
                 self.nodes_by_frame[frame] = {node}
             else:
                 self.nodes_by_frame[frame].add(node)
             # store node id in nodes_by_flag mapping
             for node_flag in NodeFlag:
                 # explicitly excluding min buffer correct again
-                if node_flag != NodeFlag.MIN_BUFFER_CORRECT:
-                    if attrs.get(node_flag.value):
-                        self.nodes_by_flag[node_flag.value].add(node)
+                if node_flag != NodeFlag.MIN_BUFFER_CORRECT and attrs.get(node_flag.value):
+                    self.nodes_by_flag[node_flag.value].add(node)
 
         # store edge id in edges_by_flag
         for edge, attrs in self.graph.edges.items():
@@ -376,22 +375,20 @@ class TrackingGraph:
             node (int): Node id
             attrs (dict): Attributes extracted from the graph for the given node
         """
-        assert self.frame_key in attrs.keys(), (
-            f"Frame key {self.frame_key} not present for node {node}."
-        )
+        assert self.frame_key in attrs, f"Frame key {self.frame_key} not present for node {node}."
 
         if self.location_keys is not None:
             if isinstance(self.location_keys, str):
-                assert self.location_keys in attrs.keys(), (
+                assert self.location_keys in attrs, (
                     f"Location key {self.location_keys} not present for node {node}."
                 )
             else:
                 for key in self.location_keys:
-                    assert key in attrs.keys(), f"Location key {key} not present for node {node}."
+                    assert key in attrs, f"Location key {key} not present for node {node}."
 
         # seg id check
         if self.segmentation is not None:
-            assert self.label_key in attrs.keys(), {
+            assert self.label_key in attrs, {
                 f"Segmentation label key {self.label_key} not present for node {node}"
             }
 
@@ -471,7 +468,7 @@ class TrackingGraph:
                 and the value is True.
         """
         if not isinstance(flag, NodeFlag):
-            raise ValueError(f"Function takes NodeFlag arguments, not {type(flag)}.")
+            raise TypeError(f"Function takes NodeFlag arguments, not {type(flag)}.")
         return self.nodes_by_flag[flag]
 
     def get_edges_with_flag(self, flag: EdgeFlag) -> set[tuple[Hashable, Hashable]]:
@@ -485,7 +482,7 @@ class TrackingGraph:
                 and the value is True.
         """
         if not isinstance(flag, EdgeFlag):
-            raise ValueError(f"Function takes EdgeFlag arguments, not {type(flag)}.")
+            raise TypeError(f"Function takes EdgeFlag arguments, not {type(flag)}.")
         return self.edges_by_flag[flag]
 
     def get_divisions(self) -> list[Hashable]:
@@ -521,10 +518,10 @@ class TrackingGraph:
 
         Raises:
             KeyError if the provided id is not in the graph.
-            ValueError if the provided flag is not a NodeFlag
+            TypeError if the provided flag is not a NodeFlag
         """
         if not isinstance(flag, NodeFlag):
-            raise ValueError(
+            raise TypeError(
                 f"Provided  flag {flag} is not of type NodeFlag. "
                 "Please use the enum instead of passing string values."
             )
@@ -565,10 +562,10 @@ class TrackingGraph:
                 Defaults to True.
 
         Raises:
-            ValueError if the provided flag is not a NodeFlag.
+            TypeError if the provided flag is not a NodeFlag.
         """
         if not isinstance(flag, NodeFlag):
-            raise ValueError(
+            raise TypeError(
                 f"Provided  flag {flag} is not of type NodeFlag. "
                 "Please use the enum instead of passing string values."
             )
@@ -598,7 +595,7 @@ class TrackingGraph:
             KeyError if edge with _id not in graph.
         """
         if not isinstance(flag, EdgeFlag):
-            raise ValueError(
+            raise TypeError(
                 f"Provided attribute {flag} is not of type EdgeFlag. "
                 "Please use the enum instead of passing string values."
             )
@@ -641,10 +638,10 @@ class TrackingGraph:
                 Defaults to True.
 
         Raises:
-            ValueError if the provided flag is not an EdgeFlag.
+            TypeError if the provided flag is not an EdgeFlag.
         """
         if not isinstance(flag, EdgeFlag):
-            raise ValueError(
+            raise TypeError(
                 f"Provided  flag {flag} is not of type EdgeFlag. "
                 "Please use the enum instead of passing string values, "
                 "and add new attributes to the class to avoid key collision."

@@ -337,7 +337,7 @@ class Test_match_iou:
     def test_bad_input(self):
         # Bad input
         with pytest.raises(
-            ValueError,
+            TypeError,
             match="Input data must be a TrackingData object with a graph and segmentations",
         ):
             match_iou("not tracking data", "not tracking data")

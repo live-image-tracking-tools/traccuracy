@@ -162,14 +162,15 @@ def _classify_edges(
         source_pred = matched.get_gt_pred_match(source)
         target_pred = matched.get_gt_pred_match(target)
 
-        if relax_skips_gt and (source, target) in gt_skips:
-            if equivalent_path := get_equivalent_skip_edge(
+        if (relax_skips_gt and (source, target) in gt_skips) and (
+            equivalent_path := get_equivalent_skip_edge(
                 matched, source, target, source_pred, target_pred
-            ):
-                gt_graph.remove_flag_from_edge((source, target), EdgeFlag.SKIP_FALSE_NEG)
-                gt_graph.set_flag_on_edge((source, target), EdgeFlag.SKIP_TRUE_POS)
-                for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
-                    pred_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
+            )
+        ):
+            gt_graph.remove_flag_from_edge((source, target), EdgeFlag.SKIP_FALSE_NEG)
+            gt_graph.set_flag_on_edge((source, target), EdgeFlag.SKIP_TRUE_POS)
+            for pth_src, pth_tgt in itertools.pairwise(equivalent_path):
+                pred_graph.set_flag_on_edge((pth_src, pth_tgt), EdgeFlag.SKIP_TRUE_POS)
 
         if (source_pred, target_pred) in pred_graph.edges:
             gt_graph.remove_flag_from_edge((source, target), EdgeFlag.FALSE_NEG)

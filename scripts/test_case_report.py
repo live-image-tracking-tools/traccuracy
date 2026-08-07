@@ -204,7 +204,7 @@ def plot_heatmap(df: pd.DataFrame, name: str, ax: Axes, groups: dict[str, list[s
             and the values are lists of function names
     """
     # Add empty columns for spacing/grouping
-    for group in groups.keys():
+    for group in groups:
         df.loc[group] = [float("nan")] * len(df.columns)
 
     sort = []
