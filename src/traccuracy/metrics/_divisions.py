@@ -164,10 +164,7 @@ class DivisionMetrics(Metric):
                     pass
                 elif NodeFlag.FP_DIV in attrs:
                     fp_division_count += 1
-                elif NodeFlag.WC_DIV in attrs:
-                    # Already counted on gt
-                    pass
-                elif NodeFlag.TP_DIV in attrs:
+                elif NodeFlag.WC_DIV in attrs or NodeFlag.TP_DIV in attrs:
                     # Already counted on gt
                     pass
 

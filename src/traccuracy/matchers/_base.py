@@ -33,10 +33,10 @@ class Matcher(ABC):
             matched (traccuracy.matchers.Matched): Matched data object
 
         Raises:
-            ValueError: gt and pred must be a TrackingGraph object
+            TypeError: gt and pred must be a TrackingGraph object
         """
         if not isinstance(gt_graph, TrackingGraph) or not isinstance(pred_graph, TrackingGraph):
-            raise ValueError(
+            raise TypeError(
                 "Input data must be a TrackingData object with a graph and segmentations"
             )
 

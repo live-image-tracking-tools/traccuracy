@@ -121,10 +121,7 @@ def get_corrected_division_graphs_with_delta(
         if (
             corrected_gt_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
             <= frame_buffer
-        ):
-            corrected_gt_graph.remove_flag_from_node(node, NodeFlag.FN_DIV)
-            corrected_gt_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
-        elif (
+        ) or (
             relax_skip_edges
             and corrected_gt_graph.graph.nodes[node].get(
                 NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan
@@ -137,10 +134,7 @@ def get_corrected_division_graphs_with_delta(
         if (
             corrected_pred_graph.graph.nodes[node].get(NodeFlag.MIN_BUFFER_CORRECT.value, np.nan)
             <= frame_buffer
-        ):
-            corrected_pred_graph.remove_flag_from_node(node, NodeFlag.FP_DIV)
-            corrected_pred_graph.set_flag_on_node(node, NodeFlag.TP_DIV)
-        elif (
+        ) or (
             relax_skip_edges
             and corrected_pred_graph.graph.nodes[node].get(
                 NodeFlag.MIN_BUFFER_CORRECT_SKIP.value, np.nan
@@ -178,17 +172,17 @@ def export_graphs_to_geff(
             annotations for a specific frame buffer. Defaults to 0.
 
     Raises:
-        ValueError: matched argument must be an instance of `Matched`
-        ValueError: results argument must be a list of Results or dictionary objects
+        TypeError: matched argument must be an instance of `Matched`
+        TypeError: results argument must be a list of Results or dictionary objects
         ValueError: Zarr already exists at out_zarr
         ValueError: Requested target frame buffer {target_frame_buffer} exceeds computed "
             "frame buffer {max_frame_buffer}
     """
     if not isinstance(matched, Matched):
-        raise ValueError("matched argument must be an instance of `Matched`")
+        raise TypeError("matched argument must be an instance of `Matched`")
 
     if not isinstance(results, list):
-        raise ValueError("results argument must be a list")
+        raise TypeError("results argument must be a list")
 
     if "~" in str(out_zarr):
         out_zarr = os.path.expanduser(str(out_zarr))
@@ -204,7 +198,7 @@ def export_graphs_to_geff(
         elif isinstance(res, dict):
             res_dicts.append(res)
         else:
-            raise ValueError("results argument must be a list of Results objects or dictionaries")
+            raise TypeError("results argument must be a list of Results objects or dictionaries")
 
     # Check if divs in results and frame buffer is valid
     reannotate_div = False
@@ -274,14 +268,14 @@ def save_results_json(results: list[Results] | list[dict[str, Any]], out_path: s
 
     Raises:
         ValueError: out_path already exists
-        ValueError: results argument must be a list of Results objects or dictionaries
-        ValueError: results argument must be a list
+        TypeError: results argument must be a list of Results objects or dictionaries
+        TypeError: results argument must be a list
     """
     if "~" in str(out_path):
         out_path = os.path.expanduser(str(out_path))
 
     if not isinstance(results, list):
-        raise ValueError("results argument must be a list")
+        raise TypeError("results argument must be a list")
 
     if os.path.exists(out_path):
         raise ValueError(f"out_path {out_path} already exists")
@@ -293,7 +287,7 @@ def save_results_json(results: list[Results] | list[dict[str, Any]], out_path: s
         elif isinstance(res, dict):
             res_dicts.append(res)
         else:
-            raise ValueError("results argument must be a list of Results objects or dictionaries")
+            raise TypeError("results argument must be a list of Results objects or dictionaries")
 
     with open(out_path, mode="w") as f:
         json.dump({"traccuracy": res_dicts}, f)

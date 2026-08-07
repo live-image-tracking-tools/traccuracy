@@ -76,8 +76,8 @@ class TestStandardOverlapMetrics:
         metric = TrackOverlapMetrics(include_division_edges=incl_div_edges)
         results = metric._compute(matched)
 
-        if tp is np.nan:
-            assert results[self.tp] is tp
+        if np.isnan(tp):
+            assert np.isnan(results[self.tp])
         else:
             assert results[self.tp] == tp
         assert results[self.te] == te

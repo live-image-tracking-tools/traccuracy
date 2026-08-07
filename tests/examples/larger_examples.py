@@ -95,7 +95,7 @@ def larger_example_1(frame_key="t", location_keys=("y")) -> Matched:
     pred_missing_nodes = [40, 41, 47, 56, 57]
     pred_missing_edges = [(48, 53), (42, 43)]
     pred = full_graph(frame_key=frame_key, location_keys=location_keys, stagger=0.4)
-    pred = nx.relabel_nodes(pred, {i: i + 30 for i in range(0, 31)})
+    pred = nx.relabel_nodes(pred, {i: i + 30 for i in range(31)})
     pred.remove_nodes_from(pred_missing_nodes)
     pred.remove_edges_from(pred_missing_edges)
 

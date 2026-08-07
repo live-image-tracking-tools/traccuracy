@@ -171,11 +171,11 @@ def match_iou(
         list[(gt_node, pred_node)]: list of tuples where each tuple contains a gt node and pred node
 
     Raises:
-        ValueError: gt and pred must be a TrackingData object
+        TypeError: gt and pred must be a TrackingData object
         ValueError: GT and pred segmentations must be the same shape
     """
     if not isinstance(gt, TrackingGraph) or not isinstance(pred, TrackingGraph):
-        raise ValueError("Input data must be a TrackingData object with a graph and segmentations")
+        raise TypeError("Input data must be a TrackingData object with a graph and segmentations")
 
     if gt.segmentation is None or pred.segmentation is None:
         raise ValueError("TrackingGraph must contain a segmentation array for IoU matching")

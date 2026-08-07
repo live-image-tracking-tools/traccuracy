@@ -160,8 +160,7 @@ def _calc_overlap_score(
             if (ref_src, ref_tgt) in reference_skips:
                 # if this is a skip edge, there is some equivalent path in the overlaps
                 # let's find an edge on that path and update the count
-                for node in overlap_path_to_reference_skip_map:
-                    path_info = overlap_path_to_reference_skip_map[node]
+                for path_info in overlap_path_to_reference_skip_map.values():
                     found = False
                     for i, skip_edge in enumerate(path_info["skip_edge"]):
                         if skip_edge == (ref_src, ref_tgt):

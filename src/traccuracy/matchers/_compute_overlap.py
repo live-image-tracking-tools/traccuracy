@@ -223,7 +223,7 @@ except ImportError:
     import os
     import warnings
 
-    if not os.getenv("NO_JIT_WARNING", False):
+    if not os.getenv("NO_JIT_WARNING", False):  # noqa: PLW1508
         warnings.warn(
             "Numba not installed, falling back to slower numpy implementation. "
             "Install numba for a significant speedup.  Set the environment "

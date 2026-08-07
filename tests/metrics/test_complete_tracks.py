@@ -80,8 +80,8 @@ def test_one_to_one_single(error_type, matched_func, expected_result):
     total, correct, fraction = expected_result
     assert result.results["total_tracklets"] == total
     assert result.results["correct_tracklets"] == correct
-    if fraction is np.nan:
-        assert result.results["complete_tracklets"] is np.nan
+    if np.isnan(fraction):
+        assert np.isnan(result.results["complete_tracklets"])
     else:
         assert result.results["complete_tracklets"] == fraction
 
@@ -103,8 +103,8 @@ def test_one_to_one_multi(error_type, matched_func, expected_result):
         result = complete_tracks.compute(matched)
         assert result.results["total_tracklets"] == expected_result[0]
         assert result.results["correct_tracklets"] == expected_result[1]
-        if expected_result[2] is np.nan:
-            assert result.results["complete_tracklets"] is np.nan
+        if np.isnan(expected_result[2]):
+            assert np.isnan(result.results["complete_tracklets"])
         else:
             assert result.results["complete_tracklets"] == expected_result[2]
 
@@ -124,8 +124,8 @@ def test_two_to_one(matched_func, expected_result):
         result = complete_tracks.compute(matched)
         assert result.results["total_tracklets"] == expected_result[0]
         assert result.results["correct_tracklets"] == expected_result[1]
-        if expected_result[2] is np.nan:
-            assert result.results["complete_tracklets"] is np.nan
+        if np.isnan(expected_result[2]):
+            assert np.isnan(result.results["complete_tracklets"])
         else:
             assert result.results["complete_tracklets"] == expected_result[2]
 
@@ -146,8 +146,8 @@ def test_skip_edges(matched_func, relax_gt, relax_pred, expected_result):
     total, correct, fraction = expected_result
     assert result.results["total_tracklets"] == total
     assert result.results["correct_tracklets"] == correct
-    if fraction is np.nan:
-        assert result.results["complete_tracklets"] is np.nan
+    if np.isnan(fraction):
+        assert np.isnan(result.results["complete_tracklets"])
     else:
         assert result.results["complete_tracklets"] == fraction
 
@@ -168,15 +168,15 @@ def test_div_examples(error_type, matched_func, params, expected_result):
 
         assert result.results["total_tracklets"] == total_tra
         assert result.results["correct_tracklets"] == correct_tra
-        if fraction_tra is np.nan:
-            assert result.results["complete_tracklets"] is np.nan
+        if np.isnan(fraction_tra):
+            assert np.isnan(result.results["complete_tracklets"])
         else:
             assert result.results["complete_tracklets"] == fraction_tra
 
         assert result.results["total_lineages"] == total_lin
         assert result.results["correct_lineages"] == correct_lin
-        if fraction_lin is np.nan:
-            assert result.results["complete_lineages"] is np.nan
+        if np.isnan(fraction_lin):
+            assert np.isnan(result.results["complete_lineages"])
         else:
             assert result.results["complete_lineages"] == fraction_lin
 
@@ -198,15 +198,15 @@ def test_div_skip_examples(error_type, matched_func, relax_gt, relax_pred, expec
 
     assert result.results["total_tracklets"] == total_tra
     assert result.results["correct_tracklets"] == correct_tra
-    if fraction_tra is np.nan:
-        assert result.results["complete_tracklets"] is np.nan
+    if np.isnan(fraction_tra):
+        assert np.isnan(result.results["complete_tracklets"])
     else:
         assert result.results["complete_tracklets"] == fraction_tra
 
     assert result.results["total_lineages"] == total_lin
     assert result.results["correct_lineages"] == correct_lin
-    if fraction_lin is np.nan:
-        assert result.results["complete_lineages"] is np.nan
+    if np.isnan(fraction_lin):
+        assert np.isnan(result.results["complete_lineages"])
     else:
         assert result.results["complete_lineages"] == fraction_lin
 

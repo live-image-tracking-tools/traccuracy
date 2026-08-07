@@ -91,7 +91,7 @@ def load_geff_data(
         for rel_obj in meta.related_objects:
             if rel_obj.type == "labels":
                 rel_obj_path = os.path.join(geff_path, rel_obj.path)
-                label_key = rel_obj.label_prop
+                label_key = rel_obj.node_prop
 
         if rel_obj_path is None:
             raise ValueError('Did not find related_object of type "labels" in geff related objects')
