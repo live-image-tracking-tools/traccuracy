@@ -149,3 +149,91 @@ class TestMetric:
         results = m.compute(self.matched, relax_skips_gt=True, relax_skips_pred=False)
         assert results.metric_info["relax_skips_gt"] is True
         assert results.metric_info["relax_skips_pred"] is False
+
+    def test_classify_sparse_gt_default_dense_only(self):
+        # A metric that does not opt in classifies every key as dense-only.
+        m = ValidMetric()
+        assert m._classify_sparse_safe("anything") == "dense_only"
+        assert m.sparse_safe_keys == frozenset()
+        assert m.agnostic_keys == frozenset()
+        assert m.info["sparse_safe_keys"] == ()
+        assert m.info["agnostic_keys"] == ()
+
+    def test_classify_sparse_gt_opt_in(self):
+        # A subclass can declare specific keys as sparse-safe or agnostic; anything
+        # else still falls back to dense-only.
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+        m = MixedMetric()
+        assert m._classify_sparse_safe("safe_key") == "sparse_safe"
+        assert m._classify_sparse_safe("neutral_key") == "agnostic"
+        assert m._classify_sparse_safe("other_key") == "dense_only"
+
+    def test_classify_sparse_gt_surfaces_in_results(self):
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+        # Fresh matched with the matching type set so no "empty mapping" warning fires.
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        results = MixedMetric().compute(matched)
+        assert results.metric_info["sparse_safe_keys"] == ("safe_key",)
+        assert results.metric_info["agnostic_keys"] == ("neutral_key",)
+
+    def test_sparse_only_warns_when_metric_has_no_safe_keys(self):
+        # A metric that declares no sparse-safe/agnostic keys (the default) has
+        # nothing left after filtering; sparse_only=True should say so rather than
+        # silently handing back an empty dict.
+        class DenseOnlyMetric(ValidMetric):
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                return {"dense_key": 1}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        with pytest.warns(UserWarning, match="not meaningful on sparse ground truth"):
+            results = DenseOnlyMetric().compute(matched, sparse_only=True)
+        assert results.results == {}
+
+
+def test_filter_sparse_safe_flat_dict():
+    # A metric's own classification is tested per-metric (see e.g. test_basic.py,
+    # test_divisions.py); this only tests the generic filtering mechanism.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"safe_key"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    filtered = m._filter_sparse_safe({"safe_key": 1, "neutral_key": 2, "dense_only_key": 3})
+    assert filtered == {"safe_key": 1, "neutral_key": 2}
+
+
+def test_filter_sparse_safe_recurses_into_nested_dicts():
+    # A key whose value is itself a dict (e.g. a per-frame-buffer bucket) is
+    # recursed into rather than classified directly -- only its leaf keys
+    # represent actual metric values.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"safe_key"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    filtered = m._filter_sparse_safe(
+        {
+            "Bucket 0": {"safe_key": 1, "neutral_key": 2, "dense_only_key": 3},
+            "Bucket 1": {"safe_key": 4, "dense_only_key": 5},
+        }
+    )
+    assert filtered == {
+        "Bucket 0": {"safe_key": 1, "neutral_key": 2},
+        "Bucket 1": {"safe_key": 4},
+    }

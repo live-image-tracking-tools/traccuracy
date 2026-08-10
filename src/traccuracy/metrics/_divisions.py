@@ -78,6 +78,21 @@ class DivisionMetrics(Metric):
             similar to scikit-learn's ``zero_division`` parameter.
     """
 
+    # Recall, true/false-negative counts, and wrong-children counts only judge
+    # divisions the ground truth annotates, so they remain valid on sparse ground
+    # truth. Totals are raw counts, not a judgment either way. Precision, F1, and MBC
+    # all use the false-positive-division count and are dense-only.
+    sparse_safe_keys = frozenset(
+        {
+            "Division Recall",
+            "True Positive Divisions",
+            "False Negative Divisions",
+            "Wrong Children Divisions",
+            "True Positive Skip Divisions",
+        }
+    )
+    agnostic_keys = frozenset({"Total GT Divisions", "Total Predicted Divisions"})
+
     def __init__(self, max_frame_buffer: int = 0, zero_division: float = np.nan) -> None:
         super().__init__(VALID_MATCHING_TYPES, zero_division=zero_division)
 

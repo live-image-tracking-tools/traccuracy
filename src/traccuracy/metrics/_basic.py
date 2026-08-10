@@ -26,6 +26,27 @@ class BasicMetrics(Metric):
     Consider eliminating metrics that use the number of false positives.
     """
 
+    # True positives, false negatives, and recall only judge structure the ground
+    # truth annotates, so they remain valid on sparse ground truth. Totals are raw
+    # counts, not a judgment either way. Everything else (false positives, precision,
+    # F1) treats an unmatched prediction as an error and is dense-only.
+    sparse_safe_keys = frozenset(
+        {
+            "True Positive Nodes",
+            "True Positive Edges",
+            "False Negative Nodes",
+            "False Negative Edges",
+            "Node Recall",
+            "Edge Recall",
+            "Skip GT True Positive Edges",
+            "Skip Pred True Positive Edges",
+            "Skip False Negative Edges",
+        }
+    )
+    agnostic_keys = frozenset(
+        {"Total GT Nodes", "Total GT Edges", "Total Pred Nodes", "Total Pred Edges"}
+    )
+
     def __init__(self) -> None:
         super().__init__(VALID_MATCHING_TYPES)
 

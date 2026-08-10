@@ -74,6 +74,12 @@ class CompleteTracksByLength(Metric):
 
     """
 
+    # Only ground-truth segments are scored; predictions beyond the ground truth are
+    # never penalized, so `correct`/`accuracy` are valid on sparse ground truth.
+    # `total` is just the ground-truth segment count, not a judgment either way.
+    sparse_safe_keys = frozenset({"correct", "accuracy"})
+    agnostic_keys = frozenset({"total"})
+
     def __init__(
         self,
         max_length: int | None = None,

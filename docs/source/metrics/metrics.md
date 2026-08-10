@@ -14,9 +14,33 @@ they can accept, and a brief description of behavior and any hyperparameters.
 
 Many metrics support relaxing skip edges for the ground truth and/or the prediction. Relaxing a skip edge means allowing one edge that spans multiple frames to match multiple edges in the other graph, thus potentially reducing the number of errors.
 
-:::{warning}
-Unless otherwise noted, metrics are written assuming that you have dense ground truth annotations. The results on sparse annotations may be unpredictable and should be interpreted cautiously.
+(sparse-annotations)=
+## Dense vs. sparse ground truth
+
+Most metrics assume **dense** ground truth (every real cell is annotated), so a predicted node, edge, or division with no ground truth match is a false positive. On **sparse** ground truth, where only a subset of cells are annotated, that would over-penalize correct predictions of unannotated cells.
+
+Each `Metric` classifies every key in the dictionary it returns, via `Metric._classify_sparse_safe(key)` (also surfaced as `sparse_safe_keys`/`agnostic_keys` on {class}`~traccuracy.metrics.Results`'s `metric` info). Many metrics mix categories: for example {class}`~traccuracy.metrics.DivisionMetrics` reports both a sparse-safe recall and a dense-only precision from the same call. The three categories are:
+
+- **sparse-safe**: judges only structure the annotation can judge (matches, ground-truth-only counts, false negatives). Valid on both sparse and dense ground truth.
+- **agnostic**: a raw count or other value that is not itself a quality judgment (e.g. `Total GT Nodes`). Accurate regardless of annotation density, so no claim is made either way.
+- **dense-only** (the default for any key not listed above): counts or derives from unmatched predictions (false positives, precision, F1, ...) and will over-penalize correct predictions of unannotated ground truth.
+
+:::{note}
+`Metric.compute` has a `sparse_safe` option which can be set to True in order to return only sparse safe results.
 :::
+
+Sparse-safe and agnostic keys by metric (everything else that metric returns is dense-only):
+
+| Metric | Sparse-safe keys | Agnostic keys |
+|---|---|---|
+| [Basic Metrics](basic-metrics) | `True/False Negative {Nodes,Edges}`, `{Node,Edge} Recall`, `Skip GT/Pred True Positive Edges`, `Skip False Negative Edges` | `Total GT/Pred {Nodes,Edges}` |
+| [Division metrics](division-metrics) | `Division Recall`, `True/False Negative Divisions`, `Wrong Children Divisions`, `True Positive Skip Divisions` | `Total GT Divisions`, `Total Predicted Divisions` |
+| [CTC Metrics](ctc-metrics) | none | none |
+| [Cell Cycle Accuracy (CCA)](cca) | none | none |
+| [Complete Tracklets and Lineages](complete-tracks) | `correct_lineages`, `correct_tracklets`, `complete_lineages`, `complete_tracklets` | `total_lineages`, `total_tracklets` |
+| [Track Overlap Metrics](track-overlap-metrics) | `target_effectiveness`, `track_fractions` | none |
+| [Complete Tracks by Length](complete-tracks-by-length-metric) | `correct`, `accuracy` | `total` |
+| [Cell-specific Higher Order Tracking Accuracy (CHOTA)](chota-metric) | none | none |
 
 | Metric category | Matching Type(s) | Description |
 ------------------|------------------|-------------
