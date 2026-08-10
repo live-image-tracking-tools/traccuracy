@@ -205,6 +205,29 @@ class TestMetric:
             results = DenseOnlyMetric().compute(matched, sparse_only=True)
         assert results.results == {}
 
+    def test_set_sparse_to_true_with_sparse_gt(self):
+        # Warn and override sparse_only flag if gt graph marked as sparse
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+            def _compute(self, matched, relax_skips_gt, relax_skips_pred):
+                return {"safe_key": 0, "neutral_key": 1}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph(), is_sparse_gt=True),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+
+        with pytest.warns(
+            UserWarning,
+            match="GT graph is marked is_sparse_gt=True. Setting Metrics sparse_only flag to True",
+        ):
+            results = MixedMetric().compute(matched)
+        assert results.metric_info["sparse_only"] is True
+
 
 def test_filter_sparse_safe_flat_dict():
     # A metric's own classification is tested per-metric (see e.g. test_basic.py,

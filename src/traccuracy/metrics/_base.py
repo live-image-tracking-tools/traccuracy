@@ -188,6 +188,14 @@ class Metric(ABC):
             relax_skips_pred=relax_skips_pred,
         )
 
+        # Check if the ground truth graph has the sparse flag set
+        if matched.gt_graph.is_sparse_gt and not sparse_only:
+            sparse_only = True
+            warnings.warn(
+                "GT graph is marked is_sparse_gt=True. Setting Metrics sparse_only flag to True",
+                stacklevel=2,
+            )
+
         if sparse_only:
             res_dict = self._filter_sparse_safe(_res_dict)
             if _is_empty_result(res_dict):
