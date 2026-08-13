@@ -288,7 +288,7 @@ def test_filter_sparse_safe_flat_dict():
         agnostic_keys = frozenset({"neutral_key"})
 
     m = MixedMetric()
-    filtered = m._filter_sparse_safe({"safe_key": 1, "neutral_key": 2, "dense_only_key": 3})
+    filtered, _ = m._filter_sparse_safe({"safe_key": 1, "neutral_key": 2, "dense_only_key": 3})
     assert filtered == {"safe_key": 1, "neutral_key": 2}
 
 
@@ -301,7 +301,7 @@ def test_filter_sparse_safe_recurses_into_nested_dicts():
         agnostic_keys = frozenset({"neutral_key"})
 
     m = MixedMetric()
-    filtered = m._filter_sparse_safe(
+    filtered, _ = m._filter_sparse_safe(
         {
             "Bucket 0": {"safe_key": 1, "neutral_key": 2, "dense_only_key": 3},
             "Bucket 1": {"safe_key": 4, "dense_only_key": 5},
@@ -311,3 +311,33 @@ def test_filter_sparse_safe_recurses_into_nested_dicts():
         "Bucket 0": {"safe_key": 1, "neutral_key": 2},
         "Bucket 1": {"safe_key": 4},
     }
+
+
+def test_filter_sparse_safe_caveats():
+    # Sparse-safe keys that can still be inflated by over-prediction (e.g. "recall") should
+    # produce a caveat; other sparse-safe/agnostic keys should not.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"Node Recall", "True Positive Nodes"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    _, caveats = m._filter_sparse_safe(
+        {"Node Recall": 0.5, "True Positive Nodes": 1, "neutral_key": 2, "dense_only_key": 3}
+    )
+    assert caveats == [m._sparse_caveats("Node Recall")]
+
+
+def test_filter_sparse_safe_caveats_deduplicated_across_nested_dicts():
+    # Nested buckets (e.g. per-frame-buffer) commonly repeat the same leaf key, so the same
+    # caveat should only be reported once.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"Node Recall"})
+
+    m = MixedMetric()
+    _, caveats = m._filter_sparse_safe(
+        {
+            "Bucket 0": {"Node Recall": 0.5},
+            "Bucket 1": {"Node Recall": 0.6},
+        }
+    )
+    assert caveats == [m._sparse_caveats("Node Recall")]

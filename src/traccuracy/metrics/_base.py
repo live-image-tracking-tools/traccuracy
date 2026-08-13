@@ -95,7 +95,36 @@ class Metric(ABC):
             return "agnostic"
         return "dense_only"
 
-    def _filter_sparse_safe(self, results: dict) -> dict:
+    #: Substrings (matched case-insensitively) identifying sparse-safe keys that are still
+    #: susceptible to inflation from over-prediction on sparse ground truth, e.g. "Node Recall"
+    #: or "complete_lineages". See ``_sparse_caveats``.
+    _sparse_inflatable_substrings = (
+        "recall",
+        "accuracy",
+        "complete_",
+        "track_fractions",
+        "target_effectiveness",
+    )
+
+    def _sparse_caveats(self, key: str) -> str | None:
+        """Warn if a sparse-safe key can still be inflated by over-prediction.
+
+        Args:
+            key: A key from the dict returned by ``_compute``.
+
+        Returns:
+            str | None: A warning message if ``key`` matches one of
+                ``_sparse_inflatable_substrings``, else None.
+        """
+        key_lower = key.lower()
+        if any(substring in key_lower for substring in self._sparse_inflatable_substrings):
+            return (
+                f"Warning: {key} on sparse ground truth can be inflated by predicting way too "
+                "many nodes/edges. Don't use this metric in isolation to compare methods."
+            )
+        return None
+
+    def _filter_sparse_safe(self, results: dict) -> tuple[dict, list[str]]:
         """Recursively filter a ``_compute`` results dict down to sparse-safe/agnostic keys.
 
         Keys whose value is itself a dict (e.g. the "Frame Buffer 0" buckets in
@@ -107,14 +136,23 @@ class Metric(ABC):
 
         Returns:
             dict: `results` with every dense-only leaf key removed.
+            list[str]: Deduplicated warnings about sparse-safe keys that can still be
+                inflated by over-prediction (see ``_sparse_caveats``). Nested buckets
+                (e.g. per-frame-buffer) commonly repeat the same leaf key, so the same
+                caveat is only reported once.
         """
         filtered = {}
+        caveats: dict[str, None] = {}  # dict used as an ordered set to dedupe caveats
         for key, value in results.items():
             if isinstance(value, dict):
-                filtered[key] = self._filter_sparse_safe(value)
+                filtered[key], nested_caveats = self._filter_sparse_safe(value)
+                caveats.update(dict.fromkeys(nested_caveats))
             elif self._classify_sparse_safe(key) in ("sparse_safe", "agnostic"):
                 filtered[key] = value
-        return filtered
+                caveat = self._sparse_caveats(key)
+                if caveat is not None:
+                    caveats[caveat] = None
+        return filtered, list(caveats)
 
     @abstractmethod
     def _compute(
@@ -190,6 +228,7 @@ class Metric(ABC):
 
         # Whether anything can survive filtering is a class-level property, so answer it
         # before paying for _compute instead of computing and discarding everything.
+        caveats: list = []
         res_dict: dict
         if sparse_only and not (type(self).sparse_safe_keys | type(self).agnostic_keys):
             warnings.warn(
@@ -206,12 +245,15 @@ class Metric(ABC):
                 relax_skips_pred=relax_skips_pred,
             )
             if sparse_only:
-                res_dict = self._filter_sparse_safe(res_dict)
+                res_dict, caveats = self._filter_sparse_safe(res_dict)
 
         run_info = self.info
         run_info["relax_skips_gt"] = relax_skips_gt
         run_info["relax_skips_pred"] = relax_skips_pred
         run_info["sparse_only"] = sparse_only
+
+        if caveats:
+            run_info["sparse_metric_warnings"] = caveats
 
         results = Results(
             results=res_dict,
