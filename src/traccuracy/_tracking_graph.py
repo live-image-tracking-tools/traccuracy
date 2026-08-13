@@ -147,8 +147,6 @@ class TrackingGraph:
             the node. Defaults to "t".
         location_keys: tuple of str | str | None
             Key(s) used to access the location of the cell in space.
-        is_sparse_gt: bool
-            Whether this is ground truth with sparse annotations. Read-only.
     """
 
     def __init__(
