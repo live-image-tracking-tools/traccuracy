@@ -14,8 +14,8 @@ they can accept, and a brief description of behavior and any hyperparameters.
 
 Many metrics support relaxing skip edges for the ground truth and/or the prediction. Relaxing a skip edge means allowing one edge that spans multiple frames to match multiple edges in the other graph, thus potentially reducing the number of errors.
 
- Metric category | Matching Type(s) | Description |
-------------------|------------------|-------------
+| Metric category | Matching Type(s) | Description |
+|------------------|------------------|-------------|
 | [Basic Metrics](basic-metrics): TP, FP, and FN nodes and edges | `one-to-one`  | Counts the number of **true positive** (matched) nodes and edges, **false positive** (unmatched in the prediction) nodes and edges, and **false negative** (unmatched in the ground truth) nodes and edges. |
 | [Division metrics](division-metrics): TP, FP, and FN divisions and F1 score/Branching Correctness (BC) | `one-to-one` | Counts the number of **true positive** (matched) divisions, **false positive** (unmatched in the prediction) divisions, and **false negative** (unmatched in the ground truth) divisions. Then computes the division **F1-Score**, also called **Branching Correctness** by the CTC-Bio metrics. Has a `max_frame_buffer` parameter that allows counting divisions as correct within `max_frame_buffer` frames as long as the parent and children match within the buffer| 
 | [CTC Metrics](ctc-metrics): DET, LNK, TRA | `one-to-one`, `many-to-one` | A set of three metrics between 0 and 1, with higher scores indicating better performance. DET measures node errors, LNK measures linking errors, and TRA combines detection and linking errors. |
@@ -36,9 +36,25 @@ Each `Metric` classifies every key in the dictionary it returns, via `Metric._cl
 - **agnostic**: a raw count or other value that is not itself a quality judgment (e.g. `Total GT Nodes`). Accurate regardless of annotation density, so no claim is made either way.
 - **dense-only** (the default for any key not listed above): counts or derives from unmatched predictions (false positives, precision, F1, ...) and will over-penalize correct predictions of unannotated ground truth.
 
+Sparseness is a property of the annotations rather than a per-run choice, so it is declared on
+the ground truth graph itself and is read-only after construction. Pass `is_sparse_gt=True` to
+{class}`~traccuracy.TrackingGraph` or to any loader (`load_ctc_data`, `load_geff_data`,
+`load_napari_data`, `load_point_data`), and every metric computed against that graph
+restricts itself to sparse-safe and agnostic keys:
+
+```python
+gt = load_ctc_data("path/to/gt", is_sparse_gt=True)
+```
+
 :::{note}
-`Metric.compute` has a `sparse_safe` option which can be set to True in order to return only sparse safe results.
+`Metric.compute` also takes a `sparse_only` option, for filtering against a graph that was not
+marked sparse at construction. A graph marked `is_sparse_gt=True` always filters, regardless of
+this option.
 :::
+
+A metric that declares no sparse-safe or agnostic keys at all (CCA, CHOTA) cannot report
+anything under sparse ground truth. Those are skipped with a warning rather than computed and
+discarded.
 
 Sparse-safe and agnostic keys by metric (everything else that metric returns is dense-only):
 
@@ -46,7 +62,7 @@ Sparse-safe and agnostic keys by metric (everything else that metric returns is 
 |---|---|---|
 | [Basic Metrics](basic-metrics) | `True/False Negative {Nodes,Edges}`, `{Node,Edge} Recall`, `Skip GT/Pred True Positive Edges`, `Skip False Negative Edges` | `Total GT/Pred {Nodes,Edges}` |
 | [Division metrics](division-metrics) | `Division Recall`, `True/False Negative Divisions`, `Wrong Children Divisions`, `True Positive Skip Divisions` | `Total GT Divisions`, `Total Predicted Divisions` |
-| [CTC Metrics](ctc-metrics) | none | none |
+| [CTC Metrics](ctc-metrics) | `fn_nodes`, `fn_edges` | none |
 | [Cell Cycle Accuracy (CCA)](cca) | none | none |
 | [Complete Tracklets and Lineages](complete-tracks) | `correct_lineages`, `correct_tracklets`, `complete_lineages`, `complete_tracklets` | `total_lineages`, `total_tracklets` |
 | [Track Overlap Metrics](track-overlap-metrics) | `target_effectiveness`, `track_fractions` | none |
