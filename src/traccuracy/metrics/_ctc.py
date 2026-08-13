@@ -35,6 +35,12 @@ class AOGMMetrics(Metric):
         edge_ws_weight (float): Weight for wrong semantic edge errors. Defaults to 1
     """
 
+    # The false negative counts are read off the ground truth graph, so they only judge
+    # objects the annotation covers and hold on sparse ground truth. AOGM itself (and the
+    # TRA/DET/LNK scores derived from it in CTCMetrics) sums in the false-positive,
+    # non-split and wrong-semantic terms, so those stay dense-only.
+    sparse_safe_keys = frozenset({"fn_nodes", "fn_edges"})
+
     def __init__(
         self,
         vertex_ns_weight: float = 1,

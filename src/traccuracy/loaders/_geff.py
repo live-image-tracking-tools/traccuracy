@@ -21,6 +21,7 @@ def load_geff_data(
     name: str | None = None,
     load_all_props: bool = False,
     border_margin: float | None = None,
+    is_sparse_gt: bool = False,
 ) -> TrackingGraph:
     """Load a graph into memory from a geff file
 
@@ -46,6 +47,10 @@ def load_geff_data(
         border_margin (float, optional): If set, nodes whose centroid is within this
             distance (in pixels) of the spatial border will be excluded from the graph.
             Requires segmentation to be loaded. Defaults to None (no filtering).
+        is_sparse_gt (bool, optional): Set to True if this is ground truth with sparse
+            annotations, i.e. only a subset of the real objects are annotated. Metrics
+            detect this flag and restrict their results to keys that stay valid on sparse
+            ground truth. Defaults to False.
     """
     if load_geff_seg and seg_path is not None:
         raise ValueError('Please specify either load_geff_seg=True or seg_path="path/to/seg.zarr"')
@@ -128,4 +133,5 @@ def load_geff_data(
         location_keys=tuple(spatial_props),
         name=name,
         border_margin=border_margin,
+        is_sparse_gt=is_sparse_gt,
     )

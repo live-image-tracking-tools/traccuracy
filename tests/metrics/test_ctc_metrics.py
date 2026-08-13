@@ -72,18 +72,18 @@ def test_compute_mapping():
     assert results["DET"] == 1
 
 
-def test_sparse_only_filters_everything():
-    # CTC/AOGM errors collapse false positives and false negatives into single
-    # inseparable scores, so no key is sparse-safe or agnostic: sparse_only
-    # filters the whole results dict down to nothing.
+def test_sparse_only_keeps_only_false_negative_counts():
+    # The fn counts are read off the gt graph so they survive sparse filtering, but
+    # AOGM and the TRA/DET/LNK scores derived from it fold in the fp/ns/ws terms and
+    # are dropped.
     n_frames = 3
     n_labels = 3
     track_graph = get_movie_with_graph(ndims=3, n_frames=n_frames, n_labels=n_labels)
 
     matched = CTCMatcher().compute_mapping(gt_graph=track_graph, pred_graph=track_graph)
-    with pytest.warns(UserWarning, match="not meaningful on sparse ground truth"):
-        results = CTCMetrics().compute(matched, sparse_only=True).results
-    assert results == {}
+    results = CTCMetrics().compute(matched, sparse_only=True).results
+
+    assert set(results.keys()) == {"fn_nodes", "fn_edges"}
 
 
 def test_get_det():

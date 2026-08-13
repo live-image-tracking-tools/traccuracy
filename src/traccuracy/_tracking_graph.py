@@ -200,8 +200,11 @@ class TrackingGraph:
                 ``segmentation`` and ``location_keys`` (as a tuple) to be provided.
                 Defaults to None (no filtering).
             is_sparse_gt (bool, optional): If set to True, denotes that this is a ground truth
-                graph with sparse annotations. This flag will be detected by Metrics and used to
-                set the `sparse_only` flag during metric computatation.
+                graph with sparse annotations, i.e. only a subset of the real objects are
+                annotated. This flag will be detected by Metrics and used to set the
+                `sparse_only` flag during metric computation. Read-only after construction,
+                since it describes the annotations rather than a per-run choice.
+                Defaults to False.
         """
         if segmentation is not None and segmentation.dtype.kind not in ["i", "u"]:
             raise TypeError(f"Segmentation must have integer dtype, found {segmentation.dtype}")
@@ -230,7 +233,7 @@ class TrackingGraph:
         self.location_keys = location_keys
         self.name = name
         self.border_margin = border_margin
-        self.is_sparse_gt = is_sparse_gt
+        self._is_sparse_gt = is_sparse_gt
 
         self.graph = graph
 
@@ -423,6 +426,20 @@ class TrackingGraph:
             "TrackingGraph edges must go strictly forward in time (no "
             "self-loops or cycles)."
         )
+
+    @property
+    def is_sparse_gt(self) -> bool:
+        """Whether this graph is ground truth with sparse annotations.
+
+        Read-only: sparseness describes the annotations, so flipping it after
+        construction would silently change the meaning of any results already
+        computed from this graph. Pass ``is_sparse_gt`` to the constructor or to a
+        loader instead.
+
+        Returns:
+            bool: True if only a subset of the real objects are annotated.
+        """
+        return self._is_sparse_gt
 
     @property
     def nodes(self) -> NodeView:

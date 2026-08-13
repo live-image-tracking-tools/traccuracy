@@ -1,3 +1,5 @@
+import warnings
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -187,12 +189,17 @@ class TestMetric:
         assert results.metric_info["sparse_safe_keys"] == ("safe_key",)
         assert results.metric_info["agnostic_keys"] == ("neutral_key",)
 
-    def test_sparse_only_warns_when_metric_has_no_safe_keys(self):
-        # A metric that declares no sparse-safe/agnostic keys (the default) has
-        # nothing left after filtering; sparse_only=True should say so rather than
-        # silently handing back an empty dict.
+    def test_sparse_only_skips_metric_with_no_safe_keys(self):
+        # A metric that declares no sparse-safe/agnostic keys (the default) can never
+        # report anything under sparse_only, which is knowable from the class alone --
+        # so _compute should be skipped entirely rather than computed and discarded.
         class DenseOnlyMetric(ValidMetric):
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.computed = False
+
             def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                self.computed = True
                 return {"dense_key": 1}
 
         matched = Matched(
@@ -201,8 +208,31 @@ class TestMetric:
             [],
             {"matching type": "one-to-one"},
         )
+        metric = DenseOnlyMetric()
         with pytest.warns(UserWarning, match="not meaningful on sparse ground truth"):
-            results = DenseOnlyMetric().compute(matched, sparse_only=True)
+            results = metric.compute(matched, sparse_only=True)
+        assert results.results == {}
+        assert metric.computed is False
+
+    def test_sparse_only_does_not_warn_when_compute_is_legitimately_empty(self):
+        # An empty _compute result must not be mistaken for "this metric has no
+        # sparse-safe keys" -- e.g. CompleteTracksByLength returns {} for a graph with
+        # no frame range while declaring three sparse-safe/agnostic keys.
+        class EmptyResultMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                return {}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            results = EmptyResultMetric().compute(matched, sparse_only=True)
         assert results.results == {}
 
     def test_set_sparse_to_true_with_sparse_gt(self):
@@ -212,7 +242,7 @@ class TestMetric:
             agnostic_keys = frozenset({"neutral_key"})
 
             def _compute(self, matched, relax_skips_gt, relax_skips_pred):
-                return {"safe_key": 0, "neutral_key": 1}
+                return {"safe_key": 0, "neutral_key": 1, "dense_key": 2}
 
         matched = Matched(
             TrackingGraph(nx.DiGraph(), is_sparse_gt=True),
@@ -227,6 +257,27 @@ class TestMetric:
         ):
             results = MixedMetric().compute(matched)
         assert results.metric_info["sparse_only"] is True
+        # The flag actually filtered, rather than only being recorded in the metadata.
+        assert results.results == {"safe_key": 0, "neutral_key": 1}
+
+    def test_explicit_sparse_only_false_does_not_override_sparse_gt(self):
+        # Sparseness describes the annotations, so the graph flag wins over the kwarg.
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                return {"safe_key": 0, "dense_key": 1}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph(), is_sparse_gt=True),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        with pytest.warns(UserWarning, match="GT graph is marked is_sparse_gt=True"):
+            results = MixedMetric().compute(matched, sparse_only=False)
+        assert results.metric_info["sparse_only"] is True
+        assert results.results == {"safe_key": 0}
 
 
 def test_filter_sparse_safe_flat_dict():
