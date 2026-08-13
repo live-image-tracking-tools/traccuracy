@@ -193,6 +193,9 @@ testpaths = ["tests"]
 filterwarnings = [
     "error",
     "ignore:Numba not installed, falling back to slower:UserWarning",
+    # skan calls skimage.util.map_array, which still sets .shape on an ndarray. Raised by
+    # NumPy >= 2.5 and only fixable upstream; reached from CellCycleAccuracy via skan.
+    "ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning",
 ]
 addopts = ["--benchmark-min-rounds=1"]
 pythonpath = [
