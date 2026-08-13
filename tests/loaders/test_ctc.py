@@ -116,6 +116,16 @@ def test_load_data():
     assert len(track_data.segmentation) == 92
 
 
+def test_load_data_is_sparse_gt():
+    test_dir = os.path.abspath(__file__)
+    data_dir = os.path.abspath(
+        os.path.join(test_dir, "../../../examples/sample-data/Fluo-N2DL-HeLa/01_RES/")
+    )
+    track_path = os.path.join(data_dir, "res_track.txt")
+    assert _ctc.load_ctc_data(data_dir, track_path).is_sparse_gt is False
+    assert _ctc.load_ctc_data(data_dir, track_path, is_sparse_gt=True).is_sparse_gt is True
+
+
 def test_load_data_no_track_path():
     test_dir = os.path.abspath(__file__)
     data_dir = os.path.abspath(

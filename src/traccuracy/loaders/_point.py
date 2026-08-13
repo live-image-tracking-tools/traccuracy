@@ -17,6 +17,7 @@ def load_point_data(
     seg_id_column: str | None = None,
     name: str | None = None,
     sep: str | None = None,
+    is_sparse_gt: bool = False,
 ) -> TrackingGraph:
     """Load point-based tracking data into a TrackingGraph from a csv-like file
 
@@ -43,6 +44,10 @@ def load_point_data(
             label id. Defaults to None.
         name (str | None, optional): Optional string to name/describe the dataset. Defaults to None.
         sep (str | None, optional): Passed to pd.read_csv to set the sep kwarg. Defaults to None.
+        is_sparse_gt (bool, optional): Set to True if this is ground truth with sparse
+            annotations, i.e. only a subset of the real objects are annotated. Metrics
+            detect this flag and restrict their results to keys that stay valid on sparse
+            ground truth. Defaults to False.
 
     Raises:
         ValueError: Must provide either a path or a dataframe
@@ -108,6 +113,17 @@ def load_point_data(
 
     if seg_id_column:
         return TrackingGraph(
-            G, frame_key=time_column, location_keys=pos_columns, label_key=seg_id_column, name=name
+            G,
+            frame_key=time_column,
+            location_keys=pos_columns,
+            label_key=seg_id_column,
+            name=name,
+            is_sparse_gt=is_sparse_gt,
         )
-    return TrackingGraph(G, frame_key=time_column, location_keys=pos_columns, name=name)
+    return TrackingGraph(
+        G,
+        frame_key=time_column,
+        location_keys=pos_columns,
+        name=name,
+        is_sparse_gt=is_sparse_gt,
+    )
