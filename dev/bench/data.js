@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786133032415,
+  "lastUpdate": 1786647028628,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -26485,6 +26485,254 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 1.752174203000095 sec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bgallusser@googlemail.com",
+            "name": "Benjamin Gallusser",
+            "username": "bentaculum"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9f7fd495dce0e880af6f337b5944a216deeb5d96",
+          "message": "Ignore the NumPy 2.5 shape deprecation raised via skan (fixes red CI on main) (#365)\n\nCI is currently red on `main` for reasons unrelated to any code change —\nthis is NumPy 2.5 dependency drift, and it needs to land here rather\nthan in a feature branch.\n\n## What breaks\n\n`skan` calls `skimage.util.map_array`, which still assigns to\n`ndarray.shape`. NumPy >= 2.5 deprecates that, and since pytest is\nconfigured with `filterwarnings = [\"error\"]` the warning fails four\ntests:\n\n```\nFAILED tests/metrics/test_cca.py::TestCellCycleAccuracy::test_get_subgraph_lengths\nFAILED tests/metrics/test_cca.py::TestCellCycleAccuracy::test_compute\nFAILED tests/bench.py::test_cca_metric[2d]\nFAILED tests/bench.py::test_cca_metric[3d]\n```\n\nIt only shows on py3.12/3.13 because the resolver picks NumPy 2.5 there;\n3.10 and 3.11 still get an older NumPy. That's why this looks like a\nversion-specific bug and isn't one. `main`'s last green run predates the\nNumPy 2.5 release, so nothing in the repo changed — any PR opened today\nfails the 3.12/3.13 matrix jobs and the Benchmark job.\n\nThe only path is through `CellCycleAccuracy` → `skan` → `skimage`, so it\nisn't fixable in this repo. Ignoring it matches the existing numba\nignore directly above.\n\n## Why it has to land on main\n\nThe Benchmark job does:\n\n```yaml\n- name: Run baseline benchmark if not in cache\n  run: |\n    git checkout ${{ github.event.pull_request.base.sha }}\n    pytest tests/bench.py -v --benchmark-json baseline.json\n```\n\nIt checks out the PR's **base** commit and benchmarks that. So a PR that\ncarries the fix still fails Benchmark, because the baseline run happens\non a commit without it — and the cache key is the base SHA, so it\nre-runs and re-fails every time. Confirmed on #364, where the whole\n3.12/3.13 matrix went green with this change but Benchmark stayed red.\n\n## Verification\n\nA/B on this branch's code in a fresh py3.12 env (NumPy 2.5.2, skan\n0.13.1, skimage 0.26.0):\n\n- `pyproject.toml` from `main` (no ignore): `2 failed, 1 passed` in\n`tests/metrics/test_cca.py` — exactly the tests CI reports.\n- With the ignore: `3 passed`.\n- Full suite on this branch: **683 passed, 1 skipped**.\n\n## Note\n\nThe same commit is currently also on #364 so that its own test matrix\npasses. Once this merges, that one is a duplicate — trivially resolved\n(identical lines), or I can drop it from #364 and rebase.\n\n## About the one red check on this PR\n\nBenchmark is red here too, and it will stay red until this merges.\nThat's the same mechanism described above, not a defect in the fix: the\nonly step that failed is **\"Run baseline benchmark if not in cache\"**,\nwhich does `git checkout <base.sha>` and runs `tests/bench.py` against\n`main` — a commit that by definition doesn't contain this fix. The \"Run\nbenchmark on PR head commit\" step never executed. Every other check\npasses, including the whole 3.12/3.13 matrix that was failing.\n\nSo the ordering is: merge this → `main`'s baseline becomes clean →\nBenchmark goes green for #364 and every subsequent PR. No PR can make it\ngreen beforehand.\n\nIf you'd rather it not be red pre-merge, two options, neither of which I\nwanted to make unilaterally:\n\n1. **Have the baseline step keep the PR's test config**, e.g. `git\ncheckout <base.sha> -- src tests` instead of a full checkout. The\nbaseline then measures base's *code* under the PR's pytest config, which\nis arguably more correct for a comparison anyway (identical config on\nboth sides), and makes fixes like this one self-applying.\n2. **Constrain `numpy` in the `test` extra.** `pip install -e .[test]`\nruns *before* the base checkout, so the installed NumPy comes from the\nPR head regardless of which `pyproject.toml` is checked out afterwards —\na `numpy<2.5` pin would therefore fix the baseline step immediately. But\n`numpy` is an unpinned runtime dependency, so this constrains real\nenvironments and will rot once skan/skimage fix things upstream. I'd\nprefer the ignore.",
+          "timestamp": "2026-08-13T11:41:17-07:00",
+          "tree_id": "ce32c8f5502979a530e907e6d401fc8e29e22df3",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/9f7fd495dce0e880af6f337b5944a216deeb5d96"
+        },
+        "date": 1786647027802,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.15398883516269798,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 6.493977299999983 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.06742337324915754,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 14.83165187100002 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.8504380232064906,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1758646399999861 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 6.3106475883961695,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00115616095390311",
+            "extra": "mean: 158.46234257142962 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/bench.py::test_load_napari",
+            "value": 5.8669380560979105,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10670510035667052",
+            "extra": "mean: 170.4466606666541 msec\nrounds: 9"
+          },
+          {
+            "name": "tests/bench.py::test_load_napari_implicit_seg",
+            "value": 5.2147314984811475,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10188157261871811",
+            "extra": "mean: 191.7644274285765 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 0.9765205582513183,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.024043980999977 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.1029910552582636,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 9.709581064999952 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 5.449081502004931,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 183.51716699999088 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 1.3905304313072797,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 719.1500289999908 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 7.334063566485446,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 136.35005899999442 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.572542131570901,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 388.72055299998465 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 5.140892878192357,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 194.51873899998873 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 1.3397794983934315,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 746.3914780000209 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 11.618396103657007,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 86.07039999998278 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 3.6398291905324,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 274.7381670000095 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 3.9498199391628286,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 253.17609800003993 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 12.519504919176079,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 79.87536300004194 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 10.538476192618926,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 94.89037899999175 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 3.501252688690911,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 285.61206199998423 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 10.814631707881817,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 92.4673189999794 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 3.8672705713886173,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 258.5803040000201 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 3.473794391605655,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 287.86965699998746 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.2181589097068575,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 820.910959999992 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.40209118732268884,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 2.486998053000036 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 8.262543509829158,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 121.0281070000292 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 1.669333502056368,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 599.0414729999429 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 0.8739814387615669,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.1441890589999275 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 4.966592291450716,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 201.34529699998893 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 1.7708218604368808,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 564.7095409999565 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[2d]",
+            "value": 1.981917221140914,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 504.56194099990626 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[3d]",
+            "value": 0.5065077344536437,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.9743035139999847 sec\nrounds: 1"
           }
         ]
       }
