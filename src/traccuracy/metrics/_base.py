@@ -17,13 +17,6 @@ if TYPE_CHECKING:
 MATCHING_TYPES = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"]
 
 
-def _is_empty_result(results: dict) -> bool:
-    """True if `results` has no leaf values, recursing into nested dicts."""
-    if not results:
-        return True
-    return all(isinstance(v, dict) and _is_empty_result(v) for v in results.values())
-
-
 class Metric(ABC):
     """The base class for Metrics
 
@@ -162,7 +155,11 @@ class Metric(ABC):
                 graph have an equivalent multi-edge path in predicted graph
             relax_skips_pred (bool): If True, the metric will check if skips in the predicted
                 graph have an equivalent multi-edge path in ground truth graph
-            sparse_only (bool): If True, returns only metrics that are valid on sparse ground truth
+            sparse_only (bool): If True, returns only metrics that are valid on sparse ground
+                truth. A ``matched.gt_graph`` constructed with ``is_sparse_gt=True`` forces this
+                on regardless, since sparseness is a property of the annotations. If the metric
+                declares no sparse-safe or agnostic keys at all it cannot report anything, so
+                ``_compute`` is skipped and an empty result is returned with a warning.
 
         Returns:
             traccuracy.metrics._results.Results: Object containing metric results
@@ -182,13 +179,8 @@ class Metric(ABC):
                     "of the metric. Check the documentation for the metric for more information."
                 )
 
-        _res_dict = self._compute(
-            matched,
-            relax_skips_gt=relax_skips_gt,
-            relax_skips_pred=relax_skips_pred,
-        )
-
-        # Check if the ground truth graph has the sparse flag set
+        # Sparseness is a property of the annotations, not a per-run choice, so a GT graph
+        # marked sparse forces filtering on.
         if matched.gt_graph.is_sparse_gt and not sparse_only:
             sparse_only = True
             warnings.warn(
@@ -196,17 +188,25 @@ class Metric(ABC):
                 stacklevel=2,
             )
 
-        if sparse_only:
-            res_dict = self._filter_sparse_safe(_res_dict)
-            if _is_empty_result(res_dict):
-                warnings.warn(
-                    f"{type(self).__name__} has no sparse-safe or agnostic keys, so "
-                    "sparse_only=True filtered every result out. This metric is not "
-                    "meaningful on sparse ground truth.",
-                    stacklevel=2,
-                )
+        # Whether anything can survive filtering is a class-level property, so answer it
+        # before paying for _compute instead of computing and discarding everything.
+        res_dict: dict
+        if sparse_only and not (type(self).sparse_safe_keys | type(self).agnostic_keys):
+            warnings.warn(
+                f"{type(self).__name__} has no sparse-safe or agnostic keys, so "
+                "sparse_only=True filtered every result out. This metric is not "
+                "meaningful on sparse ground truth.",
+                stacklevel=2,
+            )
+            res_dict = {}
         else:
-            res_dict = _res_dict
+            res_dict = self._compute(
+                matched,
+                relax_skips_gt=relax_skips_gt,
+                relax_skips_pred=relax_skips_pred,
+            )
+            if sparse_only:
+                res_dict = self._filter_sparse_safe(res_dict)
 
         run_info = self.info
         run_info["relax_skips_gt"] = relax_skips_gt
