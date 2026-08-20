@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786647028628,
+  "lastUpdate": 1787236801996,
   "repoUrl": "https://github.com/live-image-tracking-tools/traccuracy",
   "entries": {
     "Python Benchmark with pytest-benchmark": [
@@ -26733,6 +26733,254 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0",
             "extra": "mean: 1.9743035139999847 sec\nrounds: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a5b87f67ad55a7df12d665025c3a6fe7253ca89",
+          "message": "ci(dependabot): bump EndBug/add-and-commit from 9 to 11 (#366)\n\nBumps [EndBug/add-and-commit](https://github.com/endbug/add-and-commit)\nfrom 9 to 11.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/endbug/add-and-commit/releases\">EndBug/add-and-commit's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v11.0.0</h2>\n<h2>What's Changed</h2>\n<ul>\n<li>chore(deps): bump picomatch by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/724\">EndBug/add-and-commit#724</a></li>\n<li>chore(deps-dev): bump handlebars from 4.7.8 to 4.7.9 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/725\">EndBug/add-and-commit#725</a></li>\n<li>chore(deps): bump lodash from 4.17.23 to 4.18.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/728\">EndBug/add-and-commit#728</a></li>\n<li>chore(deps-dev): bump ts-jest from 29.4.6 to 29.4.9 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/727\">EndBug/add-and-commit#727</a></li>\n<li>chore(deps): bump <code>@​actions/github</code> from 9.0.0 to 9.1.0\nby <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/729\">EndBug/add-and-commit#729</a></li>\n<li>chore(deps): bump <code>@​actions/github</code> from 9.1.0 to 9.1.1\nby <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/732\">EndBug/add-and-commit#732</a></li>\n<li>chore(deps): bump <code>@​actions/core</code> from 3.0.0 to 3.0.1 by\n<a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/733\">EndBug/add-and-commit#733</a></li>\n<li>ci(deps): bump actions/dependency-review-action from 4 to 5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/734\">EndBug/add-and-commit#734</a></li>\n<li>chore(deps-dev): bump ts-jest from 29.4.9 to 29.4.11 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/736\">EndBug/add-and-commit#736</a></li>\n<li>chore(deps-dev): bump jest from 30.3.0 to 30.4.2 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/735\">EndBug/add-and-commit#735</a></li>\n<li>chore(deps-dev): bump eslint-plugin-prettier from 5.5.5 to 5.5.6 by\n<a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/738\">EndBug/add-and-commit#738</a></li>\n<li>chore(deps): bump js-yaml from 4.1.1 to 4.2.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/739\">EndBug/add-and-commit#739</a></li>\n<li>ci(deps): bump actions/checkout from 6 to 7 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/741\">EndBug/add-and-commit#741</a></li>\n<li>chore(deps): bump undici from 6.24.1 to 6.27.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/744\">EndBug/add-and-commit#744</a></li>\n<li>ci(deps): bump actions/setup-node from 6 to 7 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/749\">EndBug/add-and-commit#749</a></li>\n<li>chore(deps-dev): bump <code>@​vercel/ncc</code> from 0.38.4 to\n0.44.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/746\">EndBug/add-and-commit#746</a></li>\n<li>chore(deps): bump js-yaml from 4.2.0 to 5.2.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/747\">EndBug/add-and-commit#747</a></li>\n<li>chore(deps-dev): bump ts-jest from 29.4.11 to 29.4.12 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/750\">EndBug/add-and-commit#750</a></li>\n<li>chore(deps): bump js-yaml from 5.2.1 to 5.2.2 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/751\">EndBug/add-and-commit#751</a></li>\n<li>chore(deps): bump undici from 6.27.0 to 6.28.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/753\">EndBug/add-and-commit#753</a></li>\n<li>fix: reject remote-helper git flags that enable RCE by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/754\">EndBug/add-and-commit#754</a></li>\n<li>fix: prevent git option injection via new_branch by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/755\">EndBug/add-and-commit#755</a></li>\n<li>fix: verify committed lib/ matches source in CI by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/756\">EndBug/add-and-commit#756</a></li>\n<li>fix: stop logging full git config (credential leak) by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/758\">EndBug/add-and-commit#758</a></li>\n<li>fix: reject -F/--file git args that can exfiltrate runner files by\n<a href=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/759\">EndBug/add-and-commit#759</a></li>\n<li>fix: reject unmatched quotes in matchGitArgs to prevent flag\ninjection by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/760\">EndBug/add-and-commit#760</a></li>\n<li>fix: refuse unexpected gitlinks staged by git add by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/761\">EndBug/add-and-commit#761</a></li>\n<li>fix: do not report committed=true for empty commit SHA by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/757\">EndBug/add-and-commit#757</a></li>\n<li>ci: pin actions-tagger and restrict release workflow permissions by\n<a href=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/762\">EndBug/add-and-commit#762</a></li>\n<li>fix: neutralize bidi and control chars in action logs by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/763\">EndBug/add-and-commit#763</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/EndBug/add-and-commit/compare/v10.0.0...v11.0.0\">https://github.com/EndBug/add-and-commit/compare/v10.0.0...v11.0.0</a></p>\n<h2>v10.0.0</h2>\n<h2>What's Changed</h2>\n<ul>\n<li>chore(deps-dev): bump husky from 8.0.3 to 9.0.6 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/617\">EndBug/add-and-commit#617</a></li>\n<li>chore(deps-dev): bump <code>@​typescript-eslint/parser</code> from\n6.19.0 to 6.19.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/618\">EndBug/add-and-commit#618</a></li>\n<li>chore(deps-dev): bump prettier from 3.2.4 to 3.2.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/619\">EndBug/add-and-commit#619</a></li>\n<li>chore(deps-dev): bump <code>@​typescript-eslint/eslint-plugin</code>\nfrom 6.19.1 to 6.21.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/623\">EndBug/add-and-commit#623</a></li>\n<li>chore(deps-dev): bump <code>@​typescript-eslint/parser</code> from\n6.19.1 to 6.21.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/624\">EndBug/add-and-commit#624</a></li>\n<li>chore(deps-dev): bump husky from 9.0.6 to 9.0.11 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/626\">EndBug/add-and-commit#626</a></li>\n<li>chore: switch to GTS for linting by <a\nhref=\"https://github.com/EndBug\"><code>@​EndBug</code></a> in <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/636\">EndBug/add-and-commit#636</a></li>\n<li>chore(deps-dev): bump gts from 5.2.0 to 5.3.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/637\">EndBug/add-and-commit#637</a></li>\n<li>chore(deps-dev): bump typescript from 5.2.2 to 5.4.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/639\">EndBug/add-and-commit#639</a></li>\n<li>chore(deps-dev): bump gts from 5.3.0 to 5.3.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/642\">EndBug/add-and-commit#642</a></li>\n<li>chore(deps-dev): bump braces from 3.0.2 to 3.0.3 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/641\">EndBug/add-and-commit#641</a></li>\n<li>chore(deps-dev): bump typescript from 5.4.5 to 5.5.2 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/EndBug/add-and-commit/pull/644\">EndBug/add-and-commit#644</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca\"><code>645ecc0</code></a>\n11.0.0</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/06e788f69a17ed63d3b182dadd92c16aa342c974\"><code>06e788f</code></a>\nfix: neutralize bidi and control chars in action logs (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/763\">#763</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/68ec86a31c22c3651434dc2581cd311e9d71243f\"><code>68ec86a</code></a>\nci: pin actions-tagger and restrict release workflow permissions (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/762\">#762</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/f1bb0cc0a79ce7f3baaa887ee25d19b5f6dfd2bb\"><code>f1bb0cc</code></a>\nfix: do not report committed=true for empty commit SHA (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/757\">#757</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/ebc24bfdec878c7a9b73d6fd429c88cbb0316100\"><code>ebc24bf</code></a>\nfix: refuse unexpected gitlinks staged by git add (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/761\">#761</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/75038f8fb48a913ed9ff8d7e860506431d01df5d\"><code>75038f8</code></a>\nfix: reject unmatched quotes in matchGitArgs to prevent flag injection\n(<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/760\">#760</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/d07c930b6a89fe2c19ab04c4f9515042dce268de\"><code>d07c930</code></a>\nfix: reject -F/--file git args that can exfiltrate runner files (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/759\">#759</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/0971289a81cc7f8a62a7270d94a96d0c8ec800a9\"><code>0971289</code></a>\nfix: stop logging full git config (credential leak) (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/758\">#758</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/c38a33b50a22a38ea394f7b873cf31878a489851\"><code>c38a33b</code></a>\nfix: verify committed lib/ matches source in CI (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/756\">#756</a>)</li>\n<li><a\nhref=\"https://github.com/EndBug/add-and-commit/commit/b4a0134716b4bf226c6b957f03ee862e961afd8d\"><code>b4a0134</code></a>\nfix: prevent git option injection via new_branch (<a\nhref=\"https://redirect.github.com/endbug/add-and-commit/issues/755\">#755</a>)</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/endbug/add-and-commit/compare/v9...v11\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=EndBug/add-and-commit&package-manager=github_actions&previous-version=9&new-version=11)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-08-20T10:27:11-04:00",
+          "tree_id": "46db8c3954bef078dbd398e636c91a97d55cdea3",
+          "url": "https://github.com/live-image-tracking-tools/traccuracy/commit/8a5b87f67ad55a7df12d665025c3a6fe7253ca89"
+        },
+        "date": 1787236800621,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[2d]",
+            "value": 0.1645861247407541,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 6.0758463180000035 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_gt_ctc_data[3d]",
+            "value": 0.0778157250362969,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 12.850873001999958 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_pred_ctc_data[2d]",
+            "value": 0.8856765636106879,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.129080345000034 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_load_points",
+            "value": 6.3428165124311855,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0007483366929908932",
+            "extra": "mean: 157.65866757143547 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/bench.py::test_load_napari",
+            "value": 7.408837850940477,
+            "unit": "iter/sec",
+            "range": "stddev: 0.06183634318078216",
+            "extra": "mean: 134.97393519998013 msec\nrounds: 10"
+          },
+          {
+            "name": "tests/bench.py::test_load_napari_implicit_seg",
+            "value": 5.982870090799748,
+            "unit": "iter/sec",
+            "range": "stddev: 0.061013003327837274",
+            "extra": "mean: 167.143859857122 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[2d]",
+            "value": 1.00576310405306,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 994.2699189999757 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_checks[3d]",
+            "value": 0.1080683662760114,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 9.253401660999998 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[2d]",
+            "value": 5.684230620969357,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 175.92530399997486 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_matcher[3d]",
+            "value": 1.4888130653268692,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 671.6759969999657 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[2d]",
+            "value": 8.327942517340759,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 120.07767800002966 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_ctc_metrics[3d]",
+            "value": 2.8883692982107814,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 346.21611599993685 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[2d]",
+            "value": 5.336963806521655,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 187.3724529999663 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_matcher[3d]",
+            "value": 1.4059077517480323,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 711.2842210000281 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[2d]",
+            "value": 12.371381703343198,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 80.83171499993114 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_matcher[3d]",
+            "value": 3.680866584947404,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 271.67515500002537 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[2d]",
+            "value": 48.671864075481146,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 20.545750999986012 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_point_seg_matcher[3d]",
+            "value": 15.191305323234552,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 65.82712800002355 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[2d]",
+            "value": 12.38304768698324,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 80.75556399990091 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_iou_div_metrics[3d]",
+            "value": 4.19122785565875,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 238.59356599996318 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[2d]",
+            "value": 12.989759562028564,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 76.98371899994072 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_basic_metrics[3d]",
+            "value": 4.389274020618637,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 227.82810899991546 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[2d]",
+            "value": 3.7329643651455715,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 267.883617999928 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_overlap_metrics[3d]",
+            "value": 1.2834618065766616,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 779.1427800000292 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[2d]",
+            "value": 0.43206904750964675,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 2.314444891999983 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_cca_metric[3d]",
+            "value": 3.9801855853856476,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 251.24456600008216 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[2d]",
+            "value": 3.0802574508750835,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 324.6481879999692 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_chota_metric[3d]",
+            "value": 0.954710721133549,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 1.0474376979999533 sec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[2d]",
+            "value": 5.878913292753312,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 170.09946400003173 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_metric[3d]",
+            "value": 2.0155647675868074,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 496.1388570000054 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[2d]",
+            "value": 2.0762163534788414,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 481.6453729999921 msec\nrounds: 1"
+          },
+          {
+            "name": "tests/bench.py::test_complete_tracks_by_length_metric[3d]",
+            "value": 0.48629209403451695,
+            "unit": "iter/sec",
+            "range": "stddev: 0",
+            "extra": "mean: 2.0563772519999475 sec\nrounds: 1"
           }
         ]
       }
