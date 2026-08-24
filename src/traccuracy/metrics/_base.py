@@ -32,9 +32,9 @@ class Metric(ABC):
     by name, regardless of how deeply it is nested, e.g. under a per-frame-buffer
     bucket) via ``sparse_safe_keys`` and ``agnostic_keys``:
 
-    - ``sparse_safe_keys``: the key is a quality/error assessment that only judges
-      structure the annotation can judge (matches, ground-truth-only counts, false
-      negatives), so it remains valid when ground truth is sparse.
+    - ``sparse_safe_keys``: the key is a quality/error assessment that does not
+      assume predictions with no match are false positives so it remains valid when
+      ground truth is sparse.
     - ``agnostic_keys``: the key is a raw count or other value that is not itself a
       quality assessment (e.g. "Total GT Nodes", "Total Pred Nodes"). It is accurate
       regardless of annotation density, so no claim is made either way.

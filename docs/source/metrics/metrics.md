@@ -32,7 +32,7 @@ Most metrics assume **dense** ground truth (every real cell is annotated), so a 
 
 Each `Metric` classifies every key in the dictionary it returns, via `Metric._classify_sparse_safe(key)` (also surfaced as `sparse_safe_keys`/`agnostic_keys` on {class}`~traccuracy.metrics.Results`'s `metric` info). Many metrics mix categories: for example {class}`~traccuracy.metrics.DivisionMetrics` reports both a sparse-safe recall and a dense-only precision from the same call. The three categories are:
 
-- **sparse-safe**: judges only structure the annotation can judge (matches, ground-truth-only counts, false negatives). Valid on both sparse and dense ground truth.
+- **sparse-safe**: a quality/error assessment that does not assume predictions with no match are false positives so it remains valid when ground truth is sparse.
 - **agnostic**: a raw count or other value that is not itself a quality judgment (e.g. `Total GT Nodes`). Accurate regardless of annotation density, so no claim is made either way.
 - **dense-only** (the default for any key not listed above): counts or derives from unmatched predictions (false positives, precision, F1, ...) and will over-penalize correct predictions of unannotated ground truth.
 
