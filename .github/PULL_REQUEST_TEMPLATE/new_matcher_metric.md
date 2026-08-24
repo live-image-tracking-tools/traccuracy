@@ -13,6 +13,8 @@ Put an x in the boxes that apply. You can also fill these out after creating the
 - [ ] I have added benchmarking functions for my change `tests/bench.py`.
 - [ ] I have added a page to the documentation with a complete description of my matcher/metric including any references.
 - [ ] I have written docstrings and checked that they render correctly in the Read The Docs build (created after the PR is opened).
+- [ ] For a new metric, I have specified `sparse_safe_keys`, `agnostic_keys` and `_sparse_inflatable_substrings` in the Metric definition.
+- [ ] For a new metric, I have added it to `ALL_METRIC_CLASSES` in tests/metrics/test_sparse_safe_keys.py
 
 # Further Comments
 If this is a relatively large or complex change, kick off the discussion by explaining why you chose the solution you did and what alternatives you considered, etc...
