@@ -47,9 +47,7 @@ gt = load_ctc_data("path/to/gt", is_sparse_gt=True)
 ```
 
 :::{note}
-`Metric.compute` also takes a `sparse_only` option, for filtering against a graph that was not
-marked sparse at construction. A graph marked `is_sparse_gt=True` always filters, regardless of
-this option.
+Metrics computed on a graph that is marked as `is_sparse_gt=True` at creation will always use the `sparse_only=True` option. However sparse mode can always be enabled by manually setting the `sparse_only=True` flag when calling `Metric.compute`.
 :::
 
 A metric that declares no sparse-safe or agnostic keys at all (CCA, CHOTA) cannot report
