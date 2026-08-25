@@ -2,10 +2,12 @@
 
 ``sparse_safe_keys``/``agnostic_keys`` repeat result-key strings that ``_compute`` builds
 independently -- ``BasicMetrics`` composes them with f-strings and never writes them as
-literals, and ``DivisionMetrics`` writes them out twice. Nothing ties the two together, and
-the failure is silent: an unrecognized key is classified ``dense_only`` and quietly dropped
-from sparse results, while a declared key that no longer exists is a dead no-op. These tests
-turn both into a test failure.
+literals, and ``DivisionMetrics`` writes them out twice. Nothing ties the two together, so
+renaming a key on one side leaves the other a dead no-op that drops out of sparse results
+without a word. These tests turn that into a test failure.
+
+Whether a single declaration is self-consistent -- no key claimed as both sparse-safe and
+agnostic -- is checked by ``Metric.__init_subclass__`` when the class is defined, not here.
 """
 
 import networkx as nx
@@ -29,18 +31,6 @@ from traccuracy.metrics import (
     TrackOverlapMetrics,
 )
 from traccuracy.metrics._base import Metric
-
-ALL_METRIC_CLASSES = [
-    AOGMMetrics,
-    BasicMetrics,
-    CHOTAMetric,
-    CTCMetrics,
-    CellCycleAccuracy,
-    CompleteTracks,
-    CompleteTracksByLength,
-    DivisionMetrics,
-    TrackOverlapMetrics,
-]
 
 
 def _division_matched():
@@ -137,13 +127,6 @@ def test_declared_keys_are_actually_returned(metric_factory, cases):
     )
 
 
-@pytest.mark.parametrize("metric_class", ALL_METRIC_CLASSES, ids=lambda c: c.__name__)
-def test_sparse_safe_and_agnostic_are_disjoint(metric_class):
-    # A key in both sets resolves to "sparse_safe" silently, hiding the contradiction.
-    overlap = metric_class.sparse_safe_keys & metric_class.agnostic_keys
-    assert not overlap, f"{metric_class.__name__} classifies {sorted(overlap)} as both"
-
-
 def test_metrics_without_declared_keys_are_skipped_not_computed():
     # CCA and CHOTA declare nothing, so under sparse ground truth they cannot report
     # anything. Guards the list in the docs table against silently going stale.
@@ -152,18 +135,35 @@ def test_metrics_without_declared_keys_are_skipped_not_computed():
         assert not metric_class.agnostic_keys
 
 
-def test_every_metric_subclass_is_covered():
-    # A new Metric subclass should be added to ALL_METRIC_CLASSES so its declared keys
-    # get checked rather than silently skipped.
-    subclasses = {c for c in Metric.__subclasses__() if c.__module__.startswith("traccuracy")}
-    subclasses |= {
-        sub
-        for c in subclasses
-        for sub in c.__subclasses__()
-        if sub.__module__.startswith("traccuracy")
-    }
-    uncovered = sorted(c.__name__ for c in subclasses - set(ALL_METRIC_CLASSES))
-    assert not uncovered, f"uncovered Metric subclasses: {uncovered}"
+# Metrics that legitimately declare no sparse-safe or agnostic keys, so there is
+# nothing for DECLARED_KEY_CASES to pin. Listing them explicitly keeps a metric that
+# simply forgot to declare anything from passing as one of these.
+KEYLESS_METRICS = frozenset({CellCycleAccuracy, CHOTAMetric})
+
+
+def _metric_subclasses(cls: type) -> set[type]:
+    """Every traccuracy Metric subclass, at any depth."""
+    found = set()
+    for sub in cls.__subclasses__():
+        if sub.__module__.startswith("traccuracy"):
+            found.add(sub)
+        found |= _metric_subclasses(sub)
+    return found
+
+
+def test_every_metric_is_pinned_or_explicitly_keyless():
+    # Metric.__init_subclass__ already rejects a self-contradictory declaration, but
+    # nothing drags a new metric into DECLARED_KEY_CASES, so its keys would never be
+    # checked against what _compute returns -- and a metric that declares nothing at
+    # all would quietly default to dense-only. Every metric has to land in one bucket.
+    # Each DECLARED_KEY_CASES entry must be a pytest.param so .values[0] is its factory.
+    pinned = {type(param.values[0]()) for param in DECLARED_KEY_CASES}
+    unaccounted = sorted(
+        c.__name__ for c in _metric_subclasses(Metric) if c not in pinned | KEYLESS_METRICS
+    )
+    assert not unaccounted, (
+        f"neither pinned in DECLARED_KEY_CASES nor listed in KEYLESS_METRICS: {unaccounted}"
+    )
 
 
 def test_leaf_keys_recurses():
