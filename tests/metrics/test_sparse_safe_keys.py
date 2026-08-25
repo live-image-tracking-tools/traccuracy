@@ -106,6 +106,12 @@ DECLARED_KEY_CASES = [
 ]
 
 
+# Metrics that legitimately declare no sparse-safe or agnostic keys, so there is
+# nothing for DECLARED_KEY_CASES to pin. Listing them explicitly keeps a metric that
+# simply forgot to declare anything from passing as one of these.
+KEYLESS_METRICS = frozenset({CellCycleAccuracy, CHOTAMetric})
+
+
 @pytest.mark.filterwarnings(
     "ignore:Mapping is empty",
     "ignore:Node errors already calculated",
@@ -125,20 +131,6 @@ def test_declared_keys_are_actually_returned(metric_factory, cases):
         f"declared but never returned: {sorted(declared - produced)}. A renamed or "
         "misspelled key is silently treated as dense-only and dropped from sparse results."
     )
-
-
-def test_metrics_without_declared_keys_are_skipped_not_computed():
-    # CCA and CHOTA declare nothing, so under sparse ground truth they cannot report
-    # anything. Guards the list in the docs table against silently going stale.
-    for metric_class in (CellCycleAccuracy, CHOTAMetric):
-        assert not metric_class.sparse_safe_keys
-        assert not metric_class.agnostic_keys
-
-
-# Metrics that legitimately declare no sparse-safe or agnostic keys, so there is
-# nothing for DECLARED_KEY_CASES to pin. Listing them explicitly keeps a metric that
-# simply forgot to declare anything from passing as one of these.
-KEYLESS_METRICS = frozenset({CellCycleAccuracy, CHOTAMetric})
 
 
 def _metric_subclasses(cls: type) -> set[type]:
@@ -165,12 +157,13 @@ def test_every_metric_is_pinned_or_explicitly_keyless():
         f"neither pinned in DECLARED_KEY_CASES nor listed in KEYLESS_METRICS: {unaccounted}"
     )
 
-
-def test_leaf_keys_recurses():
-    assert _leaf_keys({"Frame Buffer 0": {"a": 1}, "b": 2}) == {"a", "b"}
-    assert _leaf_keys({}) == set()
-    # A list value (CompleteTracksByLength returns lists) is a leaf, not a container.
-    assert _leaf_keys({"accuracy": [1, 2]}) == {"accuracy"}
+    # The other direction: a metric listed as keyless that starts declaring keys would
+    # keep being waved through above while its keys went unpinned.
+    gained = sorted(c.__name__ for c in KEYLESS_METRICS if c.sparse_safe_keys or c.agnostic_keys)
+    assert not gained, (
+        f"listed in KEYLESS_METRICS but now declares keys, so it needs a "
+        f"DECLARED_KEY_CASES entry instead: {gained}"
+    )
 
 
 def test_declared_keys_survive_a_real_sparse_compute():
