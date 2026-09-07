@@ -30,8 +30,8 @@ pred_data: TrackingGraph
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
-    matcher=PointMatcher(), # Choose a matcher that produces a one-to-one mapping
-    metrics=[CompleteTracks(error_type="basic")]
+    matcher=PointMatcher(),  # Choose a matcher that produces a one-to-one mapping
+    metrics=[CompleteTracks(error_type="basic")],
 )
 
 # or using the ctc errors
@@ -39,7 +39,7 @@ results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
     matcher=CTCMatcher(),
-    metrics=[CompleteTracks(error_type="ctc")]
+    metrics=[CompleteTracks(error_type="ctc")],
 )
 ```
 The `results` object contains a dictionary `results.results` that stores all values associated with the metric:

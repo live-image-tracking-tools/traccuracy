@@ -25,8 +25,8 @@ frame_buffer = 2
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
-    matcher=PointMatcher(), # Select any matcher that returns a one-to-one mapping
-    metrics=[DivisionMetrics(max_frame_buffer=frame_buffer)]
+    matcher=PointMatcher(),  # Select any matcher that returns a one-to-one mapping
+    metrics=[DivisionMetrics(max_frame_buffer=frame_buffer)],
 )
 ```
 

@@ -40,22 +40,14 @@ from traccuracy.matchers import PointMatcher
 from traccuracy.metrics import DivisionMetrics, BasicMetrics
 
 # Load data in TrackingGraph objects
-gt_data = load_ctc_data(
-    "path/to/GT/TRA",
-    "path/to/GT/TRA/man_track.txt",
-    name="GT"
-)
-pred_data = load_ctc_data(
-    "path/to/prediction",
-    "path/to/prediction/track.txt",
-    name="prediction"
-)
+gt_data = load_ctc_data("path/to/GT/TRA", "path/to/GT/TRA/man_track.txt", name="GT")
+pred_data = load_ctc_data("path/to/prediction", "path/to/prediction/track.txt", name="prediction")
 
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
     matcher=PointMatcher(),
-    metrics=[DivisionMetrics(), BasicMetrics()]
+    metrics=[DivisionMetrics(), BasicMetrics()],
 )
 ```
 

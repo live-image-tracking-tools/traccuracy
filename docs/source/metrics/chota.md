@@ -19,22 +19,11 @@ from traccuracy.metrics import CHOTAMetrics
 
 # Load data using a function of your choice from traccuracy.loaders
 # Or initialize a TrackingGraph with a nx.DiGraph and optional segmentation arrays
-gt_data = load_ctc_data(
-    "path/to/GT/TRA",
-    "path/to/GT/TRA/man_track.txt",
-    name="GT"
-)
-pred_data = load_ctc_data(
-    "path/to/prediction",
-    "path/to/prediction/track.txt",
-    name="prediction"
-)
+gt_data = load_ctc_data("path/to/GT/TRA", "path/to/GT/TRA/man_track.txt", name="GT")
+pred_data = load_ctc_data("path/to/prediction", "path/to/prediction/track.txt", name="prediction")
 
 results, matched = run_metrics(
-    gt_data=gt_data,
-    pred_data=pred_data,
-    matcher=CTCMatcher(),
-    metrics=[CHOTAMetrics()]
+    gt_data=gt_data, pred_data=pred_data, matcher=CTCMatcher(), metrics=[CHOTAMetrics()]
 )
 ```
 
