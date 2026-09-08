@@ -173,6 +173,34 @@ class TestMetric:
         assert m._classify_sparse_safe("neutral_key") == "agnostic"
         assert m._classify_sparse_safe("other_key") == "dense_only"
 
+    def test_overlapping_key_sets_raise_at_class_definition(self):
+        # Caught when the class is defined, so a bad declaration cannot hide in a
+        # metric that a given run never instantiates.
+        with pytest.raises(ValueError, match="both sparse-safe and agnostic"):
+
+            class ContradictoryMetric(ValidMetric):
+                sparse_safe_keys = frozenset({"shared_key", "safe_key"})
+                agnostic_keys = frozenset({"shared_key"})
+
+    def test_mutable_key_set_is_rejected(self):
+        # A mutable set could be edited into an overlap after __init_subclass__ has
+        # already passed, which a frozenset makes impossible.
+        with pytest.raises(TypeError, match="must be a frozenset"):
+
+            class MutableMetric(ValidMetric):
+                sparse_safe_keys = {"safe_key"}  # noqa: RUF012
+
+    def test_overlap_is_detected_through_inheritance(self):
+        # CTCMetrics inherits its keys from AOGMMetrics, so the check has to look at
+        # the resolved values rather than only what this class body declares.
+        class Parent(ValidMetric):
+            sparse_safe_keys = frozenset({"shared_key"})
+
+        with pytest.raises(ValueError, match="both sparse-safe and agnostic"):
+
+            class Child(Parent):
+                agnostic_keys = frozenset({"shared_key"})
+
     def test_classify_sparse_gt_surfaces_in_results(self):
         class MixedMetric(ValidMetric):
             sparse_safe_keys = frozenset({"safe_key"})

@@ -41,12 +41,48 @@ class Metric(ABC):
     - Anything not listed in either set is treated as dense-only: it counts or
       derives from unmatched predictions (false positives, precision, F1, ...) and
       will over-penalize correct predictions of unannotated ground truth.
+
+    The two sets must be disjoint frozensets; ``__init_subclass__`` checks that when
+    the subclass is defined.
     """
 
     #: See the "sparse-safe" bullet in the class docstring.
     sparse_safe_keys: frozenset[str] = frozenset()
     #: See the "agnostic" bullet in the class docstring.
     agnostic_keys: frozenset[str] = frozenset()
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Check a subclass's declared key sets when the class is defined.
+
+        Runs at class definition rather than on instantiation, so a contradictory
+        declaration fails on import instead of lurking in a metric that a given run
+        never happens to instantiate.
+
+        Args:
+            **kwargs: Forwarded to ``super().__init_subclass__``.
+
+        Raises:
+            TypeError: Either declaration is not a frozenset.
+            ValueError: A key is declared both sparse-safe and agnostic.
+        """
+        super().__init_subclass__(**kwargs)
+        for name in ("sparse_safe_keys", "agnostic_keys"):
+            declared = getattr(cls, name)
+            if not isinstance(declared, frozenset):
+                raise TypeError(
+                    f"{cls.__name__}.{name} must be a frozenset, got "
+                    f"{type(declared).__name__}. Declared key sets are immutable so "
+                    "they cannot be edited into an overlap in place after this check "
+                    "runs; rebinding the attribute later is still unchecked."
+                )
+        overlap = cls.sparse_safe_keys & cls.agnostic_keys
+        if overlap:
+            raise ValueError(
+                f"{cls.__name__} declares {sorted(overlap)} as both sparse-safe and "
+                "agnostic (either side may be inherited). _classify_sparse_safe "
+                "resolves such a key to sparse-safe and the contradiction goes "
+                "unnoticed, so put each key in exactly one set."
+            )
 
     def __init__(self, valid_matches: list, zero_division: float = np.nan):
         """Initialize metric.
