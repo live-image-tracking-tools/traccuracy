@@ -1,3 +1,5 @@
+import warnings
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -149,3 +151,221 @@ class TestMetric:
         results = m.compute(self.matched, relax_skips_gt=True, relax_skips_pred=False)
         assert results.metric_info["relax_skips_gt"] is True
         assert results.metric_info["relax_skips_pred"] is False
+
+    def test_classify_sparse_gt_default_dense_only(self):
+        # A metric that does not opt in classifies every key as dense-only.
+        m = ValidMetric()
+        assert m._classify_sparse_safe("anything") == "dense_only"
+        assert m.sparse_safe_keys == frozenset()
+        assert m.agnostic_keys == frozenset()
+        assert m.info["sparse_safe_keys"] == ()
+        assert m.info["agnostic_keys"] == ()
+
+    def test_classify_sparse_gt_opt_in(self):
+        # A subclass can declare specific keys as sparse-safe or agnostic; anything
+        # else still falls back to dense-only.
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+        m = MixedMetric()
+        assert m._classify_sparse_safe("safe_key") == "sparse_safe"
+        assert m._classify_sparse_safe("neutral_key") == "agnostic"
+        assert m._classify_sparse_safe("other_key") == "dense_only"
+
+    def test_overlapping_key_sets_raise_at_class_definition(self):
+        # Caught when the class is defined, so a bad declaration cannot hide in a
+        # metric that a given run never instantiates.
+        with pytest.raises(ValueError, match="both sparse-safe and agnostic"):
+
+            class ContradictoryMetric(ValidMetric):
+                sparse_safe_keys = frozenset({"shared_key", "safe_key"})
+                agnostic_keys = frozenset({"shared_key"})
+
+    def test_mutable_key_set_is_rejected(self):
+        # A mutable set could be edited into an overlap after __init_subclass__ has
+        # already passed, which a frozenset makes impossible.
+        with pytest.raises(TypeError, match="must be a frozenset"):
+
+            class MutableMetric(ValidMetric):
+                sparse_safe_keys = {"safe_key"}  # noqa: RUF012
+
+    def test_overlap_is_detected_through_inheritance(self):
+        # CTCMetrics inherits its keys from AOGMMetrics, so the check has to look at
+        # the resolved values rather than only what this class body declares.
+        class Parent(ValidMetric):
+            sparse_safe_keys = frozenset({"shared_key"})
+
+        with pytest.raises(ValueError, match="both sparse-safe and agnostic"):
+
+            class Child(Parent):
+                agnostic_keys = frozenset({"shared_key"})
+
+    def test_classify_sparse_gt_surfaces_in_results(self):
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+        # Fresh matched with the matching type set so no "empty mapping" warning fires.
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        results = MixedMetric().compute(matched)
+        assert results.metric_info["sparse_safe_keys"] == ("safe_key",)
+        assert results.metric_info["agnostic_keys"] == ("neutral_key",)
+
+    def test_sparse_only_skips_metric_with_no_safe_keys(self):
+        # A metric that declares no sparse-safe/agnostic keys (the default) can never
+        # report anything under sparse_only, which is knowable from the class alone --
+        # so _compute should be skipped entirely rather than computed and discarded.
+        class DenseOnlyMetric(ValidMetric):
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.computed = False
+
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                self.computed = True
+                return {"dense_key": 1}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        metric = DenseOnlyMetric()
+        with pytest.warns(UserWarning, match="not meaningful on sparse ground truth"):
+            results = metric.compute(matched, sparse_only=True)
+        assert results.results == {}
+        assert metric.computed is False
+
+    def test_sparse_only_does_not_warn_when_compute_is_legitimately_empty(self):
+        # An empty _compute result must not be mistaken for "this metric has no
+        # sparse-safe keys" -- e.g. CompleteTracksByLength returns {} for a graph with
+        # no frame range while declaring three sparse-safe/agnostic keys.
+        class EmptyResultMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                return {}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph()),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            results = EmptyResultMetric().compute(matched, sparse_only=True)
+        assert results.results == {}
+
+    def test_set_sparse_to_true_with_sparse_gt(self):
+        # Warn and override sparse_only flag if gt graph marked as sparse
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+            agnostic_keys = frozenset({"neutral_key"})
+
+            def _compute(self, matched, relax_skips_gt, relax_skips_pred):
+                return {"safe_key": 0, "neutral_key": 1, "dense_key": 2}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph(), is_sparse_gt=True),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+
+        with pytest.warns(
+            UserWarning,
+            match="GT graph is marked is_sparse_gt=True. Setting Metrics sparse_only flag to True",
+        ):
+            results = MixedMetric().compute(matched)
+        assert results.metric_info["sparse_only"] is True
+        # The flag actually filtered, rather than only being recorded in the metadata.
+        assert results.results == {"safe_key": 0, "neutral_key": 1}
+
+    def test_explicit_sparse_only_false_does_not_override_sparse_gt(self):
+        # Sparseness describes the annotations, so the graph flag wins over the kwarg.
+        class MixedMetric(ValidMetric):
+            sparse_safe_keys = frozenset({"safe_key"})
+
+            def _compute(self, matched, relax_skips_gt=False, relax_skips_pred=False):
+                return {"safe_key": 0, "dense_key": 1}
+
+        matched = Matched(
+            TrackingGraph(nx.DiGraph(), is_sparse_gt=True),
+            TrackingGraph(nx.DiGraph()),
+            [],
+            {"matching type": "one-to-one"},
+        )
+        with pytest.warns(UserWarning, match="GT graph is marked is_sparse_gt=True"):
+            results = MixedMetric().compute(matched, sparse_only=False)
+        assert results.metric_info["sparse_only"] is True
+        assert results.results == {"safe_key": 0}
+
+
+def test_filter_sparse_safe_flat_dict():
+    # A metric's own classification is tested per-metric (see e.g. test_basic.py,
+    # test_divisions.py); this only tests the generic filtering mechanism.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"safe_key"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    filtered, _ = m._filter_sparse_safe({"safe_key": 1, "neutral_key": 2, "dense_only_key": 3})
+    assert filtered == {"safe_key": 1, "neutral_key": 2}
+
+
+def test_filter_sparse_safe_recurses_into_nested_dicts():
+    # A key whose value is itself a dict (e.g. a per-frame-buffer bucket) is
+    # recursed into rather than classified directly -- only its leaf keys
+    # represent actual metric values.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"safe_key"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    filtered, _ = m._filter_sparse_safe(
+        {
+            "Bucket 0": {"safe_key": 1, "neutral_key": 2, "dense_only_key": 3},
+            "Bucket 1": {"safe_key": 4, "dense_only_key": 5},
+        }
+    )
+    assert filtered == {
+        "Bucket 0": {"safe_key": 1, "neutral_key": 2},
+        "Bucket 1": {"safe_key": 4},
+    }
+
+
+def test_filter_sparse_safe_caveats():
+    # Sparse-safe keys that can still be inflated by over-prediction (e.g. "recall") should
+    # produce a caveat; other sparse-safe/agnostic keys should not.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"Node Recall", "True Positive Nodes"})
+        agnostic_keys = frozenset({"neutral_key"})
+
+    m = MixedMetric()
+    _, caveats = m._filter_sparse_safe(
+        {"Node Recall": 0.5, "True Positive Nodes": 1, "neutral_key": 2, "dense_only_key": 3}
+    )
+    assert caveats == [m._sparse_caveats("Node Recall")]
+
+
+def test_filter_sparse_safe_caveats_deduplicated_across_nested_dicts():
+    # Nested buckets (e.g. per-frame-buffer) commonly repeat the same leaf key, so the same
+    # caveat should only be reported once.
+    class MixedMetric(ValidMetric):
+        sparse_safe_keys = frozenset({"Node Recall"})
+
+    m = MixedMetric()
+    _, caveats = m._filter_sparse_safe(
+        {
+            "Bucket 0": {"Node Recall": 0.5},
+            "Bucket 1": {"Node Recall": 0.6},
+        }
+    )
+    assert caveats == [m._sparse_caveats("Node Recall")]

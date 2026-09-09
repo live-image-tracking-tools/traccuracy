@@ -1,3 +1,4 @@
+import copy
 import re
 from collections import Counter
 
@@ -265,6 +266,29 @@ def test_constructor_validate_false(nx_comp1):
     # If validation off, then it should raise another rando error
     with pytest.raises(Exception):  # noqa: B017
         TrackingGraph(nx_comp1, validate=False)
+
+
+def test_is_sparse_gt_defaults_false(nx_comp1):
+    assert TrackingGraph(nx_comp1).is_sparse_gt is False
+
+
+def test_is_sparse_gt_set_by_constructor(nx_comp1):
+    assert TrackingGraph(nx_comp1, is_sparse_gt=True).is_sparse_gt is True
+
+
+def test_is_sparse_gt_is_read_only(nx_comp1):
+    # Sparseness describes the annotations, so flipping it after construction would
+    # silently change the meaning of results already computed from this graph.
+    tg = TrackingGraph(nx_comp1, is_sparse_gt=True)
+    with pytest.raises(AttributeError):
+        tg.is_sparse_gt = False
+    assert tg.is_sparse_gt is True
+
+
+def test_is_sparse_gt_survives_deepcopy(nx_comp1):
+    # traccuracy.utils.correct_shifted_divisions deepcopies the matched graphs.
+    tg = copy.deepcopy(TrackingGraph(nx_comp1, is_sparse_gt=True))
+    assert tg.is_sparse_gt is True
 
 
 def test_validate_node():

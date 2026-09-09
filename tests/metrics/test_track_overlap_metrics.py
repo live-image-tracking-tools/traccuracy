@@ -28,6 +28,19 @@ def test_overlap_relax_warning():
     assert results["track_fractions"] == 1
 
 
+def test_sparse_only_filters_track_purity():
+    # track_purity penalizes correctly-predicted-but-unannotated tracklets
+    # (dense-only); target_effectiveness/track_fractions only score annotated
+    # ground truth, so they remain valid on sparse ground truth.
+    matched = ex_graphs.gap_close_gt_gap()
+    metric = TrackOverlapMetrics()
+
+    results = metric.compute(matched, sparse_only=True).results
+    assert "target_effectiveness" in results
+    assert "track_fractions" in results
+    assert "track_purity" not in results
+
+
 class TestStandardOverlapMetrics:
     tp = "track_purity"
     te = "target_effectiveness"

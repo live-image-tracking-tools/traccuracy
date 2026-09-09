@@ -1,0 +1,186 @@
+"""Pin each metric's declared sparse-safe/agnostic keys to the keys it actually returns.
+
+``sparse_safe_keys``/``agnostic_keys`` repeat result-key strings that ``_compute`` builds
+independently -- ``BasicMetrics`` composes them with f-strings and never writes them as
+literals, and ``DivisionMetrics`` writes them out twice. Nothing ties the two together, so
+renaming a key on one side leaves the other a dead no-op that drops out of sparse results
+without a word. These tests turn that into a test failure.
+
+Whether a single declaration is self-consistent -- no key claimed as both sparse-safe and
+agnostic -- is checked by ``Metric.__init_subclass__`` when the class is defined, not here.
+"""
+
+import networkx as nx
+import pytest
+
+import tests.examples.graphs as ex_graphs
+from tests.examples.larger_examples import larger_example_1
+from tests.test_utils import get_division_graphs, get_movie_with_graph
+from traccuracy import TrackingGraph
+from traccuracy.matchers import CTCMatcher
+from traccuracy.matchers._matched import Matched
+from traccuracy.metrics import (
+    AOGMMetrics,
+    BasicMetrics,
+    CellCycleAccuracy,
+    CHOTAMetric,
+    CompleteTracks,
+    CompleteTracksByLength,
+    CTCMetrics,
+    DivisionMetrics,
+    TrackOverlapMetrics,
+)
+from traccuracy.metrics._base import Metric
+
+
+def _division_matched():
+    g_gt, g_pred, map_gt, map_pred = get_division_graphs()
+    mapper = list(zip(map_gt, map_pred, strict=False))
+    return Matched(TrackingGraph(g_gt), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"})
+
+
+def _ctc_matched():
+    track_graph = get_movie_with_graph(ndims=3, n_frames=3, n_labels=3)
+    return CTCMatcher().compute_mapping(gt_graph=track_graph, pred_graph=track_graph)
+
+
+def _leaf_keys(results: dict) -> set[str]:
+    """Collect the keys `_filter_sparse_safe` would classify, recursing into nested dicts."""
+    keys = set()
+    for key, value in results.items():
+        if isinstance(value, dict):
+            keys |= _leaf_keys(value)
+        else:
+            keys.add(key)
+    return keys
+
+
+# (metric factory, [(matched factory, _compute kwargs), ...]). Several metrics only emit
+# some keys under relaxed skips, so each metric lists every case needed to produce its
+# full key set, and the assertion is made against the union.
+DECLARED_KEY_CASES = [
+    pytest.param(
+        BasicMetrics,
+        [
+            (ex_graphs.all_basic_errors, {}),
+            (
+                ex_graphs.all_basic_errors,
+                {"relax_skips_gt": True, "relax_skips_pred": True},
+            ),
+        ],
+        id="BasicMetrics",
+    ),
+    pytest.param(
+        lambda: DivisionMetrics(max_frame_buffer=2),
+        [
+            (_division_matched, {}),
+            (
+                ex_graphs.div_daughter_gap,
+                {"relax_skips_gt": True, "relax_skips_pred": True},
+            ),
+        ],
+        id="DivisionMetrics",
+    ),
+    pytest.param(
+        lambda: CompleteTracks(error_type="basic"),
+        [(larger_example_1, {})],
+        id="CompleteTracks-basic",
+    ),
+    pytest.param(
+        lambda: CompleteTracks(error_type="ctc"),
+        [(larger_example_1, {})],
+        id="CompleteTracks-ctc",
+    ),
+    pytest.param(
+        lambda: CompleteTracksByLength(max_length=2),
+        [(larger_example_1, {})],
+        id="CompleteTracksByLength",
+    ),
+    pytest.param(
+        TrackOverlapMetrics,
+        [(ex_graphs.gap_close_gt_gap, {})],
+        id="TrackOverlapMetrics",
+    ),
+    pytest.param(CTCMetrics, [(_ctc_matched, {})], id="CTCMetrics"),
+    pytest.param(AOGMMetrics, [(_ctc_matched, {})], id="AOGMMetrics"),
+]
+
+
+# Metrics that legitimately declare no sparse-safe or agnostic keys, so there is
+# nothing for DECLARED_KEY_CASES to pin. Listing them explicitly keeps a metric that
+# simply forgot to declare anything from passing as one of these.
+KEYLESS_METRICS = frozenset({CellCycleAccuracy, CHOTAMetric})
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Mapping is empty",
+    "ignore:Node errors already calculated",
+    "ignore:Edge errors already calculated",
+)
+@pytest.mark.parametrize(("metric_factory", "cases"), DECLARED_KEY_CASES)
+def test_declared_keys_are_actually_returned(metric_factory, cases):
+    declared = metric_factory().sparse_safe_keys | metric_factory().agnostic_keys
+
+    produced: set[str] = set()
+    for matched_factory, compute_kwargs in cases:
+        # A fresh metric and matched per case: reusing either replays error
+        # classification and warns "already calculated".
+        produced |= _leaf_keys(metric_factory()._compute(matched_factory(), **compute_kwargs))
+
+    assert declared <= produced, (
+        f"declared but never returned: {sorted(declared - produced)}. A renamed or "
+        "misspelled key is silently treated as dense-only and dropped from sparse results."
+    )
+
+
+def _metric_subclasses(cls: type) -> set[type]:
+    """Every traccuracy Metric subclass, at any depth."""
+    found = set()
+    for sub in cls.__subclasses__():
+        if sub.__module__.startswith("traccuracy"):
+            found.add(sub)
+        found |= _metric_subclasses(sub)
+    return found
+
+
+def test_every_metric_is_pinned_or_explicitly_keyless():
+    # Metric.__init_subclass__ already rejects a self-contradictory declaration, but
+    # nothing drags a new metric into DECLARED_KEY_CASES, so its keys would never be
+    # checked against what _compute returns -- and a metric that declares nothing at
+    # all would quietly default to dense-only. Every metric has to land in one bucket.
+    # Each DECLARED_KEY_CASES entry must be a pytest.param so .values[0] is its factory.
+    pinned = {type(param.values[0]()) for param in DECLARED_KEY_CASES}
+    unaccounted = sorted(
+        c.__name__ for c in _metric_subclasses(Metric) if c not in pinned | KEYLESS_METRICS
+    )
+    assert not unaccounted, (
+        f"neither pinned in DECLARED_KEY_CASES nor listed in KEYLESS_METRICS: {unaccounted}"
+    )
+
+    # The other direction: a metric listed as keyless that starts declaring keys would
+    # keep being waved through above while its keys went unpinned.
+    gained = sorted(c.__name__ for c in KEYLESS_METRICS if c.sparse_safe_keys or c.agnostic_keys)
+    assert not gained, (
+        f"listed in KEYLESS_METRICS but now declares keys, so it needs a "
+        f"DECLARED_KEY_CASES entry instead: {gained}"
+    )
+
+
+def test_declared_keys_survive_a_real_sparse_compute():
+    # End-to-end: a graph marked sparse at construction filters down to exactly the
+    # declared keys, with no dense-only leftovers.
+    g = nx.DiGraph()
+    g.add_node(1, t=0, y=0, x=0)
+    g.add_node(2, t=1, y=0, x=0)
+    g.add_edge(1, 2)
+    gt = TrackingGraph(g.copy(), location_keys=("y", "x"), is_sparse_gt=True)
+    pred = TrackingGraph(g.copy(), location_keys=("y", "x"))
+    matched = Matched(gt, pred, [(1, 1), (2, 2)], {"matching type": "one-to-one"})
+
+    with pytest.warns(UserWarning, match="GT graph is marked is_sparse_gt=True"):
+        results = BasicMetrics().compute(matched).results
+
+    declared = BasicMetrics.sparse_safe_keys | BasicMetrics.agnostic_keys
+    assert set(results.keys()) <= declared
+    assert "Node Precision" not in results
+    assert "Node Recall" in results
