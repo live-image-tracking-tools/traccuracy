@@ -36,6 +36,10 @@ Each `Metric` classifies every key in the dictionary it returns, via `Metric._cl
 - **agnostic**: a raw count or other value that is not itself a quality judgment (e.g. `Total GT Nodes`). Accurate regardless of annotation density, so no claim is made either way.
 - **dense-only** (the default for any key not listed above): counts or derives from unmatched predictions (false positives, precision, F1, ...) and will over-penalize correct predictions of unannotated ground truth.
 
+:::{warning}
+Although we classify certain metrics as `sparse-safe`, this does not mean that they, in isolation, provide meaningful insight into the true overall accuracy of the solution. One can trivially imagine, for example, a solution with an overwhelming number of annotations that achieves perfect node recall. These `sparse-safe` metrics also provide no insight on the quality or diversity of the ground truth annotations present. We advise extreme caution in interpreting or reporting these metrics.
+:::
+
 Sparseness is a property of the annotations rather than a per-run choice, so it is declared on
 the ground truth graph itself and is read-only after construction. Pass `is_sparse_gt=True` to
 {class}`~traccuracy.TrackingGraph` or to any loader (`load_ctc_data`, `load_geff_data`,
