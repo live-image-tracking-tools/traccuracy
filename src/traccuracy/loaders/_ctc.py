@@ -240,6 +240,7 @@ def load_ctc_data(
     name: str | None = None,
     run_checks: bool = True,
     border_margin: float | None = None,
+    is_sparse_gt: bool = False,
 ) -> TrackingGraph:
     """Read the CTC segmentations and track file and create a TrackingGraph.
 
@@ -253,6 +254,10 @@ def load_ctc_data(
         border_margin (float, optional): If set, nodes whose centroid is within this
             distance (in pixels) of the spatial border will be excluded from the graph.
             Defaults to None (no filtering).
+        is_sparse_gt (bool, optional): Set to True if this is ground truth with sparse
+            annotations, i.e. only a subset of the real objects are annotated. Metrics
+            detect this flag and restrict their results to keys that stay valid on sparse
+            ground truth. Defaults to False.
 
     Returns:
         traccuracy.TrackingGraph: TrackingGraph object containing segmentations and graph.
@@ -301,5 +306,10 @@ def load_ctc_data(
         loc_keys = ("y", "x")
 
     return TrackingGraph(
-        G, segmentation=masks, name=name, location_keys=loc_keys, border_margin=border_margin
+        G,
+        segmentation=masks,
+        name=name,
+        location_keys=loc_keys,
+        border_margin=border_margin,
+        is_sparse_gt=is_sparse_gt,
     )

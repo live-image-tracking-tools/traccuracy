@@ -238,6 +238,31 @@ def test_larger_example(error_type):
     "ignore:Node errors already calculated",
     "ignore:Edge errors already calculated",
 )
+@pytest.mark.parametrize("error_type", ["basic", "ctc"])
+def test_larger_example_sparse_only_keeps_every_key(error_type):
+    # CompleteTracks never penalizes prediction beyond the ground truth, so
+    # none of its keys are dense-only: sparse_only should be a no-op here.
+    complete_tracks = CompleteTracks(error_type=error_type)
+
+    full = complete_tracks.compute(larger_example_1()).results
+    sparse = complete_tracks.compute(larger_example_1(), sparse_only=True).results
+
+    assert sparse == full
+    assert set(sparse.keys()) == {
+        "total_lineages",
+        "total_tracklets",
+        "correct_lineages",
+        "correct_tracklets",
+        "complete_lineages",
+        "complete_tracklets",
+    }
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Mapping is empty",
+    "ignore:Node errors already calculated",
+    "ignore:Edge errors already calculated",
+)
 def test_invalid_input():
     with pytest.raises(ValueError, match="Unrecognized error type"):
         CompleteTracks(error_type="abcdefg")

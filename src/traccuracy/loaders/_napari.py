@@ -138,6 +138,7 @@ def load_napari_data(
     seg_id_key: str | None = None,
     name: str | None = None,
     progbar_class: type[tqdm] = tqdm,
+    is_sparse_gt: bool = False,
 ) -> TrackingGraph:
     """Load a napari Tracks layer into a TrackingGraph.
 
@@ -244,6 +245,10 @@ def load_napari_data(
             implicit-matching loop. Pass e.g. ``napari.utils.progress`` to show
             the bar in napari's activity dock; defaults to plain ``tqdm``
             (terminal).
+        is_sparse_gt (bool, optional): Set to True if this is ground truth with sparse
+            annotations, i.e. only a subset of the real objects are annotated. Metrics
+            detect this flag and restrict their results to keys that stay valid on
+            sparse ground truth. Defaults to False.
 
     Raises:
         ValueError: data does not have shape (N, 2 + D) with D in {2, 3}.
@@ -374,5 +379,12 @@ def load_napari_data(
             location_keys=location_keys,
             label_key="segmentation_id",
             name=name,
+            is_sparse_gt=is_sparse_gt,
         )
-    return TrackingGraph(G, frame_key=frame_key, location_keys=location_keys, name=name)
+    return TrackingGraph(
+        G,
+        frame_key=frame_key,
+        location_keys=location_keys,
+        name=name,
+        is_sparse_gt=is_sparse_gt,
+    )

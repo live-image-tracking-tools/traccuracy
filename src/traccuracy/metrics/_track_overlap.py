@@ -46,6 +46,13 @@ class TrackOverlapMetrics(Metric):
 
     """
 
+    # Target effectiveness/track fractions score how much of each ground-truth
+    # tracklet is covered by its best-overlapping prediction, ignoring prediction
+    # beyond the ground truth, so they remain valid on sparse ground truth. Track
+    # purity is the inverse (how much of each *predicted* tracklet is covered by
+    # ground truth), so an unannotated-but-correct prediction tanks it: dense-only.
+    sparse_safe_keys = frozenset({"target_effectiveness", "track_fractions"})
+
     def __init__(self, include_division_edges: bool = True):
         valid_match_types = ["many-to-one", "one-to-one", "one-to-many"]
         super().__init__(valid_match_types)

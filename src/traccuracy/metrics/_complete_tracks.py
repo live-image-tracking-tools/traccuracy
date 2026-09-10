@@ -52,6 +52,15 @@ class CompleteTracks(Metric):
 
     """
 
+    # Only ground-truth tracklets/lineages are scored; predictions beyond the ground
+    # truth are never penalized, so the correctness/completeness fractions are valid on
+    # sparse ground truth. The `total_*` counts are just ground-truth sizes, not a
+    # judgment either way.
+    sparse_safe_keys = frozenset(
+        {"correct_lineages", "correct_tracklets", "complete_lineages", "complete_tracklets"}
+    )
+    agnostic_keys = frozenset({"total_lineages", "total_tracklets"})
+
     def __init__(self, error_type: str = "basic"):
         valid_matches = ["one-to-one", "many-to-one"]
         super().__init__(valid_matches)

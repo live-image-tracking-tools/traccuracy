@@ -38,6 +38,18 @@ class Test_load_geff_data:
         tg = load_geff_data(zarr_path, load_all_props=True)
         assert "score" in tg.graph.edges[(0, 1)]
 
+    def test_is_sparse_gt(self, tmp_path):
+        zarr_path = tmp_path / "test.zarr"
+        store, _ = create_simple_2d_geff(directed=True)
+        graph, meta = read(store, backend="networkx")
+        time_key = next(ax.name for ax in meta.axes if ax.type == "time")
+        for node in graph.nodes:
+            graph.nodes[node][time_key] = float(node)
+        write(graph, zarr_path, meta)
+
+        assert load_geff_data(zarr_path).is_sparse_gt is False
+        assert load_geff_data(zarr_path, is_sparse_gt=True).is_sparse_gt is True
+
     def test_undirected(self, tmp_path):
         zarr_path = tmp_path / "test.zarr"
         store, _ = create_simple_2d_geff(directed=False)

@@ -69,6 +69,17 @@ class TestLargerExample:
             expected_acc = correct / total
             assert pytest.approx(result.results["accuracy"][idx], abs=0.01) == expected_acc
 
+    def test_larger_example_1_sparse_only_keeps_every_key(self, error_type):
+        # CompleteTracksByLength never penalizes prediction beyond the ground
+        # truth, so none of its keys are dense-only: sparse_only should be a no-op.
+        metric = CompleteTracksByLength(max_length=2, error_type=error_type)
+
+        full = metric.compute(larger_example_1()).results
+        sparse = metric.compute(larger_example_1(), sparse_only=True).results
+
+        assert sparse == full
+        assert set(sparse.keys()) == {"correct", "total", "accuracy"}
+
 
 @pytest.mark.filterwarnings(
     "ignore:Mapping is empty",

@@ -19,6 +19,17 @@ class Test_load_napari_data:
         assert first["t"] == 0 and isinstance(first["t"], int)
         assert first["y"] == 10 and first["x"] == 20
 
+    def test_is_sparse_gt(self):
+        data = np.array([[1, 0, 10, 20], [1, 1, 11, 21]], dtype=float)
+        assert load_napari_data(data).is_sparse_gt is False
+        assert load_napari_data(data, is_sparse_gt=True).is_sparse_gt is True
+        # The segmentation branch constructs a separate TrackingGraph.
+        seg = np.zeros((2, 30, 30), dtype=np.uint16)
+        seg[0, 9:12, 19:22] = 1
+        seg[1, 10:13, 20:23] = 1
+        tg = load_napari_data(data, segmentation=seg, is_sparse_gt=True)
+        assert tg.is_sparse_gt is True
+
     def test_3d_locations(self):
         data = np.array([[1, 0, 3, 4, 5], [1, 1, 3, 4, 5]], dtype=float)
         tg = load_napari_data(data)

@@ -73,6 +73,33 @@ def test_DivisionMetrics():
             assert r["False Negative Divisions"] == 0
 
 
+def test_sparse_only_filters_nested_frame_buffer_dict():
+    # DivisionMetrics nests its per-key results one level deep under a
+    # "Frame Buffer N" bucket; sparse_only must recurse into each bucket rather
+    # than classifying (and dropping) the bucket key itself.
+    g_gt, g_pred, map_gt, map_pred = get_division_graphs()
+    mapper = list(zip(map_gt, map_pred, strict=False))
+    matched = Matched(TrackingGraph(g_gt), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"})
+    frame_buffer = 2
+
+    results = (
+        DivisionMetrics(max_frame_buffer=frame_buffer).compute(matched, sparse_only=True).results
+    )
+
+    assert set(results.keys()) == {f"Frame Buffer {i}" for i in range(frame_buffer + 1)}
+    for bucket in results.values():
+        assert "Division Recall" in bucket
+        assert "True Positive Divisions" in bucket
+        assert "False Negative Divisions" in bucket
+        assert "Total GT Divisions" in bucket  # agnostic, kept
+        assert "Total Predicted Divisions" in bucket  # agnostic, kept
+
+        assert "Division Precision" not in bucket
+        assert "Division F1" not in bucket
+        assert "Mitotic Branching Correctness" not in bucket
+        assert "False Positive Divisions" not in bucket
+
+
 def test_division_metrics_perfect():
     _, g_pred, _, _ = get_division_graphs()
     mapper = list(zip(list(g_pred.nodes), list(g_pred.nodes), strict=False))

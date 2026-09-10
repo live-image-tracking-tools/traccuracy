@@ -100,3 +100,39 @@ class TestBasicMetrics:
         assert resdict["Skip Pred True Positive Edges"] == edge_tp_pred_skip
         assert resdict["Skip False Positive Edges"] == edge_fp_skip
         assert resdict["Skip False Negative Edges"] == edge_fn_skip
+
+    def test_sparse_only(self):
+        matched = ex_graphs.all_basic_errors()
+        results = self.m.compute(
+            matched, relax_skips_gt=True, relax_skips_pred=True, sparse_only=True
+        ).results
+
+        # Sparse-safe and agnostic keys survive the filter
+        for key in (
+            "True Positive Nodes",
+            "True Positive Edges",
+            "False Negative Nodes",
+            "False Negative Edges",
+            "Node Recall",
+            "Edge Recall",
+            "Skip GT True Positive Edges",
+            "Skip Pred True Positive Edges",
+            "Skip False Negative Edges",
+            "Total GT Nodes",
+            "Total GT Edges",
+            "Total Pred Nodes",
+            "Total Pred Edges",
+        ):
+            assert key in results
+
+        # Dense-only keys (false positives, precision, F1) are filtered out
+        for key in (
+            "False Positive Nodes",
+            "False Positive Edges",
+            "Node Precision",
+            "Edge Precision",
+            "Node F1",
+            "Edge F1",
+            "Skip False Positive Edges",
+        ):
+            assert key not in results

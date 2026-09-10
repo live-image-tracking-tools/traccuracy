@@ -77,6 +77,15 @@ class Test_load_point_data:
         ):
             load_point_data(df=df, name="test")
 
+    def test_is_sparse_gt(self):
+        df = self.get_valid_df(5)
+        assert load_point_data(df=df).is_sparse_gt is False
+        assert load_point_data(df=df, is_sparse_gt=True).is_sparse_gt is True
+        # The seg_id_column branch constructs a separate TrackingGraph.
+        df_seg = df.assign(seg_label=range(5))
+        graph = load_point_data(df=df_seg, seg_id_column="seg_label", is_sparse_gt=True)
+        assert graph.is_sparse_gt is True
+
     def test_load_from_dataframe(self):
         # Make a valid dataframe using defaults
         nrows = 5
