@@ -17,7 +17,7 @@ import tests.examples.graphs as ex_graphs
 from tests.examples.larger_examples import larger_example_1
 from tests.test_utils import get_division_graphs, get_movie_with_graph
 from traccuracy import TrackingGraph
-from traccuracy.matchers import CTCMatcher
+from traccuracy.matchers import CTCMatcher, PointMatcher
 from traccuracy.matchers._matched import Matched
 from traccuracy.metrics import (
     AOGMMetrics,
@@ -28,6 +28,7 @@ from traccuracy.metrics import (
     CompleteTracksByLength,
     CTCMetrics,
     DivisionMetrics,
+    SparseWeightedEdgeDivisionJaccard,
     TrackOverlapMetrics,
 )
 from traccuracy.metrics._base import Metric
@@ -37,6 +38,18 @@ def _division_matched():
     g_gt, g_pred, map_gt, map_pred = get_division_graphs()
     mapper = list(zip(map_gt, map_pred, strict=False))
     return Matched(TrackingGraph(g_gt), TrackingGraph(g_pred), mapper, {"name": "DummyMatcher"})
+
+
+def _swedj_matched():
+    # Perfect prediction of a single division P->D->{C1, C2}, matched by PointMatcher
+    # (SWEDJ requires distance matching). Emits every SWEDJ key.
+    g = nx.DiGraph()
+    for nid, (t, y) in {0: (0, 0.0), 1: (1, 0.0), 2: (2, 5.0), 3: (2, -5.0)}.items():
+        g.add_node(nid, t=t, z=0.0, y=y, x=0.0)
+    g.add_edges_from([(0, 1), (1, 2), (1, 3)])
+    tg = TrackingGraph(g, frame_key="t", label_key=None, location_keys=("z", "y", "x"))
+    pred = TrackingGraph(g.copy(), frame_key="t", label_key=None, location_keys=("z", "y", "x"))
+    return PointMatcher(threshold=7.0).compute_mapping(tg, pred)
 
 
 def _ctc_matched():
@@ -103,6 +116,11 @@ DECLARED_KEY_CASES = [
     ),
     pytest.param(CTCMetrics, [(_ctc_matched, {})], id="CTCMetrics"),
     pytest.param(AOGMMetrics, [(_ctc_matched, {})], id="AOGMMetrics"),
+    pytest.param(
+        SparseWeightedEdgeDivisionJaccard,
+        [(_swedj_matched, {})],
+        id="SparseWeightedEdgeDivisionJaccard",
+    ),
 ]
 
 

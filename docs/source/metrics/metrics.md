@@ -24,6 +24,7 @@ Many metrics support relaxing skip edges for the ground truth and/or the predict
 | [Track Overlap Metrics](track-overlap-metrics): Track Purity (TP), Target Effectiveness (TE), Track Fractions (TF) | `one-to-one`, `many-to-one` , `one-to-many`| A set of metrics that compute the maximum overlap for each track, where track is defined as the region between divisions. Target effectiveness (TE) measures how much of each ground truth track is covered by the most overlapping predicted track, weighted by track length. Track Purity (TP) is the inverse of TE, and Track Fractions (TF) is the unwighted average of TE. |
 | [Complete Tracks by Length](complete-tracks-by-length-metric) | `one-to-one`, `many-to-one` | Generalizes [Complete Tracks](complete-tracks) to every track length: the accuracy (fraction fully correct) of tracklets or lineages that span N frames, for each length N. |
 | [Cell-specific Higher Order Tracking Accuracy (CHOTA)](chota-metric) |`one-to-one`, `many-to-one`, `one-to-many`, `many-to-many` | A metric between 0 and 1 that unifies local correctness, global coherence, and lineage tracking. Higher scores are better.| 
+| [Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric): edge & division Jaccard | `one-to-one` | Edge and division Jaccard for **sparsely annotated** ground truth (royerlab cell tracking competition score). Requires a `PointMatcher`. Unmatched predictions are ignored rather than penalized, so every returned value is sparse-safe or agnostic. Has `n_gt_nodes` (for the excess-node-penalized adjusted Jaccard), `division_weight`, and `node_ratio_weight` parameters. |
 
 (sparse-annotations)=
 ## Dense vs. sparse ground truth
@@ -70,3 +71,4 @@ Sparse-safe and agnostic keys by metric (everything else that metric returns is 
 | [Track Overlap Metrics](track-overlap-metrics) | `target_effectiveness`, `track_fractions` | none |
 | [Complete Tracks by Length](complete-tracks-by-length-metric) | `correct`, `accuracy` | `total` |
 | [Cell-specific Higher Order Tracking Accuracy (CHOTA)](chota-metric) | none | none |
+| [Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric) | `edge_tp/fp/fn`, `edge_jaccard`, `division_tp/fp/fn`, `division_jaccard`, `adj_edge_jaccard`, `score`, `node_recall` | `num_pred_nodes`, `total_node_ratio` |
