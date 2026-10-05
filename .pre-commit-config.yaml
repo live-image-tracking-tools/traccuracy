@@ -1,4 +1,7 @@
 ci:
+  # mypy's environment (geff etc.) exceeds pre-commit.ci's build timeout;
+  # it runs in GitHub Actions instead (see the typecheck job in ci.yml)
+  skip: [mypy]
   autoupdate_schedule: monthly
   autofix_commit_msg: "style(pre-commit.ci): auto fixes [...]"
   autoupdate_commit_msg: "ci(pre-commit.ci): autoupdate"

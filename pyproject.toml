@@ -91,34 +91,6 @@ typing = [
     "types-tqdm",
 ]
 
-[tool.pixi.project]
-channels = ["conda-forge"]
-platforms = ["osx-arm64", "win-64", "linux-64"]
-
-[tool.pixi.dependencies]
-python = "3.11.*"
-
-[tool.pixi.pypi-dependencies]
-traccuracy = { path = ".", editable = true }
-
-[tool.pixi.environments]
-default = { solve-group = "default" }
-dev = { features = ["dev", "docs", "test", "covreport", "typing"], solve-group = "default" }
-
-[tool.pixi.tasks]
-getdata = "python scripts/download_test_data.py"
-
-[tool.pixi.feature.test.tasks]
-test = "pytest"
-benchmark = { cmd = "pytest tests/bench.py", depends-on = ["getdata"] }
-
-[tool.pixi.feature.covreport.tasks]
-test-case-report = "python scripts/test_case_report.py test-case-report && rm matchers*.json track_errors*.json metrics*.json"
-
-[tool.pixi.feature.docs.tasks]
-kernel-config = { cmd = "python -m ipykernel install --user --name=\"traccuracy-docs\""}
-docs = { cmd = "sphinx-build docs/source docs/_build -D nb_execution_mode=cache", depends-on = ["kernel-config"]}
-
 [project.urls]
 homepage = "https://github.com/live-image-tracking-tools/traccuracy"
 repository = "https://github.com/live-image-tracking-tools/traccuracy"

@@ -23,6 +23,9 @@ jobs:
   test:
     name: ${{ matrix.platform }} (${{ matrix.python-version }})
     runs-on: ${{ matrix.platform }}
+    env:
+      # uv run should not re-sync; deps are installed in the Install step
+      UV_NO_SYNC: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -31,6 +34,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
 
       # downloading data, required for CHOTA metric test
       - name: Retrieve cached data
@@ -43,8 +53,7 @@ jobs:
       - name: Download Samples
         if: steps.cache_data.outputs.cache-hit != 'true'
         run: |
-          pip install requests
-          python scripts/download_test_data.py
+          uv run --no-project --with requests python scripts/download_test_data.py
 
       - name: Cache sample data
         uses: actions/cache/save@v6
@@ -53,25 +62,32 @@ jobs:
           path: downloads
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache-dependency-path: "pyproject.toml"
-          cache: "pip"
-
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e .[test]
+        run: uv sync --extra test
 
       - name: Test
-        run: pytest --color=yes --cov --cov-report=xml --cov-report=term-missing
+        run: uv run pytest --color=yes --cov --cov-report=xml --cov-report=term-missing
 
       - name: Coverage
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Run mypy
+        run: uv run --extra typing mypy src --ignore-missing-imports
 
   examples:
     name: Examples
@@ -80,6 +96,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
       - name: Retrieve cached data
         uses: actions/cache/restore@v6
         id: cache_data
@@ -90,8 +113,7 @@ jobs:
       - name: Download Samples
         if: steps.cache_data.outputs.cache-hit != 'true'
         run: |
-          pip install requests
-          python scripts/download_test_data.py
+          uv run --no-project --with requests python scripts/download_test_data.py
 
       - name: Cache sample data
         uses: actions/cache/save@v6
@@ -100,32 +122,32 @@ jobs:
           path: downloads
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-          cache-dependency-path: "pyproject.toml"
-          cache: "pip"
-
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e . nbclient ipykernel
+        run: uv sync --no-dev
 
       - name: Run notebooks
         # This will exit after the first error and will not report errors in subsequent nbs 
-        run: jupyter execute examples/*.ipynb
+        run: uv run --with nbclient --with ipykernel jupyter execute examples/*.ipynb
 
 
   benchmark:
     name: Benchmark
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-
+    env:
+      # don't re-resolve/sync when switching commits
+      UV_NO_SYNC: "1"
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50 # this is to make sure we obtain the target base commit
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 3.13
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
 
       - name: Retrieve cached data
         uses: actions/cache/restore@v6
@@ -137,8 +159,7 @@ jobs:
       - name: Download Samples
         if: steps.cache_data.outputs.cache-hit != 'true'
         run: |
-          pip install requests
-          python scripts/download_test_data.py
+          uv run --no-project --with requests python scripts/download_test_data.py
 
       - name: Cache sample data
         uses: actions/cache/save@v6
@@ -147,18 +168,8 @@ jobs:
           path: downloads
           key: ${{ hashFiles('scripts/download_test_data.py') }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: 3.13
-          cache-dependency-path: "pyproject.toml"
-          cache: "pip"
-
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e .[test]
-          python -m pip install tabulate
+        run: uv sync --extra test
 
       - name: Retrieve cached baseline if available
         uses: actions/cache/restore@v6
@@ -171,7 +182,7 @@ jobs:
         if: steps.cache_baseline.outputs.cache-hit != 'true'
         run: |
           git checkout ${{ github.event.pull_request.base.sha }}
-          pytest tests/bench.py -v --benchmark-json baseline.json
+          uv run pytest tests/bench.py -v --benchmark-json baseline.json
 
       - name: Cache baseline results
         uses: actions/cache/save@v6
@@ -183,10 +194,10 @@ jobs:
       - name: Run benchmark on PR head commit
         run: |
           git checkout ${{ github.event.pull_request.head.sha }}
-          pytest tests/bench.py -v --benchmark-json pr.json
+          uv run pytest tests/bench.py -v --benchmark-json pr.json
 
       - name: Generate report
-        run: python .github/workflows/benchmark-pr.py baseline.json pr.json report.md
+        run: uv run python .github/workflows/benchmark-pr.py baseline.json pr.json report.md
 
       - name: Comment on commit with report for non-forks
         uses: peter-evans/commit-comment@v3
@@ -198,21 +209,23 @@ jobs:
     name: Test case coverage
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    env:
+      # uv run should not re-sync; deps are installed in the Install step
+      UV_NO_SYNC: "1"
 
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v7
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.13"
-          cache-dependency-path: "pyproject.toml"
-          cache: "pip"
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
 
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e .[covreport]
+        run: uv sync --extra covreport
 
       - name: Store target commit hash
         id: hash
@@ -220,7 +233,7 @@ jobs:
 
       - name: Run coverage report
         run: |
-          python scripts/test_case_report.py ${{ github.event.pull_request.head.sha }}
+          uv run python scripts/test_case_report.py ${{ github.event.pull_request.head.sha }}
 
       - name: Add, stash, switch branch
         if: github.actor != 'dependabot[bot]'
@@ -254,21 +267,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: install
+      - name: Build
         run: |
           git tag
-          pip install -U pip build twine
-          python -m build
-          twine check dist/*
+          uv build
+          uvx twine check dist/*
           ls -lh dist
 
       - name: Build and publish
-        run: twine upload dist/*
+        run: uvx twine upload dist/*
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
