@@ -1,35 +1,36 @@
 # Traccuracy Developer Notes
 
-We recommend using `pixi` for environment management while developing `traccuracy`. See the [pixi docs](https://pixi.sh/dev/) for installation instructions. The following instructions will be focused on pixi-based development, but all of the same tasks can be completed with pip and another environment manager.
+We use [`uv`](https://docs.astral.sh/uv/) for environment management and [`just`](https://just.systems/) as a task runner while developing `traccuracy`. See their docs for installation instructions. Run `just` to list all available tasks. All of the same tasks can be completed with pip and another environment manager by running the commands in the `justfile` directly.
 
 ## Development
 For local development, clone the repo and install in editable mode.
 ```
 git clone https://github.com/live-image-tracking-tools/traccuracy.git
-pixi install
+# Create/update the .venv with all extras (dev, docs, test, covreport, typing)
+uv sync --all-extras
 ```
 
 ### Testing
 To run basic tests
 ```
-pixi run test
+just test
 ```
 
 We run benchmarking on every commit into main to keep track of any potential performance regression. To run benchmarking locally:
 ```
-pixi run benchmark
+just benchmark
 ```
-This command should download the data (alternatively run `pixi run getdata`) and then run benchmarking.
+This command should download the data (alternatively run `just getdata`) and then run benchmarking.
 
 `traccuracy` tests are built around a set of standard test cases available in `tests.examples`. To check coverage of matcher and error modules against standard tests cases, run
 ```
-pixi run test-case-report
+just test-case-report
 ```
 
 ### Style
 We utilize `pre-commit` with black (formatting) and ruff (linting). If you would like to run `pre-commit` locally:
 ```
-pixi run -e dev pre-commit install
+just pre-commit-install
 ```
 Alternatively [pre-commit.ci](https://pre-commit.ci/), will run and commit changes on any open PRs.
 
@@ -43,7 +44,7 @@ git push --follow-tags
 ### Documentation
 Documentation is built with Sphinx using `sphinx-autoapi` to automatically generate API documentation at build time. Docs are hosted on ReadTheDocs and build automatically after each push to main. Documentation can be built locally by running the following:
 ```
-pixi run docs
+just docs
 ```
 
 Note that running documentation locally requires Pandoc to be installed as well - https://pandoc.org/installing.html.
