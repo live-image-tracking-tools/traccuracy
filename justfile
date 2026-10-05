@@ -14,6 +14,10 @@ getdata:
 test *args:
     uv run --extra test pytest {{args}}
 
+# Run mypy (same check as the CI typecheck job)
+typecheck:
+    uv run --extra typing mypy src --ignore-missing-imports
+
 # Run benchmarks
 benchmark: getdata
     uv run --extra test pytest tests/bench.py

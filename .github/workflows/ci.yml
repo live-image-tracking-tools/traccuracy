@@ -73,6 +73,22 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Run mypy
+        run: uv run --extra typing mypy src --ignore-missing-imports
+
   examples:
     name: Examples
     runs-on: ubuntu-latest
