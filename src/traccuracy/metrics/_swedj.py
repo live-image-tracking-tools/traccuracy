@@ -331,6 +331,12 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
         candidates: dict[Hashable, set[Hashable]] = {}
         considered: set[Hashable] = set()
         for divider in gt.get_divisions():
+            # Performance note: this re-runs PointMatcher against the prediction for every
+            # GT division. Each call re-extracts locations and rebuilds a KDTree for all
+            # predicted nodes in the (few) frames the window spans, so cost scales with
+            # n_gt_divisions * predicted nodes per frame. Not expected to matter on real
+            # data; if it does, cache per-frame prediction KDTrees and only match the
+            # candidates within ``threshold`` of the window's GT nodes.
             sub_nodes = self._division_subgraph_nodes(gt, divider)
             gt_sub = self._subgraph_tracking_graph(gt, sub_nodes)
             local = matcher.compute_mapping(gt_sub, pred)
