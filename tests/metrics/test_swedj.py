@@ -42,12 +42,12 @@ def _counts(pred: TrackingGraph, gt: TrackingGraph, max_distance: float = 7.0) -
     )
     r = results[0]["results"]
     return (
-        r["edge_tp"],
-        r["edge_fp"],
-        r["edge_fn"],
-        r["division_tp"],
-        r["division_fp"],
-        r["division_fn"],
+        r["swedj_edge_tp"],
+        r["swedj_edge_fp"],
+        r["swedj_edge_fn"],
+        r["swedj_division_tp"],
+        r["swedj_division_fp"],
+        r["swedj_division_fn"],
     )
 
 
@@ -533,7 +533,7 @@ def test_empty_prediction_scores_zero_edges() -> None:
         gt, empty, PointMatcher(threshold=1.0), [SparseWeightedEdgeDivisionJaccard()]
     )
     r = results[0]["results"]
-    assert (r["edge_tp"], r["edge_fp"], r["edge_fn"]) == (0, 0, 2)
+    assert (r["swedj_edge_tp"], r["swedj_edge_fp"], r["swedj_edge_fn"]) == (0, 0, 2)
     assert r["edge_jaccard"] == pytest.approx(0.0)
 
 

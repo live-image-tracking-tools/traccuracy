@@ -71,4 +71,4 @@ Sparse-safe and agnostic keys by metric (everything else that metric returns is 
 | [Track Overlap Metrics](track-overlap-metrics) | `target_effectiveness`, `track_fractions` | none |
 | [Complete Tracks by Length](complete-tracks-by-length-metric) | `correct`, `accuracy` | `total` |
 | [Cell-specific Higher Order Tracking Accuracy (CHOTA)](chota-metric) | none | none |
-| [Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric) | `edge_tp/fp/fn`, `edge_jaccard`, `division_tp/fp/fn`, `division_jaccard`, `adj_edge_jaccard`, `score`, `node_recall` | `num_pred_nodes`, `total_node_ratio` |
+| [Sparse Weighted Edge and Division Jaccard (SWEDJ)](swedj-metric) | `swedj_edge_tp/fp/fn`, `edge_jaccard`, `swedj_division_tp/fp/fn`, `division_jaccard`, `adj_edge_jaccard`, `score`, `node_recall` | `num_pred_nodes`, `total_node_ratio` |

@@ -108,13 +108,13 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
     # counts (agnostic). Nothing here is dense-only.
     sparse_safe_keys = frozenset(
         {
-            "edge_tp",
-            "edge_fp",
-            "edge_fn",
+            "swedj_edge_tp",
+            "swedj_edge_fp",
+            "swedj_edge_fn",
             "edge_jaccard",
-            "division_tp",
-            "division_fp",
-            "division_fn",
+            "swedj_division_tp",
+            "swedj_division_fp",
+            "swedj_division_fn",
             "division_jaccard",
             "adj_edge_jaccard",
             "score",
@@ -231,13 +231,13 @@ class SparseWeightedEdgeDivisionJaccard(Metric):
             score = score_base
 
         return {
-            "edge_tp": edge_tp,
-            "edge_fp": edge_fp,
-            "edge_fn": edge_fn,
+            "swedj_edge_tp": edge_tp,
+            "swedj_edge_fp": edge_fp,
+            "swedj_edge_fn": edge_fn,
             "edge_jaccard": edge_jaccard,
-            "division_tp": div_tp,
-            "division_fp": div_fp,
-            "division_fn": div_fn,
+            "swedj_division_tp": div_tp,
+            "swedj_division_fp": div_fp,
+            "swedj_division_fn": div_fn,
             "division_jaccard": division_jaccard,
             "num_pred_nodes": num_pred_nodes,
             "node_recall": node_recall,
