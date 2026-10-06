@@ -252,7 +252,7 @@ else:
         "k": numba.uint64,
     }
 
-    compute_overlap = numba.njit(
+    compute_overlap = numba.njit(  # type: ignore[type-var]
         signature,
         locals={**common_locals, "box_area": numba.float64},
         fastmath=True,
@@ -260,7 +260,7 @@ else:
         boundscheck=False,
     )(compute_overlap)
 
-    compute_overlap_3D = numba.njit(
+    compute_overlap_3D = numba.njit(  # type: ignore[type-var]
         signature,
         locals={**common_locals, "id_": numba.float64, "box_volume": numba.float64},
         fastmath=True,

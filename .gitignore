@@ -112,7 +112,4 @@ uv.lock
 # IDE settings
 .vscode/
 
-# pixi environments
-.pixi
-pixi.lock
 *.egg-info
