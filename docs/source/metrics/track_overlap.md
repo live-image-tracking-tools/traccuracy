@@ -20,8 +20,8 @@ pred_data: TrackingGraph
 results, matched = run_metrics(
     gt_data=gt_data,
     pred_data=pred_data,
-    matcher=PointMatcher(), # Choose a matcher that produces a one-to-one, many-to-one or one-to-many mapping
-    metrics=[TrackOverlapMetrics()]
+    matcher=PointMatcher(),  # Choose a matcher that produces a one-to-one, many-to-one or one-to-many mapping
+    metrics=[TrackOverlapMetrics()],
 )
 ```
 

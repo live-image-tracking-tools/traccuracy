@@ -17,22 +17,11 @@ from traccuracy.matchers import CTCMatcher
 from traccuracy.metrics import CTCMetrics
 
 
-gt_data = load_ctc_data(
-    "path/to/GT/TRA",
-    "path/to/GT/TRA/man_track.txt",
-    name="GT"
-)
-pred_data = load_ctc_data(
-    "path/to/prediction",
-    "path/to/prediction/track.txt",
-    name="prediction"
-)
+gt_data = load_ctc_data("path/to/GT/TRA", "path/to/GT/TRA/man_track.txt", name="GT")
+pred_data = load_ctc_data("path/to/prediction", "path/to/prediction/track.txt", name="prediction")
 
 ctc_results, ctc_matched = run_metrics(
-    gt_data=gt_data,
-    pred_data=pred_data,
-    matcher=CTCMatcher(),
-    metrics=[CTCMetrics()]
+    gt_data=gt_data, pred_data=pred_data, matcher=CTCMatcher(), metrics=[CTCMetrics()]
 )
 ```
 
