@@ -258,304 +258,285 @@ def _spec_graph(nodes: dict, edges: list) -> TrackingGraph:
     return TrackingGraph(g, frame_key="t", label_key=None, location_keys=("z", "y", "x"))
 
 
-@pytest.mark.parametrize("name", sorted(_SANDBOX_CASES))
-def test_edge_and_division_sandbox_parity(name: str) -> None:
-    gt_n, gt_e, pred_n, pred_e, expected, md = _SANDBOX_CASES[name]
-    gt = _spec_graph(gt_n, gt_e)
-    pred = _spec_graph(pred_n, pred_e)
-    assert _counts(pred, gt, md) == expected
-
-
-# ---------------------------------------------------------------------------
-# Edge-Jaccard unit tests, ported from the competition test_metrics.py.
-# Every position is on the z=y=x axes; distances are Euclidean.
-# ---------------------------------------------------------------------------
-
-
 def _line(n: int) -> dict:
+    """Nodes on a line, one per frame, at x = t (all on the z=y=0 axes)."""
     return {i: {"t": i, "z": 0.0, "y": 0.0, "x": float(i)} for i in range(n)}
 
 
-def test_perfect_prediction_scores_one() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
+class Test__edge_counts:
+    def test_perfect_prediction_scores_one(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
 
+    def test_extra_edge_at_track_end_not_penalized(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(4), [(0, 1), (1, 2), (2, 3)])
+        assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
 
-def test_extra_edge_at_track_end_not_penalized() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(4), [(0, 1), (1, 2), (2, 3)])
-    assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
+    def test_extra_edge_at_track_start_not_penalized(self) -> None:
+        gt_nodes = {i: {"t": i, "z": 0.0, "y": 0.0, "x": float(i)} for i in range(1, 4)}
+        gt = _build(gt_nodes, [(1, 2), (2, 3)])
+        pred = _build(_line(4), [(0, 1), (1, 2), (2, 3)])
+        assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
 
+    def test_spurious_edge_to_gt_interior_is_penalized(self) -> None:
+        # GT: A(0) -> B(1) -> C(2); D is a far background node at t=1. A forward spurious edge
+        # touching a GT node with known degree is a valid-timing FP. (Backward/same-frame
+        # edges cannot be constructed on a TrackingGraph, so they need no test here.)
+        base = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},  # A start
+            1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},  # B interior
+            2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},  # C end
+        }
+        d = {3: {"t": 1, "z": 100.0, "y": 100.0, "x": 100.0}}
+        penalized = 2 / 3  # 2 / (2 + 1 valid-timing FP)
 
-def test_extra_edge_at_track_start_not_penalized() -> None:
-    gt_nodes = {i: {"t": i, "z": 0.0, "y": 0.0, "x": float(i)} for i in range(1, 4)}
-    gt = _build(gt_nodes, [(1, 2), (2, 3)])
-    pred = _build(_line(4), [(0, 1), (1, 2), (2, 3)])
-    assert _edge_jaccard(pred, gt, 0.5) == pytest.approx(1.0)
+        def pred(extra):
+            return _build({**base, **d}, [(0, 1), (1, 2), extra])
 
+        def gt():
+            return _build(dict(base), [(0, 1), (1, 2)])
 
-def test_spurious_edge_to_gt_interior_is_penalized() -> None:
-    # GT: A(0) -> B(1) -> C(2); D is a far background node at t=1. A forward spurious edge
-    # touching a GT node with known degree is a valid-timing FP. (Backward/same-frame
-    # edges cannot be constructed on a TrackingGraph, so they need no test here.)
-    base = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},  # A start
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},  # B interior
-        2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},  # C end
-    }
-    d = {3: {"t": 1, "z": 100.0, "y": 100.0, "x": 100.0}}
-    penalized = 2 / 3  # 2 / (2 + 1 valid-timing FP)
+        assert _edge_jaccard(pred((3, 2)), gt(), 5.0) == pytest.approx(penalized)  # D->C fwd
+        assert _edge_jaccard(pred((0, 3)), gt(), 5.0) == pytest.approx(penalized)  # A->D fwd
 
-    def pred(extra):
-        return _build({**base, **d}, [(0, 1), (1, 2), extra])
+    def test_missing_division_child_penalized(self) -> None:
+        nodes = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+            1: {"t": 1, "z": 0.0, "y": 10.0, "x": 0.0},
+            2: {"t": 1, "z": 0.0, "y": -10.0, "x": 0.0},
+        }
+        gt = _build(nodes, [(0, 1), (0, 2)])
+        pred = _build(nodes, [(0, 1)])
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1 / 2)
 
-    def gt():
-        return _build(dict(base), [(0, 1), (1, 2)])
+    def test_division_spurious_third_child_dropped_by_cap(self) -> None:
+        # GT divides node 1 -> {2, 3}. Predicting a spurious 3rd child gives node 1 three
+        # outgoing edges; the out-degree cap keeps the first two (the GT ones) and drops the
+        # third, so the spurious child is invisible and the edge score stays 1.0.
+        nodes = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+            1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
+            2: {"t": 2, "z": 0.0, "y": 10.0, "x": 0.0},
+            3: {"t": 2, "z": 0.0, "y": -10.0, "x": 0.0},
+        }
+        gt_edges = [(0, 1), (1, 2), (1, 3)]
+        gt = _build(nodes, gt_edges)
+        pred_nodes = {**nodes, 4: {"t": 2, "z": 100.0, "y": 100.0, "x": 100.0}}
+        pred = _build(pred_nodes, [*gt_edges, (1, 4)])
+        assert _edge_jaccard(pred, gt, 5.0) == pytest.approx(1.0)
 
-    assert _edge_jaccard(pred((3, 2)), gt(), 5.0) == pytest.approx(penalized)  # D->C fwd
-    assert _edge_jaccard(pred((0, 3)), gt(), 5.0) == pytest.approx(penalized)  # A->D fwd
-
-
-def test_missing_division_child_penalized() -> None:
-    nodes = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 10.0, "x": 0.0},
-        2: {"t": 1, "z": 0.0, "y": -10.0, "x": 0.0},
-    }
-    gt = _build(nodes, [(0, 1), (0, 2)])
-    pred = _build(nodes, [(0, 1)])
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1 / 2)
-
-
-def test_division_spurious_third_child_dropped_by_cap() -> None:
-    # GT divides node 1 -> {2, 3}. Predicting a spurious 3rd child gives node 1 three
-    # outgoing edges; the out-degree cap keeps the first two (the GT ones) and drops the
-    # third, so the spurious child is invisible and the edge score stays 1.0.
-    nodes = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
-        2: {"t": 2, "z": 0.0, "y": 10.0, "x": 0.0},
-        3: {"t": 2, "z": 0.0, "y": -10.0, "x": 0.0},
-    }
-    gt_edges = [(0, 1), (1, 2), (1, 3)]
-    gt = _build(nodes, gt_edges)
-    pred_nodes = {**nodes, 4: {"t": 2, "z": 100.0, "y": 100.0, "x": 100.0}}
-    pred = _build(pred_nodes, [*gt_edges, (1, 4)])
-    assert _edge_jaccard(pred, gt, 5.0) == pytest.approx(1.0)
-
-
-def test_cross_track_forward_edge_penalized() -> None:
-    # Two tracks A(0)->B(1)->C(2) and D(0)->E(1)->F(2). A forward cross-track edge B->F
-    # (t=1->2, B.out_deg=1) is a valid-timing FP.
-    nodes = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
-        2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
-        3: {"t": 0, "z": 0.0, "y": 50.0, "x": 0.0},
-        4: {"t": 1, "z": 0.0, "y": 50.0, "x": 0.0},
-        5: {"t": 2, "z": 0.0, "y": 50.0, "x": 0.0},
-    }
-    gt_edges = [(0, 1), (1, 2), (3, 4), (4, 5)]
-    gt = _build(nodes, gt_edges)
-    # B->F (1->5): intersection=4, valid_pred=5, gt=4 -> 4/5
-    assert _edge_jaccard(_build(nodes, [*gt_edges, (1, 5)]), gt, 1.0) == pytest.approx(4 / 5)
-
-
-def test_reparenting_node_penalized() -> None:
-    gt = _build(
-        {
+    def test_cross_track_forward_edge_penalized(self) -> None:
+        # Two tracks A(0)->B(1)->C(2) and D(0)->E(1)->F(2). A forward cross-track edge B->F
+        # (t=1->2, B.out_deg=1) is a valid-timing FP.
+        nodes = {
             0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
             1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
             2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
-        },
-        [(0, 1), (1, 2)],
-    )
-    pred = _build(
-        {
-            3: {"t": 0, "z": 100.0, "y": 100.0, "x": 100.0},
+            3: {"t": 0, "z": 0.0, "y": 50.0, "x": 0.0},
+            4: {"t": 1, "z": 0.0, "y": 50.0, "x": 0.0},
+            5: {"t": 2, "z": 0.0, "y": 50.0, "x": 0.0},
+        }
+        gt_edges = [(0, 1), (1, 2), (3, 4), (4, 5)]
+        gt = _build(nodes, gt_edges)
+        # B->F (1->5): intersection=4, valid_pred=5, gt=4 -> 4/5
+        assert _edge_jaccard(_build(nodes, [*gt_edges, (1, 5)]), gt, 1.0) == pytest.approx(4 / 5)
+
+    def test_reparenting_node_penalized(self) -> None:
+        gt = _build(
+            {
+                0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+                1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
+                2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
+            },
+            [(0, 1), (1, 2)],
+        )
+        pred = _build(
+            {
+                3: {"t": 0, "z": 100.0, "y": 100.0, "x": 100.0},
+                1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
+                2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
+            },
+            [(3, 1), (1, 2)],
+        )
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1 / 3)
+
+    def test_dense_bipartite_cross_edges_capped_by_id(self) -> None:
+        # GT: A0->B0, A1->B1, A2->B2. Pred is the full 3x3 bipartite; each source has 3
+        # forward edges, so the out-degree cap keeps its first two (insertion order) and
+        # drops the third. A2's true edge A2->B2 is inserted last and dropped:
+        # intersection=2, valid_pred=6, gt=3 -> 2/(3+6-2) = 2/7.
+        nodes = {}
+        for i in range(3):
+            nodes[i] = {"t": 0, "z": 0.0, "y": float(i * 50), "x": 0.0}
+            nodes[i + 3] = {"t": 1, "z": 0.0, "y": float(i * 50), "x": 0.0}
+        gt = _build(nodes, [(i, i + 3) for i in range(3)])
+        pred = _build(nodes, [(i, j + 3) for i in range(3) for j in range(3)])
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(2 / 7)
+
+    def test_skip_connection_scores_zero(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 2)])
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(0.0)
+
+    def test_false_merge_into_interior_penalized(self) -> None:
+        gt_nodes = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
             1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
             2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
-        },
-        [(3, 1), (1, 2)],
-    )
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1 / 3)
+        }
+        gt = _build(gt_nodes, [(0, 1), (1, 2)])
+        pred = _build(
+            {**gt_nodes, 3: {"t": 0, "z": 100.0, "y": 100.0, "x": 100.0}},
+            [(0, 1), (1, 2), (3, 1)],
+        )
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(2 / 3)
+
+    def test_score_asymmetric_big_pred_vs_small_gt(self) -> None:
+        small = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+            1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
+        }
+        big = {**small, 2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0}}
+        assert _edge_jaccard(
+            _build(big, [(0, 1), (1, 2)]), _build(small, [(0, 1)]), 1.0
+        ) == pytest.approx(1.0)
+        assert _edge_jaccard(
+            _build(small, [(0, 1)]), _build(big, [(0, 1), (1, 2)]), 1.0
+        ) == pytest.approx(0.5)
+
+    def test_unmatched_noise_edges_invisible(self) -> None:
+        nodes = {
+            0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+            1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
+            2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
+        }
+        gt = _build(nodes, [(0, 1), (1, 2)])
+        pred_nodes = dict(nodes)
+        for i in range(20):
+            pred_nodes[10 + i] = {"t": i, "z": 500.0 + i, "y": 500.0 + i, "x": 500.0 + i}
+        noise = [(10 + i, 10 + i + 1) for i in range(19)]  # forward chain, far from all GT
+        pred = _build(pred_nodes, [(0, 1), (1, 2), *noise])
+        assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1.0)
+
+    def test_distance_threshold_inclusive(self) -> None:
+        def two(y: float) -> dict:
+            return {
+                0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
+                1: {"t": 1, "z": 0.0, "y": y, "x": 0.0},
+            }
+
+        gt = _build(two(0.0), [(0, 1)])
+        assert _edge_jaccard(_build(two(14.0), [(0, 1)]), gt, 15.0) == pytest.approx(1.0)
+        assert _edge_jaccard(_build(two(16.0), [(0, 1)]), gt, 15.0) == pytest.approx(0.0)
 
 
-def test_dense_bipartite_cross_edges_capped_by_id() -> None:
-    # GT: A0->B0, A1->B1, A2->B2. Pred is the full 3x3 bipartite; each source has 3
-    # forward edges, so the out-degree cap keeps its first two (insertion order) and
-    # drops the third. A2's true edge A2->B2 is inserted last and dropped:
-    # intersection=2, valid_pred=6, gt=3 -> 2/(3+6-2) = 2/7.
-    nodes = {}
-    for i in range(3):
-        nodes[i] = {"t": 0, "z": 0.0, "y": float(i * 50), "x": 0.0}
-        nodes[i + 3] = {"t": 1, "z": 0.0, "y": float(i * 50), "x": 0.0}
-    gt = _build(nodes, [(i, i + 3) for i in range(3)])
-    pred = _build(nodes, [(i, j + 3) for i in range(3) for j in range(3)])
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(2 / 7)
+class Test__division_counts:
+    @pytest.mark.parametrize("name", sorted(_SANDBOX_CASES))
+    def test_matches_competition_sandbox_cases(self, name: str) -> None:
+        gt_n, gt_e, pred_n, pred_e, expected, md = _SANDBOX_CASES[name]
+        gt = _spec_graph(gt_n, gt_e)
+        pred = _spec_graph(pred_n, pred_e)
+        assert _counts(pred, gt, md) == expected
 
 
-def test_skip_connection_scores_zero() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 2)])
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(0.0)
+class Test__compute:
+    def test_node_recall_and_num_pred_nodes(self) -> None:
+        # GT track of 3 nodes; prediction matches 2 of them plus an extra background node.
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(
+            {10: _node(0, 0), 11: _node(1, 0), 12: _node(5, 500)},
+            [(10, 11)],
+        )
+        results, _ = run_metrics(
+            gt, pred, PointMatcher(threshold=1.0), [SparseWeightedEdgeDivisionJaccard()]
+        )
+        r = results[0]["results"]
+        assert r["num_pred_nodes"] == 3
+        assert r["node_recall"] == pytest.approx(2 / 3)  # 2 of 3 GT nodes matched
 
+    def test_adjusted_jaccard_nan_without_estimate(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        results, _ = run_metrics(
+            gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard()]
+        )
+        r = results[0]["results"]
+        # Without n_gt_nodes the excess-node penalty is skipped: ratio and adjusted Jaccard
+        # are NaN, but score falls back to the raw edge Jaccard so it stays usable.
+        assert math.isnan(r["total_node_ratio"])
+        assert math.isnan(r["adj_edge_jaccard"])
+        assert r["edge_jaccard"] == pytest.approx(1.0)
+        assert r["score"] == pytest.approx(1.0)
 
-def test_false_merge_into_interior_penalized() -> None:
-    gt_nodes = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
-        2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
-    }
-    gt = _build(gt_nodes, [(0, 1), (1, 2)])
-    pred = _build(
-        {**gt_nodes, 3: {"t": 0, "z": 100.0, "y": 100.0, "x": 100.0}},
-        [(0, 1), (1, 2), (3, 1)],
-    )
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(2 / 3)
+    def test_adjusted_jaccard_penalizes_excess_nodes(self) -> None:
+        # Perfect edges (jaccard 1.0), but 3 predicted nodes vs an estimate of 2 true nodes.
+        gt = _build(_line(2), [(0, 1)])
+        pred = _build(
+            _line(3), [(0, 1), (1, 2)]
+        )  # extra node 2, edge (1,2) invisible -> jaccard 1.0
+        results, _ = run_metrics(
+            gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard(n_gt_nodes=2)]
+        )
+        r = results[0]["results"]
+        assert r["edge_jaccard"] == pytest.approx(1.0)
+        assert r["total_node_ratio"] == pytest.approx((3 - 2) / 2)
+        # adj = 1.0 * (1 - 0.1 * 0.5) = 0.95
+        assert r["adj_edge_jaccard"] == pytest.approx(0.95)
+        assert r["score"] == pytest.approx(0.95)  # no divisions -> division term dropped
 
+    def test_score_includes_division_term(self) -> None:
+        # A graph with a division so division_jaccard is finite and enters the score.
+        nodes = {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 5), 3: _node(2, -5)}
+        edges = [(0, 1), (1, 2), (1, 3)]
+        gt = _build(nodes, edges)
+        pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
+        n_pred = pred.graph.number_of_nodes()
+        results, _ = run_metrics(
+            gt,
+            pred,
+            PointMatcher(threshold=7.0),
+            [SparseWeightedEdgeDivisionJaccard(n_gt_nodes=n_pred)],
+        )
+        r = results[0]["results"]
+        assert r["division_jaccard"] == pytest.approx(1.0)
+        # total_node_ratio == 0 -> adj == edge_jaccard; score = adj + 0.1 * division_jaccard
+        assert r["adj_edge_jaccard"] == pytest.approx(r["edge_jaccard"])
+        assert r["score"] == pytest.approx(r["adj_edge_jaccard"] + 0.1 * r["division_jaccard"])
 
-def test_score_asymmetric_big_pred_vs_small_gt() -> None:
-    small = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
-    }
-    big = {**small, 2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0}}
-    assert _edge_jaccard(
-        _build(big, [(0, 1), (1, 2)]), _build(small, [(0, 1)]), 1.0
-    ) == pytest.approx(1.0)
-    assert _edge_jaccard(
-        _build(small, [(0, 1)]), _build(big, [(0, 1), (1, 2)]), 1.0
-    ) == pytest.approx(0.5)
+    def test_empty_prediction_scores_zero_edges(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        empty = TrackingGraph(
+            nx.DiGraph(), frame_key="t", label_key=None, location_keys=("z", "y", "x")
+        )
+        results, _ = run_metrics(
+            gt, empty, PointMatcher(threshold=1.0), [SparseWeightedEdgeDivisionJaccard()]
+        )
+        r = results[0]["results"]
+        assert (r["swedj_edge_tp"], r["swedj_edge_fp"], r["swedj_edge_fn"]) == (0, 0, 2)
+        assert r["edge_jaccard"] == pytest.approx(0.0)
 
+    def test_relax_skips_warns_and_is_ignored(self) -> None:
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        matched = PointMatcher(threshold=0.5).compute_mapping(gt, pred)
+        with pytest.warns(UserWarning, match="does not support relaxing skip edges"):
+            SparseWeightedEdgeDivisionJaccard()._compute(matched, relax_skips_gt=True)
 
-def test_unmatched_noise_edges_invisible() -> None:
-    nodes = {
-        0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0},
-        1: {"t": 1, "z": 0.0, "y": 0.0, "x": 0.0},
-        2: {"t": 2, "z": 0.0, "y": 0.0, "x": 0.0},
-    }
-    gt = _build(nodes, [(0, 1), (1, 2)])
-    pred_nodes = dict(nodes)
-    for i in range(20):
-        pred_nodes[10 + i] = {"t": i, "z": 500.0 + i, "y": 500.0 + i, "x": 500.0 + i}
-    noise = [(10 + i, 10 + i + 1) for i in range(19)]  # forward chain, far from all GT
-    pred = _build(pred_nodes, [(0, 1), (1, 2), *noise])
-    assert _edge_jaccard(pred, gt, 1.0) == pytest.approx(1.0)
-
-
-def test_distance_threshold_inclusive() -> None:
-    def two(y: float) -> dict:
-        return {0: {"t": 0, "z": 0.0, "y": 0.0, "x": 0.0}, 1: {"t": 1, "z": 0.0, "y": y, "x": 0.0}}
-
-    gt = _build(two(0.0), [(0, 1)])
-    assert _edge_jaccard(_build(two(14.0), [(0, 1)]), gt, 15.0) == pytest.approx(1.0)
-    assert _edge_jaccard(_build(two(16.0), [(0, 1)]), gt, 15.0) == pytest.approx(0.0)
-
-
-# ---------------------------------------------------------------------------
-# Derived outputs: node recall, adjusted Jaccard, combined score.
-# ---------------------------------------------------------------------------
-
-
-def test_node_recall_and_num_pred_nodes() -> None:
-    # GT track of 3 nodes; prediction matches 2 of them plus an extra background node.
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(
-        {10: _node(0, 0), 11: _node(1, 0), 12: _node(5, 500)},
-        [(10, 11)],
-    )
-    results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=1.0), [SparseWeightedEdgeDivisionJaccard()]
-    )
-    r = results[0]["results"]
-    assert r["num_pred_nodes"] == 3
-    assert r["node_recall"] == pytest.approx(2 / 3)  # 2 of 3 GT nodes matched
-
-
-def test_adjusted_jaccard_nan_without_estimate() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard()]
-    )
-    r = results[0]["results"]
-    # Without n_gt_nodes the excess-node penalty is skipped: ratio and adjusted Jaccard
-    # are NaN, but score falls back to the raw edge Jaccard so it stays usable.
-    assert math.isnan(r["total_node_ratio"])
-    assert math.isnan(r["adj_edge_jaccard"])
-    assert r["edge_jaccard"] == pytest.approx(1.0)
-    assert r["score"] == pytest.approx(1.0)
-
-
-def test_adjusted_jaccard_penalizes_excess_nodes() -> None:
-    # Perfect edges (jaccard 1.0), but 3 predicted nodes vs an estimate of 2 true nodes.
-    gt = _build(_line(2), [(0, 1)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])  # extra node 2, edge (1,2) invisible -> jaccard 1.0
-    results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard(n_gt_nodes=2)]
-    )
-    r = results[0]["results"]
-    assert r["edge_jaccard"] == pytest.approx(1.0)
-    assert r["total_node_ratio"] == pytest.approx((3 - 2) / 2)
-    # adj = 1.0 * (1 - 0.1 * 0.5) = 0.95
-    assert r["adj_edge_jaccard"] == pytest.approx(0.95)
-    assert r["score"] == pytest.approx(0.95)  # no divisions -> division term dropped
-
-
-def test_score_includes_division_term() -> None:
-    # A graph with a division so division_jaccard is finite and enters the score.
-    nodes = {0: _node(0, 0), 1: _node(1, 0), 2: _node(2, 5), 3: _node(2, -5)}
-    edges = [(0, 1), (1, 2), (1, 3)]
-    gt = _build(nodes, edges)
-    pred = _build({k + 10: v for k, v in nodes.items()}, [(u + 10, v + 10) for u, v in edges])
-    n_pred = pred.graph.number_of_nodes()
-    results, _ = run_metrics(
-        gt,
-        pred,
-        PointMatcher(threshold=7.0),
-        [SparseWeightedEdgeDivisionJaccard(n_gt_nodes=n_pred)],
-    )
-    r = results[0]["results"]
-    assert r["division_jaccard"] == pytest.approx(1.0)
-    # total_node_ratio == 0 -> adj == edge_jaccard; score = adj + 0.1 * division_jaccard
-    assert r["adj_edge_jaccard"] == pytest.approx(r["edge_jaccard"])
-    assert r["score"] == pytest.approx(r["adj_edge_jaccard"] + 0.1 * r["division_jaccard"])
-
-
-def test_empty_prediction_scores_zero_edges() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    empty = TrackingGraph(
-        nx.DiGraph(), frame_key="t", label_key=None, location_keys=("z", "y", "x")
-    )
-    results, _ = run_metrics(
-        gt, empty, PointMatcher(threshold=1.0), [SparseWeightedEdgeDivisionJaccard()]
-    )
-    r = results[0]["results"]
-    assert (r["swedj_edge_tp"], r["swedj_edge_fp"], r["swedj_edge_fn"]) == (0, 0, 2)
-    assert r["edge_jaccard"] == pytest.approx(0.0)
-
-
-def test_relax_skips_warns_and_is_ignored() -> None:
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    matched = PointMatcher(threshold=0.5).compute_mapping(gt, pred)
-    with pytest.warns(UserWarning, match="does not support relaxing skip edges"):
-        SparseWeightedEdgeDivisionJaccard()._compute(matched, relax_skips_gt=True)
-
-
-def test_requires_distance_matcher() -> None:
-    # A one-to-one matcher without a distance threshold fails validation in compute().
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    mapping = [(0, 0), (1, 1), (2, 2)]
-    matched = Matched(gt, pred, mapping, {"name": "DummyMatcher", "matching type": "one-to-one"})
-    with pytest.raises(TypeError, match="does not meet the requirements"):
-        SparseWeightedEdgeDivisionJaccard().compute(matched)
-    # Even bypassing validation, _compute needs a distance threshold to re-match divisions.
-    with pytest.raises(TypeError, match="needs a distance matcher"):
-        SparseWeightedEdgeDivisionJaccard()._compute(matched)
+    def test_requires_distance_matcher(self) -> None:
+        # A one-to-one matcher without a distance threshold fails validation in compute().
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        mapping = [(0, 0), (1, 1), (2, 2)]
+        matched = Matched(
+            gt, pred, mapping, {"name": "DummyMatcher", "matching type": "one-to-one"}
+        )
+        with pytest.raises(TypeError, match="does not meet the requirements"):
+            SparseWeightedEdgeDivisionJaccard().compute(matched)
+        # Even bypassing validation, _compute needs a distance threshold to re-match divisions.
+        with pytest.raises(TypeError, match="needs a distance matcher"):
+            SparseWeightedEdgeDivisionJaccard()._compute(matched)
 
 
 def test_invalid_constructor_args() -> None:
@@ -569,32 +550,26 @@ def test_invalid_constructor_args() -> None:
         SparseWeightedEdgeDivisionJaccard(node_ratio_weight=-1.0)
 
 
-# ---------------------------------------------------------------------------
-# Sparse-safe key classification (SWEDJ has no dense-only keys). The general
-# per-key mechanism is covered in test_base.py / test_sparse_safe_keys.py.
-# ---------------------------------------------------------------------------
+class Test_compute:
+    def test_declares_every_output_key(self) -> None:
+        # Every value SWEDJ returns is declared sparse-safe or agnostic; nothing dense-only.
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        results, _ = run_metrics(
+            gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard()]
+        )
+        metric = SparseWeightedEdgeDivisionJaccard()
+        declared = metric.sparse_safe_keys | metric.agnostic_keys
+        assert set(results[0]["results"]) == declared
 
-
-def test_swedj_declares_every_output_key() -> None:
-    # Every value SWEDJ returns is declared sparse-safe or agnostic; nothing dense-only.
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    results, _ = run_metrics(
-        gt, pred, PointMatcher(threshold=0.5), [SparseWeightedEdgeDivisionJaccard()]
-    )
-    metric = SparseWeightedEdgeDivisionJaccard()
-    declared = metric.sparse_safe_keys | metric.agnostic_keys
-    assert set(results[0]["results"]) == declared
-
-
-def test_swedj_sparse_only_keeps_everything_with_caveat() -> None:
-    # Under sparse_only, SWEDJ loses no keys (none are dense-only) and flags node_recall
-    # as inflatable by over-prediction.
-    gt = _build(_line(3), [(0, 1), (1, 2)])
-    pred = _build(_line(3), [(0, 1), (1, 2)])
-    matched = PointMatcher(threshold=0.5).compute_mapping(gt, pred)
-    metric = SparseWeightedEdgeDivisionJaccard()
-    result = metric.compute(matched, sparse_only=True)
-    assert set(result.results) == (metric.sparse_safe_keys | metric.agnostic_keys)
-    caveats = result.metric_info.get("sparse_metric_warnings", [])
-    assert any("node_recall" in caveat for caveat in caveats)
+    def test_sparse_only_keeps_everything_with_caveat(self) -> None:
+        # Under sparse_only, SWEDJ loses no keys (none are dense-only) and flags node_recall
+        # as inflatable by over-prediction.
+        gt = _build(_line(3), [(0, 1), (1, 2)])
+        pred = _build(_line(3), [(0, 1), (1, 2)])
+        matched = PointMatcher(threshold=0.5).compute_mapping(gt, pred)
+        metric = SparseWeightedEdgeDivisionJaccard()
+        result = metric.compute(matched, sparse_only=True)
+        assert set(result.results) == (metric.sparse_safe_keys | metric.agnostic_keys)
+        caveats = result.metric_info.get("sparse_metric_warnings", [])
+        assert any("node_recall" in caveat for caveat in caveats)
