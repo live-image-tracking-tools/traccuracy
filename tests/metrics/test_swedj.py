@@ -15,11 +15,11 @@ import networkx as nx
 import numpy as np
 import pytest
 
+import tests.examples.graphs as ex_graphs
 from traccuracy import TrackingGraph, run_metrics
 from traccuracy.matchers import PointMatcher
 from traccuracy.matchers._matched import Matched
 from traccuracy.metrics import SparseWeightedEdgeDivisionJaccard
-import tests.examples.graphs as ex_graphs
 
 
 def _build(nodes: dict, edges: list[tuple]) -> TrackingGraph:
@@ -589,12 +589,12 @@ class TestStandardNodeEdge:
 
     def test_empty_gt(self):
         matched = self._prep_matched(ex_graphs.empty_gt())
-        
+
         result = self.metric.compute(matched)
         assert result.results["swedj_edge_tp"] == 0
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 0
-        assert np.isnan(result.results['node_recall'])
+        assert np.isnan(result.results["node_recall"])
         assert np.isnan(result.results["score"])
 
     def test_empty_pred(self):
@@ -604,7 +604,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 0
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 2
-        assert result.results['node_recall'] == 0
+        assert result.results["node_recall"] == 0
         assert result.results["score"] == 0
 
     def test_good_matched(self):
@@ -614,7 +614,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 2
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 0
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
         assert result.results["score"] == 1
 
     def test_fn_node_matched(self):
@@ -625,7 +625,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 1
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 1
-        assert result.results['node_recall'] == 2/3
+        assert result.results["node_recall"] == 2 / 3
 
     def test_fn_edge_matched(self):
         matched = self._prep_matched(ex_graphs.fn_edge_matched(0))
@@ -634,7 +634,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 1
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 1
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
 
     def test_fp_node_matched(self):
         matched = self._prep_matched(ex_graphs.fp_node_matched(0))
@@ -643,7 +643,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 2
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 0
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
 
     def test_fp_edge_matched(self):
         matched = self._prep_matched(ex_graphs.fp_edge_matched(0))
@@ -653,7 +653,7 @@ class TestStandardNodeEdge:
         # FP edge doesn't count as swedj fp unless it's connected to a gt node
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 0
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
 
     def test_crossover_edge(self):
         matched = self._prep_matched(ex_graphs.crossover_edge())
@@ -663,7 +663,7 @@ class TestStandardNodeEdge:
         # Pred edge that is connected to matched nodes but not the right nodes counts as fp
         assert result.results["swedj_edge_fp"] == 1
         assert result.results["swedj_edge_fn"] == 3
-        assert result.results['node_recall'] == 3/6
+        assert result.results["node_recall"] == 3 / 6
 
     # Skipping b/c not one-to-one: node_two_to_one, edge_two_to_one, node_one_to_two,
     # edge_one_to_two, gap_close_two_to_one
@@ -678,7 +678,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_fp"] == 2
         # fn comes from the skip edge
         assert result.results["swedj_edge_fn"] == 1
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
 
     def test_gap_close_pred_gap(self):
         matched = self._prep_matched(ex_graphs.gap_close_pred_gap())
@@ -688,7 +688,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 1
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 2
-        assert result.results['node_recall'] == 3/4
+        assert result.results["node_recall"] == 3 / 4
 
     def test_gap_close_matched_gap(self):
         matched = self._prep_matched(ex_graphs.gap_close_matched_gap())
@@ -698,7 +698,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 1
         assert result.results["swedj_edge_fp"] == 0
         assert result.results["swedj_edge_fn"] == 1
-        assert result.results['node_recall'] == 1
+        assert result.results["node_recall"] == 1
 
     def test_gap_close_offset(self):
         matched = self._prep_matched(ex_graphs.gap_close_offset())
@@ -708,7 +708,7 @@ class TestStandardNodeEdge:
         assert result.results["swedj_edge_tp"] == 0
         assert result.results["swedj_edge_fp"] == 1
         assert result.results["swedj_edge_fn"] == 2
-        assert result.results['node_recall'] == 2/3
+        assert result.results["node_recall"] == 2 / 3
 
     def test_all_basic_errors(self):
         matched = self._prep_matched(ex_graphs.all_basic_errors())
@@ -718,4 +718,162 @@ class TestStandardNodeEdge:
         # The edge (11,12) does not count as a fp because one of the nodes is unmatched
         assert result.results["swedj_edge_fp"] == 3
         assert result.results["swedj_edge_fn"] == 6
-        assert result.results['node_recall'] == 5/8
+        assert result.results["node_recall"] == 5 / 8
+
+
+class TestStandardDivision:
+    metric = SparseWeightedEdgeDivisionJaccard()
+
+    def _prep_matched(self, matched: Matched):
+        matched.matcher_info = {
+            "threshold": 2,
+        }
+        matched._matching_type = "one-to-one"
+        # KDTree seems to fail on 1D data so adding an extra dimension here
+        return ex_graphs.add_x_dimension(matched)
+
+    def test_empty_pred_div(self):
+        matched = self._prep_matched(ex_graphs.empty_pred_div(1))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
+
+    def test_empty_gt_div(self):
+        matched = self._prep_matched(ex_graphs.empty_gt_div(1))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        # Pred div doesn't count as an fp b/c not matched to gt
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    @pytest.mark.parametrize("t_div", [0, 1, 2])
+    def test_good_div(self, t_div):
+        matched = self._prep_matched(ex_graphs.good_div(t_div))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    @pytest.mark.parametrize("t_div", [0, 1])
+    def test_fp_div(self, t_div):
+        matched = self._prep_matched(ex_graphs.fp_div(t_div))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 0
+
+    @pytest.mark.parametrize("t_div", [0, 1])
+    def test_one_child(self, t_div):
+        matched = self._prep_matched(ex_graphs.one_child(t_div))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
+
+    @pytest.mark.parametrize("t_div", [0, 1])
+    def test_no_children(self, t_div):
+        matched = self._prep_matched(ex_graphs.no_children(t_div))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
+
+    @pytest.mark.parametrize("t_div", [0, 1])
+    def test_wrong_child(self, t_div):
+        matched = self._prep_matched(ex_graphs.wrong_child(t_div))
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 1
+
+    def test_wrong_children_0(self):
+        matched = self._prep_matched(ex_graphs.wrong_children(0))
+
+        result = self.metric.compute(matched)
+        # frame tolerance matches these divisions b/c the daughters in t=2 are matched
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    def test_wrong_children_1(self):
+        matched = self._prep_matched(ex_graphs.wrong_children(1))
+        # TODO: not sure why this is passing as a tp division
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 1
+
+    def test_div_daughter_gap(self):
+        matched = self._prep_matched(ex_graphs.div_daughter_gap())
+        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
+
+    def test_div_daughter_dual_gap(self):
+        matched = self._prep_matched(ex_graphs.div_daughter_dual_gap())
+        # TODO: same issue as div_daughter_gap
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==
+
+    # def test_template(self):
+    #     matched = self._prep_matched(ex_graphs.template())
+
+    #     result = self.metric.compute(matched)
+    #     assert result.results["swedj_division_tp"] ==
+    #     assert result.results["swedj_division_fp"] ==
+    #     assert result.results["swedj_division_fn"] ==

@@ -34,6 +34,35 @@ def basic_graph(node_ids=(1, 2, 3), y_offset=0, t_offset=0, frame_key="t", locat
     return TrackingGraph(graph, frame_key=frame_key, location_keys=location_keys)
 
 
+def add_x_dimension(matched, x_key="x", y_key="y"):
+    """Convert a 1d + t Matched example into a 2d + t one.
+
+    Returns a new Matched whose gt and pred graphs have an additional spatial
+    attribute x_key on every node, equal to the node's y_key value, and
+    location_keys (x_key, y_key). The input is not modified. Empty graphs
+    (which have no location keys) are returned as empty copies.
+    """
+
+    def _expand(tracking_graph):
+        graph = tracking_graph.graph.copy()
+        if tracking_graph.location_keys is None:
+            return TrackingGraph(graph, frame_key=tracking_graph.frame_key)
+        for _, attrs in graph.nodes(data=True):
+            attrs[x_key] = attrs[y_key]
+        return TrackingGraph(
+            graph,
+            frame_key=tracking_graph.frame_key,
+            location_keys=(x_key, y_key),
+        )
+
+    return Matched(
+        _expand(matched.gt_graph),
+        _expand(matched.pred_graph),
+        list(matched.mapping),
+        dict(matched.matcher_info),
+    )
+
+
 # edge cases
 def empty_pred():
     gt = basic_graph()
