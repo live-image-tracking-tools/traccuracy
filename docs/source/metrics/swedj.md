@@ -39,7 +39,8 @@ results, matched = run_metrics(
 
 Predicted edges are first hardened against implausible topology: only edges spanning a
 single forward timepoint ($t_{target} = t_{source} + 1$) are scored — backward,
-same-frame and gap-closing edges are dropped — and each source keeps at most two
+same-frame and gap-closing edges are dropped (from the solution, but not the ground truth)
+— and each source keeps at most two
 outgoing edges (a division has at most two children), so surplus children are dropped
 too. A surviving predicted edge $(u, v)$ is a **true positive** when both endpoints are
 matched to ground truth nodes $g_u$ and $g_v$ that are connected by a ground truth edge.
