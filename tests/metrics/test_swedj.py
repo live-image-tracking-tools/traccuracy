@@ -725,12 +725,13 @@ class TestStandardDivision:
     metric = SparseWeightedEdgeDivisionJaccard()
 
     def _prep_matched(self, matched: Matched):
+        # KDTree seems to fail on 1D data so adding an extra dimension here
+        matched = ex_graphs.add_x_dimension(matched)
         matched.matcher_info = {
             "threshold": 2,
         }
         matched._matching_type = "one-to-one"
-        # KDTree seems to fail on 1D data so adding an extra dimension here
-        return ex_graphs.add_x_dimension(matched)
+        return matched
 
     def test_empty_pred_div(self):
         matched = self._prep_matched(ex_graphs.empty_pred_div(1))
@@ -830,50 +831,103 @@ class TestStandardDivision:
         assert result.results["swedj_division_fp"] == 0
         assert result.results["swedj_division_fn"] == 1
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    def test_div_parent_gap(self):
+        matched = self._prep_matched(ex_graphs.div_parent_gap())
+        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    def test_div_parent_daughter_gap(self):
+        matched = self._prep_matched(ex_graphs.div_parent_daughter_gap())
+        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    def test_div_shifted_one_side_skip(self):
+        matched = self._prep_matched(ex_graphs.div_shifted_one_side_skip())
+        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 1
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    @pytest.mark.parametrize(
+        "matched", [ex_graphs.div_1early_end(), ex_graphs.div_1early_mid()], ids=["end", "mid"]
+    )
+    def test_div_1early(self, matched):
+        matched = self._prep_matched(matched)
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    @pytest.mark.parametrize(
+        "matched", [ex_graphs.div_2early_end(), ex_graphs.div_2early_mid()], ids=["end", "mid"]
+    )
+    def test_div_2early(self, matched):
+        matched = self._prep_matched(matched)
+        # Frame tolerance only supports +/- 1 frame
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 1
 
-    # def test_template(self):
-    #     matched = self._prep_matched(ex_graphs.template())
+    @pytest.mark.parametrize(
+        "matched", [ex_graphs.div_1late_end(), ex_graphs.div_1late_mid()], ids=["end", "mid"]
+    )
+    def test_div_1late(self, matched):
+        matched = self._prep_matched(matched)
 
-    #     result = self.metric.compute(matched)
-    #     assert result.results["swedj_division_tp"] ==
-    #     assert result.results["swedj_division_fp"] ==
-    #     assert result.results["swedj_division_fn"] ==
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    @pytest.mark.parametrize(
+        "matched", [ex_graphs.div_2late_end(), ex_graphs.div_2late_mid()], ids=["end", "mid"]
+    )
+    def test_div_2late(self, matched):
+        matched = self._prep_matched(matched)
+        # Frame tolerance only supports +/- 1 frame
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 1
+
+    def test_div_shift_min_match(self):
+        matched = self._prep_matched(ex_graphs.div_shift_min_match())
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    def test_div_shift_bad_match_pred(self):
+        matched = self._prep_matched(ex_graphs.div_shift_bad_match_pred())
+        # NOTE: this matching is sufficient for this division to pass on swedj
+        # But would not pass our implementation for shifted divisions
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
+
+    def test_div_shift_bad_match_daughter(self):
+        matched = self._prep_matched(ex_graphs.div_shift_bad_match_daughter())
+        # NOTE: this matching is sufficient for this division to pass on swedj
+        # But would not pass our implementation for shifted divisions
+
+        result = self.metric.compute(matched)
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
