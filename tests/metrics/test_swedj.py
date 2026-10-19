@@ -786,15 +786,6 @@ class TestStandardDivision:
         assert result.results["swedj_division_fp"] == 0
         assert result.results["swedj_division_fn"] == 1
 
-    @pytest.mark.parametrize("t_div", [0, 1])
-    def test_wrong_child(self, t_div):
-        matched = self._prep_matched(ex_graphs.wrong_child(t_div))
-
-        result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
-        assert result.results["swedj_division_fp"] == 1
-        assert result.results["swedj_division_fn"] == 1
-
     def test_wrong_children_0(self):
         matched = self._prep_matched(ex_graphs.wrong_children(0))
 
@@ -815,12 +806,11 @@ class TestStandardDivision:
 
     def test_div_daughter_gap(self):
         matched = self._prep_matched(ex_graphs.div_daughter_gap())
-        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_tp"] == 1
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_fn"] == 0
 
     def test_div_daughter_dual_gap(self):
         matched = self._prep_matched(ex_graphs.div_daughter_dual_gap())

@@ -142,6 +142,12 @@ def crossover_edge():
     gtb = basic_graph(node_ids=(4, 5, 6), y_offset=1).graph
     gta.add_nodes_from(gtb.nodes(data=True))
     gta.add_edges_from(gtb.edges(data=True))
+
+    # Move nodes to prevent unintended distance matching
+    gta.nodes[5]["y"] = 1.2
+    gta.nodes[6]["y"] = 1.2
+    gta.nodes[4]["y"] = 0.6
+
     gt = TrackingGraph(gta, location_keys=("y"))
     pred = basic_graph(node_ids=(7, 8, 9), y_offset=0.5)
     mapping = [(4, 7), (2, 8), (3, 9)]
@@ -525,6 +531,10 @@ def wrong_children(t_div):
     start_id = max(gt.graph.nodes) + 1
     pred = basic_division(t_div, start_id=start_id, y_offset=0.5)
 
+    # Move nodes to prevent unintended distance matching
+    pred.nodes[7]["y"] = 4
+    pred.nodes[8]["y"] = -4
+
     # mapping of the two basic div graphs
     mapping = list(zip(range(1, start_id), range(start_id, start_id * 2), strict=False))
     # remove mapping between daughters
@@ -618,6 +628,14 @@ def div_shift_min_match():
     gt = longer_division(1)
     start_id = max(gt.nodes) + 1
     pred = longer_division(2, start_id=start_id, y_offset=0.75)
+
+    # Move nodes to prevent unintended distance matching
+    pred.nodes[13]["y"] = -1
+    pred.nodes[11]["y"] = 5
+    pred.nodes[15]["y"] = -4
+    pred.nodes[14]["y"] = 4
+    pred.nodes[9]["y"] = 4
+
     mapping = [(2, 10), (6, 13), (5, 12)]
     return Matched(gt, pred, mapping, {})
 
@@ -629,7 +647,13 @@ def div_shift_bad_match_pred():
     """
     gt = longer_division(1)
     start_id = max(gt.nodes) + 1
-    pred = longer_division(2, start_id=start_id, y_offset=0.75)
+    pred = longer_division(2, start_id=start_id, y_offset=4)
+
+    # Move nodes to prevent unintended distance matching
+    pred.nodes[9]["y"] = 0.75
+    pred.nodes[12]["y"] = 1.25
+    pred.nodes[13]["y"] = 0
+
     mapping = [(1, 9), (6, 13), (5, 12)]
     return Matched(gt, pred, mapping, {})
 
@@ -641,7 +665,13 @@ def div_shift_bad_match_daughter():
     """
     gt = longer_division(1)
     start_id = max(gt.nodes) + 1
-    pred = longer_division(2, start_id=start_id, y_offset=0.75)
+    pred = longer_division(2, start_id=start_id, y_offset=4)
+
+    # Move nodes to prevent unintended distance matching
+    pred.nodes[10]["y"] = 0.75
+    pred.nodes[14]["y"] = 1.25
+    pred.nodes[15]["y"] = 0
+
     mapping = [(2, 10), (7, 14), (8, 15)]
     return Matched(gt, pred, mapping, {})
 
@@ -670,6 +700,11 @@ def div_daughter_gap():
     # Remove one daughter node from prediction
     pred.remove_node(11)
     pred.add_edge(10, 13)
+
+    # Move nodes to prevent incorrect distance based matching
+    pred.nodes[12]["y"] = -1
+    pred.nodes[14]["y"] = -1
+
     pred = TrackingGraph(pred, location_keys=("y"))
 
     mapping = [(1, 8), (2, 9), (3, 10), (5, 12), (6, 13), (7, 14)]
@@ -716,6 +751,10 @@ def div_shifted_one_side_skip():
     gt = longer_division(2)
     start_id = max(gt.nodes) + 1
     pred = longer_division(2, start_id, y_offset=0.75).graph
+
+    # Move nodes to prevent unintended distance matching
+    pred.nodes[12]["y"] = -1
+    pred.nodes[14]["y"] = -1
 
     pred.remove_node(11)
     pred.add_edge(9, 13)
