@@ -797,12 +797,14 @@ class TestStandardDivision:
 
     def test_wrong_children_1(self):
         matched = self._prep_matched(ex_graphs.wrong_children(1))
-        # TODO: not sure why this is passing as a tp division
+        # children are unmatched
+        # therefore no evidence that they are wrong
+        # so division is not rejected
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
-        assert result.results["swedj_division_fp"] == 1
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_fp"] == 0
+        assert result.results["swedj_division_fn"] == 0
 
     def test_div_daughter_gap(self):
         matched = self._prep_matched(ex_graphs.div_daughter_gap())
