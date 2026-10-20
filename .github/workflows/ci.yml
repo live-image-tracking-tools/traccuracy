@@ -31,6 +31,11 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         platform: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # oracle tests check against external binaries, one job is enough
+          - python-version: "3.10"
+            platform: ubuntu-latest
+            ctc_oracle: true
 
     steps:
       - uses: actions/checkout@v7
@@ -67,6 +72,8 @@ jobs:
 
       - name: Test
         run: uv run pytest --color=yes --cov --cov-report=xml --cov-report=term-missing
+        env:
+          SKIP_CTC_ORACLE: ${{ !matrix.ctc_oracle }}
 
       - name: Coverage
         uses: codecov/codecov-action@v7

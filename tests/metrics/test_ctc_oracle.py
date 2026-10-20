@@ -22,6 +22,11 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 DOWNLOADS = ROOT_DIR / "downloads"
 EVALUATION_SOFTWARE_URL = "https://public.celltrackingchallenge.net/software/EvaluationSoftware.zip"
 
+pytestmark = pytest.mark.skipif(
+    os.environ.get("SKIP_CTC_ORACLE") == "true",
+    reason="CTC oracle tests only run in one CI job",
+)
+
 LOG_SECTIONS = {
     "Splitting Operations": "ns_nodes",
     "False Negative Vertices": "fn_nodes",
