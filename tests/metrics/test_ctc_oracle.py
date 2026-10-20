@@ -133,10 +133,15 @@ def _run_measure(binary: Path, dataset: Path, sequence: str) -> float:
         text=True,
         timeout=600,
         check=False,
+        # The static Linux binaries (glibc 2.27) segfault in a UTF-8 locale when iconv
+        # dlopens system gconv modules that use DT_RELR relocations (e.g. Ubuntu 26.04)
+        env={**os.environ, "LC_ALL": "C"},
     )
     match = re.search(r"(TRA|DET) measure: ([\d.]+)", proc.stdout)
     if match is None:
-        raise RuntimeError(f"{binary.name} failed:\n{proc.stdout}\n{proc.stderr}")
+        raise RuntimeError(
+            f"{binary.name} failed with exit code {proc.returncode}:\n{proc.stdout}\n{proc.stderr}"
+        )
     return float(match.group(2))
 
 
