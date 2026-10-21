@@ -11,7 +11,7 @@ import seaborn as sns
 from matplotlib.axes import Axes
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-SKIP_FILES = ["__", "base", "compute_overlap"]
+SKIP_FILES = ["__", "base", "compute_overlap", "ctc_oracle"]
 # Add any utility functions here to keep them out of the report
 SKIP_FUNCTIONS = [
     "basic_graph",
