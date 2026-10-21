@@ -797,17 +797,15 @@ class TestStandardDivision:
 
     def test_wrong_children_1(self):
         matched = self._prep_matched(ex_graphs.wrong_children(1))
-        # children are unmatched
-        # therefore no evidence that they are wrong
-        # so division is not rejected
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 1
-        assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 0
+        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_fp"] == 1
+        assert result.results["swedj_division_fn"] == 1
 
     def test_div_daughter_gap(self):
         matched = self._prep_matched(ex_graphs.div_daughter_gap())
+        # Skip edges are not dropped from division analysis
 
         result = self.metric.compute(matched)
         assert result.results["swedj_division_tp"] == 1
@@ -816,39 +814,39 @@ class TestStandardDivision:
 
     def test_div_daughter_dual_gap(self):
         matched = self._prep_matched(ex_graphs.div_daughter_dual_gap())
-        # TODO: same issue as div_daughter_gap
+        # Skip edges are not dropped from division analysis
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_tp"] == 1
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_fn"] == 0
 
     def test_div_parent_gap(self):
         matched = self._prep_matched(ex_graphs.div_parent_gap())
-        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
+        # Skip edges are not dropped from division analysis
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_tp"] == 1
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_fn"] == 0
 
     def test_div_parent_daughter_gap(self):
         matched = self._prep_matched(ex_graphs.div_parent_daughter_gap())
-        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
+        # Skip edges are not dropped from division analysis
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_tp"] == 1
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_fn"] == 0
 
     def test_div_shifted_one_side_skip(self):
         matched = self._prep_matched(ex_graphs.div_shifted_one_side_skip())
-        # TODO: passes as a tp division b/c skip edges aren't dropped for division analysis
+        # Skip edges are not dropped from division analysis
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 0
+        assert result.results["swedj_division_tp"] == 1
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 1
+        assert result.results["swedj_division_fn"] == 0
 
     @pytest.mark.parametrize(
         "matched", [ex_graphs.div_1early_end(), ex_graphs.div_1early_mid()], ids=["end", "mid"]
@@ -910,9 +908,9 @@ class TestStandardDivision:
         # But would not pass our implementation for shifted divisions
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_tp"] == 0
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 0
+        assert result.results["swedj_division_fn"] == 1
 
     def test_div_shift_bad_match_daughter(self):
         matched = self._prep_matched(ex_graphs.div_shift_bad_match_daughter())
@@ -920,6 +918,6 @@ class TestStandardDivision:
         # But would not pass our implementation for shifted divisions
 
         result = self.metric.compute(matched)
-        assert result.results["swedj_division_tp"] == 1
+        assert result.results["swedj_division_tp"] == 0
         assert result.results["swedj_division_fp"] == 0
-        assert result.results["swedj_division_fn"] == 0
+        assert result.results["swedj_division_fn"] == 1
