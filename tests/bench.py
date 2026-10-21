@@ -22,6 +22,7 @@ from traccuracy.metrics import (
     CompleteTracksByLength,
     CTCMetrics,
     DivisionMetrics,
+    SparseWeightedEdgeDivisionJaccard,
     TrackOverlapMetrics,
 )
 from traccuracy.metrics._cca import CellCycleAccuracy
@@ -80,6 +81,16 @@ def iou_matched_2d(gt_data_2d, pred_data_2d):
 @pytest.fixture(scope="function")
 def iou_matched_3d(gt_data_3d, pred_data_3d):
     return IOUMatcher(iou_threshold=0.1, one_to_one=True).compute_mapping(gt_data_3d, pred_data_3d)
+
+
+@pytest.fixture(scope="function")
+def point_matched_2d(gt_data_2d, pred_data_2d):
+    return PointMatcher(threshold=50).compute_mapping(gt_data_2d, pred_data_2d)
+
+
+@pytest.fixture(scope="function")
+def point_matched_3d(gt_data_3d, pred_data_3d):
+    return PointMatcher(threshold=50).compute_mapping(gt_data_3d, pred_data_3d)
 
 
 @pytest.mark.parametrize(
@@ -398,5 +409,20 @@ def test_complete_tracks_by_length_metric(benchmark, iou_matched, request):
 
     def run_compute():
         return CompleteTracksByLength(max_length=50, error_type="basic").compute(matched)
+
+    benchmark.pedantic(run_compute, rounds=1, iterations=1)
+
+
+@pytest.mark.timeout(TIMEOUT)
+@pytest.mark.parametrize(
+    "point_matched",
+    ["point_matched_2d", "point_matched_3d"],
+    ids=["2d", "3d"],
+)
+def test_swedj_metric(benchmark, point_matched, request):
+    matched = request.getfixturevalue(point_matched)
+
+    def run_compute():
+        return SparseWeightedEdgeDivisionJaccard().compute(matched)
 
     benchmark.pedantic(run_compute, rounds=1, iterations=1)
