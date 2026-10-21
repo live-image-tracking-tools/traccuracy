@@ -8,6 +8,7 @@ DATASETS = [
     "http://data.celltrackingchallenge.net/training-datasets/Fluo-N2DL-HeLa.zip",
     "http://data.celltrackingchallenge.net/training-datasets/PhC-C2DL-PSC.zip",
     "http://data.celltrackingchallenge.net/training-datasets/Fluo-N3DH-CE.zip",
+    "https://public.celltrackingchallenge.net/software/EvaluationSoftware.zip",
 ]
 
 
