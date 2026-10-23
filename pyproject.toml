@@ -57,12 +57,16 @@ test = [
     "pytest-timeout",
     "tabulate",
 ]
+viz = [
+    "matplotlib",
+]
 dev = [
     "ipython",
     "pdbpp",
     "pre-commit",
     "ruff",
     "traccuracy[test]",
+    "traccuracy[viz]",
     "traccuracy[docs]",
     "traccuracy[typing]"
 ]
