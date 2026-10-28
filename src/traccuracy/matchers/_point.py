@@ -101,8 +101,9 @@ class PointMatcher(Matcher):
         )
 
         # Let's keep threshold * 4 for compatibility. But one could probably do
-        # hard thresholding instead (using hard=True) which is indeed what we want to do
-        links = self._solver.sparse_solve(sdm, self.threshold).T
+        # hard thresholding instead (using cost_limit instead of alternative_cost)
+        # which is indeed what we want to do
+        links = self._solver.sparse_solve(sdm, alternative_cost=self.threshold).T
 
         # Go back to matched node ids from matrix indices
         for row, col in links.T.tolist():
