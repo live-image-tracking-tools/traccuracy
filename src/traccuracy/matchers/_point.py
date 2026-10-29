@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     import numpy as np
-    from scipy.sparse import coo_matrix
+    from scipy.sparse import coo_array
 
     from traccuracy._tracking_graph import TrackingGraph
 
@@ -96,13 +96,14 @@ class PointMatcher(Matcher):
         pred_kdtree = KDTree(pred_locations)
 
         # indices correspond to indices in the gt_nodes, pred_nodes lists
-        sdm: coo_matrix = gt_kdtree.sparse_distance_matrix(
-            pred_kdtree, max_distance=self.threshold, output_type="coo_matrix"
+        sdm: coo_array = gt_kdtree.sparse_distance_matrix(
+            pred_kdtree, max_distance=self.threshold, output_type="coo_array"
         )
 
         # Let's keep threshold * 4 for compatibility. But one could probably do
-        # hard thresholding instead (using hard=True) which is indeed what we want to do
-        links = self._solver.sparse_solve(sdm, self.threshold).T
+        # hard thresholding instead (using cost_limit instead of alternative_cost)
+        # which is indeed what we want to do
+        links = self._solver.sparse_solve(sdm, alternative_cost=self.threshold).T
 
         # Go back to matched node ids from matrix indices
         for row, col in links.T.tolist():

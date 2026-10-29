@@ -110,7 +110,7 @@ def _one_to_one_assignment(
     cost[cost == 1] = np.inf
 
     solver = pylapy.LapSolver(implementation="scipy", sparse_implementation="csgraph")
-    assignments = solver.sparse_solve(cost, eta=unmapped_cost + 1)
+    assignments = solver.sparse_solve(cost, alternative_cost=unmapped_cost + 1)
 
     rows = np.array([gt_label_list[r] for r, _ in assignments], dtype=np.intp)
     cols = np.array([res_label_list[c] for _, c in assignments], dtype=np.intp)
