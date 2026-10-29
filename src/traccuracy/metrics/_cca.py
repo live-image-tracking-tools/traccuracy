@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+from pandas.errors import Pandas4Warning
 from scipy.sparse import coo_array
 from skan.csr import PathGraph, summarize
 
@@ -72,7 +73,16 @@ def _get_lengths(track_graph: TrackingGraph) -> np.ndarray:
 
     csr_graph = weighted_sparse_graph + weighted_sparse_graph.T
     skan_graph = PathGraph.from_graph(adj=csr_graph, node_coordinates=coords_array)
-    summary = summarize(skan_graph, separator="_")
+
+    with warnings.catch_warnings():
+        # skan calls an inplace pandas operation which has been deprecated
+        # and needs to be fixed upstream
+        warnings.filterwarnings(
+            "ignore",
+            message="The inplace keyword in DataFrame.rename is deprecated",
+            category=Pandas4Warning,
+        )
+        summary = summarize(skan_graph, separator="_")
     # branch_type 2 is junction to junction i.e. division to division
     division_to_division = summary[summary.branch_type == 2]
     cycle_lengths = division_to_division.branch_distance.values.astype(np.uint32)
