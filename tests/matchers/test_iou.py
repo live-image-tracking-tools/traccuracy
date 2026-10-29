@@ -459,7 +459,7 @@ def test_matching_from_in_memory():
     gt_ims = load_tiffs(data_dir)
     det_gt_df = _get_node_attributes(gt_ims)
     # drop bbox so it has to be recomputed
-    det_gt_df.drop(columns=["bbox"], inplace=True)
+    det_gt_df = det_gt_df.drop(columns=["bbox"])
 
     names = ["Cell_ID", "Start", "End", "Parent_ID"]
     gt_tracks = pd.read_csv(
