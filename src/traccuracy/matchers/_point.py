@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pylapy
+from scipy.sparse import coo_array
 from scipy.spatial import KDTree
 
 from ._base import Matcher
@@ -12,8 +13,6 @@ if TYPE_CHECKING:
     from typing import Any
 
     import numpy as np
-    from scipy.sparse import coo_matrix
-
     from traccuracy._tracking_graph import TrackingGraph
 
 
@@ -96,9 +95,10 @@ class PointMatcher(Matcher):
         pred_kdtree = KDTree(pred_locations)
 
         # indices correspond to indices in the gt_nodes, pred_nodes lists
-        sdm: coo_matrix = gt_kdtree.sparse_distance_matrix(
+        # Manual conversion to coo_array (`output_type=coo_array`` available from scipy>=1.18)
+        sdm = coo_array(gt_kdtree.sparse_distance_matrix(
             pred_kdtree, max_distance=self.threshold, output_type="coo_matrix"
-        )
+        ))
 
         # Let's keep threshold * 4 for compatibility. But one could probably do
         # hard thresholding instead (using cost_limit instead of alternative_cost)
