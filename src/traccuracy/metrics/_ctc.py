@@ -27,7 +27,7 @@ class AOGMMetrics(Metric):
     Consider eliminating metrics that use the number of false positives.
 
     Args:
-        vertex_ns_weight (float): Weight for vertex/node non-split errors. Defaults to 1
+        vertex_ns_weight (float): Weight for each vertex split operation. Defaults to 1
         vertex_fp_weight (float): Weight for false positive vertex/node errors. Defaults to 1
         vertex_fn_weight (float): Weight for false negative vertex/node errors. Defaults to 1
         edge_fp_weight (float): Weight for false positive edge errors. Defaults to 1
@@ -75,8 +75,10 @@ class AOGMMetrics(Metric):
 
         evaluate_ctc_events(data)
 
+        # Each matched prediction accounts for one ground truth node before any splits.
+        split_operations = len(data.mapping) - len(data.pred_gt_map)
         vertex_error_counts: dict[str, float] = {
-            "ns": len(data.pred_graph.get_nodes_with_flag(NodeFlag.NON_SPLIT)),
+            "ns": split_operations,
             "fp": len(data.pred_graph.get_nodes_with_flag(NodeFlag.CTC_FALSE_POS)),
             "fn": len(data.gt_graph.get_nodes_with_flag(NodeFlag.CTC_FALSE_NEG)),
         }
@@ -193,8 +195,8 @@ class CTCMetrics(AOGMMetrics):
         """Get the DET score from the error counts and total number of gt nodes
 
         Args:
-            errors (dict[str, int]): A dictionary containing the counts
-                of each type of node error (fp_nodes, fn_nodes, ns_nodes)
+            errors (dict[str, float]): Counts of false positives (fp_nodes), false negatives
+                (fn_nodes), and split operations (ns_nodes)
             n_nodes (int): The number of nodes in the ground truth graph
 
         Returns:

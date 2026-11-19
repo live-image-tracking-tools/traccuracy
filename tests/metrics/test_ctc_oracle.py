@@ -61,10 +61,6 @@ class OracleCase:
     known_diffs: dict[str, KnownDiff]
 
 
-NS_DIFF = (
-    "ns_nodes counts non-split pred nodes, but the CTC counts one split operation per extra "
-    "GT node covered by a pred node"
-)
 WS_DIFF = (
     "the CTC treats every parent-child link (track label change) as an inter-track edge, "
     "but traccuracy only considers edges out of divisions and into merges"
@@ -77,8 +73,8 @@ CASES = [
         gt_dir=DOWNLOADS / "testing_dataset/03_GT",
         res_dir=DOWNLOADS / "testing_dataset/03_RES",
         sequence="03",
-        # pred label 8 at t=4 covers 3 GT cells
-        known_diffs={"ns_nodes": KnownDiff(-1, NS_DIFF)},
+        # Predicted label 8 at t=4 covers three ground truth cells and requires two splits.
+        known_diffs={},
     ),
     OracleCase(
         name="Fluo-N2DL-HeLa-01",

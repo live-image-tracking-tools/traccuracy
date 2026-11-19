@@ -33,7 +33,8 @@ and annotates node errors.
 Each type of node error is weighted based on how difficult it would be for a human to correct
 the error by hand. The original Cell Tracking Challenge weights are used for all error types:
 
-- [Non-Split nodes](ctc-node-ns) are weighted 5
+- [Splitting operations](ctc-node-ns) are weighted 5 each. A predicted node matched to $m$ ground
+  truth nodes requires $m - 1$ splits. The `ns_nodes` result reports the number of split operations.
 - [False Negative nodes](ctc-node-fn) are weighted 10
 - [False Positive nodes](ctc-node-fp) are weighted 1
 
