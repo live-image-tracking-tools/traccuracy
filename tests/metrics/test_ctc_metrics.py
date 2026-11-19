@@ -92,6 +92,21 @@ def test_ctc_counts_split_operations():
     assert results["DET"] == pytest.approx(1 - 10 / 50)
     assert results["TRA"] == pytest.approx(1 - 10 / 51.5)
 
+    # Check with false negative node
+    gt.add_node(6, t=1)
+    matched = Matched(TrackingGraph(gt.copy()), TrackingGraph(pred.copy()), mapping, {})
+    results = CTCMetrics().compute(matched).results
+    assert results["ns_nodes"] == 2
+    assert results["fn_nodes"] == 1
+
+    # Check with false positive node
+    gt.remove_node(6)
+    pred.add_node(7, t=1)
+    matched = Matched(TrackingGraph(gt.copy()), TrackingGraph(pred.copy()), mapping, {})
+    results = CTCMetrics().compute(matched).results
+    assert results["ns_nodes"] == 2
+    assert results["fp_nodes"] == 1
+
 
 def test_sparse_only_keeps_only_false_negative_counts():
     # The fn counts are read off the gt graph so they survive sparse filtering, but
