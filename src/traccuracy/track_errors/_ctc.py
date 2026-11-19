@@ -34,7 +34,7 @@ def evaluate_ctc_events(matched_data: Matched) -> None:
 
 
 def get_vertex_errors(matched_data: Matched) -> None:
-    """Count vertex errors and assign class to each comp/gt node.
+    """Annotate prediction and ground truth nodes with CTC error flags.
 
     Parameters
     ----------
@@ -61,7 +61,6 @@ def get_vertex_errors(matched_data: Matched) -> None:
     comp_graph.set_flag_on_all_nodes(NodeFlag.CTC_FALSE_POS, True)
     gt_graph.set_flag_on_all_nodes(NodeFlag.CTC_FALSE_NEG, True)
 
-    ns_count = 0
     for pred_id in tqdm(dict_mapping, desc="Evaluating nodes"):
         gt_ids = dict_mapping[pred_id]
         if len(gt_ids) == 1:
@@ -73,8 +72,6 @@ def get_vertex_errors(matched_data: Matched) -> None:
         elif len(gt_ids) > 1:
             comp_graph.set_flag_on_node(pred_id, NodeFlag.NON_SPLIT, True)
             comp_graph.remove_flag_from_node(pred_id, NodeFlag.CTC_FALSE_POS)
-            # number of split operations that would be required to correct the vertices
-            ns_count += len(gt_ids) - 1
             for gt_id in gt_ids:
                 gt_graph.remove_flag_from_node(gt_id, NodeFlag.CTC_FALSE_NEG)
 

@@ -1,12 +1,14 @@
 import os
 from pathlib import Path
 
+import networkx as nx
 import numpy as np
 import pytest
 
 from tests.test_utils import get_movie_with_graph, gt_data
+from traccuracy import TrackingGraph
 from traccuracy.loaders import load_ctc_data
-from traccuracy.matchers import CTCMatcher
+from traccuracy.matchers import CTCMatcher, Matched
 from traccuracy.metrics import BasicMetrics, CTCMetrics
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -70,6 +72,25 @@ def test_compute_mapping():
     assert "DET" in results
     assert results["TRA"] == 1
     assert results["DET"] == 1
+
+
+def test_ctc_counts_split_operations():
+    gt = nx.DiGraph()
+    gt.add_nodes_from([1, 2, 3, 4], t=0)
+    gt.add_node(5, t=1)
+    gt.add_edge(4, 5)
+
+    # The prediction merges nodes 1, 2, and 3 and keeps the track from 4 to 5.
+    pred = gt.subgraph([1, 4, 5]).copy()
+    mapping = [(1, 1), (2, 1), (3, 1), (4, 4), (5, 5)]
+    matched = Matched(TrackingGraph(gt), TrackingGraph(pred), mapping, {})
+
+    results = CTCMetrics().compute(matched).results
+
+    assert results["ns_nodes"] == 2
+    assert results["AOGM"] == 10
+    assert results["DET"] == pytest.approx(1 - 10 / 50)
+    assert results["TRA"] == pytest.approx(1 - 10 / 51.5)
 
 
 def test_sparse_only_keeps_only_false_negative_counts():
